@@ -6,6 +6,28 @@ let mode = "login";
 let session = null;
 let currentPlan = "free";
 
+const THEME_KEY = "hookengine-account-theme";
+function applyTheme(theme) {
+  const selected = theme === "light" ? "light" : "dark";
+  document.documentElement.dataset.theme = selected;
+  const icon = $("themeIcon");
+  const label = $("themeLabel");
+  const button = $("themeToggle");
+  if (icon) icon.textContent = selected === "dark" ? "☀" : "☾";
+  if (label) label.textContent = selected === "dark" ? "Light mode" : "Dark mode";
+  if (button) {
+    button.setAttribute("aria-label", selected === "dark" ? "Switch to light mode" : "Switch to dark mode");
+    button.title = selected === "dark" ? "Switch to light mode" : "Switch to dark mode";
+  }
+}
+function initTheme() {
+  let saved = null;
+  try { saved = localStorage.getItem(THEME_KEY); } catch {}
+  const preferred = saved || (window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+  applyTheme(preferred);
+}
+
+
 function message(text, error=false) {
   const el = $("globalMessage");
   el.textContent = text;
@@ -58,6 +80,12 @@ function setAuthMode(next) {
   $("password").autocomplete=mode==="login"?"current-password":"new-password";
   authMessage("");
 }
+initTheme();
+$("themeToggle").addEventListener("click",()=>{
+  const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+  applyTheme(next);
+  try { localStorage.setItem(THEME_KEY,next); } catch {}
+});
 $("loginTab").addEventListener("click",()=>setAuthMode("login"));
 $("signupTab").addEventListener("click",()=>setAuthMode("signup"));
 $("authForm").addEventListener("submit",async e=>{

@@ -12,7 +12,7 @@
   <div class="shell">
     <header class="topbar">
       <a class="brand" href="./"><span class="mark">h.</span><span>HookEngine</span></a>
-      <div class="top-actions"><span class="secure-label"><i></i> Account portal</span><button id="signOutBtn" class="button quiet" hidden>Sign out</button></div>
+      <div class="top-actions"><span class="secure-label"><i></i> Account portal</span><button id="themeToggle" class="button quiet theme-toggle" type="button" aria-label="Switch to light mode" title="Switch theme"><span id="themeIcon" aria-hidden="true">☀</span><span id="themeLabel">Light mode</span></button><button id="signOutBtn" class="button quiet" hidden>Sign out</button></div>
     </header>
 
     <main>
@@ -34,6 +34,22 @@
           <p class="fine-print">Your generations are private to your account. Use an email you can access.</p>
         </div>
       </section>
+      <section class="pricing-section" aria-labelledby="pricingTitle">
+        <div class="pricing-heading"><span class="eyebrow">SIMPLE, TRANSPARENT PRICING</span><h2 id="pricingTitle">Create more. Keep your momentum.</h2><p class="muted">Start free, then upgrade when you need more daily room.</p></div>
+        <div class="pricing-grid">
+          <article class="pricing-card">
+            <div class="pricing-card-top"><div><span class="plan-label">FREE</span><h3>Try HookEngine</h3></div><div class="pricing-amount">€0<span>/month</span></div></div>
+            <p class="pricing-description">The essentials for turning content into platform-ready drafts.</p>
+            <ul class="perk-list"><li><span class="perk-check">✓</span>5 generations per day</li><li><span class="perk-check">✓</span>X threads from articles and videos</li><li><span class="perk-check">✓</span>LinkedIn post drafts</li><li><span class="perk-check">✓</span>TikTok hook ideas</li><li><span class="perk-check">✓</span>Saved generation history</li></ul>
+          </article>
+          <article class="pricing-card pro-pricing-card">
+            <div class="pricing-card-top"><div><span class="plan-label pro-label">HOOKENGINE PRO</span><h3>For consistent creators</h3></div><div class="pricing-amount">€4.99<span>/month</span></div></div>
+            <p class="pricing-description">More daily capacity for your content workflow.</p>
+            <ul class="perk-list"><li><span class="perk-check">✓</span><strong>100 generations per day</strong></li><li><span class="perk-check">✓</span>Everything in Free</li><li><span class="perk-check">✓</span>X threads, LinkedIn posts and TikTok hooks</li><li><span class="perk-check">✓</span>Saved history and previous drafts</li><li><span class="perk-check">✓</span>Account usage dashboard</li></ul>
+            <p class="pricing-note">Subscription checkout availability depends on billing setup.</p>
+          </article>
+        </div>
+      </section>
 
       <section id="dashboardView" hidden>
         <div class="welcome-row"><div><span class="eyebrow">WORKSPACE OVERVIEW</span><h1>Your account<span class="period">.</span></h1><p id="accountEmail" class="muted"></p></div><span id="planBadge" class="plan-badge">FREE PLAN</span></div>
@@ -49,7 +65,7 @@
             <p id="planDescription" class="muted">5 generations every day.</p>
             <div class="plan-price"><strong id="planPrice">€0</strong><span>/ month</span></div>
             <button id="upgradeBtn" class="button primary full">Get Pro <span>→</span></button>
-            <p id="billingMessage" class="fine-print">Pro: 100 generations per day · €4.99/month.</p>
+            <p id="billingMessage" class="fine-print">Pro: 100 generations per day · €4.99/month.</p><ul class="perk-list dashboard-perks"><li><span class="perk-check">✓</span>100 generations every day</li><li><span class="perk-check">✓</span>X threads, LinkedIn posts and TikTok hooks</li><li><span class="perk-check">✓</span>Saved drafts and generation history</li></ul>
           </article>
         </div>
 
