@@ -179,6 +179,57 @@ async function fetchYouTubeTranscript(videoUrl) {
   }
 }
 
+async function fallbackReadPage(tabId) {
+  try {
+    const results = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        const clean = value => (value || "")
+          .replace(/\\u200b/g, "")
+          .replace(/[ \\t]+/g, " ")
+          .replace(/\\n{3,}/g, "\\n\\n")
+          .trim();
+        const hidden = [
+          "script","style","noscript","nav","header","footer","aside","form","button","input",
+          "select","textarea","iframe","svg","[aria-hidden='true']","[role='navigation']",
+          "[role='banner']","[class*='cookie' i]","[id*='cookie' i]","[class*='consent' i]",
+          "[class*='advert' i]","[class*='promo' i]","[class*='related' i]","[class*='share' i]"
+        ].join(",");
+        const candidates = [...document.querySelectorAll("article,main,[role='main'],[itemprop='articleBody'],[class*='article' i],[class*='content' i],body")];
+        let best = "";
+        let bestScore = -1;
+        for (const el of candidates) {
+          if (!el || !el.getClientRects().length) continue;
+          const clone = el.cloneNode(true);
+          clone.querySelectorAll(hidden).forEach(node => node.remove());
+          const blocks = [...clone.querySelectorAll("h1,h2,h3,h4,p,li,blockquote,pre,figcaption,dd,dt")]
+            .map(node => clean(node.innerText || node.textContent))
+            .filter(value => value.length >= 18 &&
+              !/^(share|read more|sign in|subscribe|advertisement|related articles?|cookie settings|pull requests?)\\b/i.test(value));
+          const text = clean(blocks.join("\\n\\n") || clone.innerText || clone.textContent);
+          if (text.length < 80) continue;
+          const links = [...clone.querySelectorAll("a")].reduce((n, a) => n + clean(a.innerText || a.textContent).length, 0);
+          const hint = [el.id, typeof el.className === "string" ? el.className : "", el.getAttribute("itemprop") || ""].join(" ").toLowerCase();
+          const score = Math.min(text.length, 30000) + (/article|content|main|body|prose/.test(hint) ? 200 : 0) - Math.min(1, links / Math.max(1, text.length)) * 1000;
+          if (score > bestScore) { bestScore = score; best = text; }
+        }
+        return {
+          text: best.slice(0, 60000),
+          title: document.title || "",
+          url: location.href,
+          sourceType: "article",
+          needsTranscript: false,
+          extractionFailed: best.length < 80
+        };
+      }
+    });
+    return results?.[0]?.result || null;
+  } catch (error) {
+    console.warn("HookEngine: direct visible-text fallback failed", error);
+    return null;
+  }
+}
+
 chrome.runtime.onInstalled.addListener(() => {
   chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(console.error);
 });
@@ -211,8 +262,21 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           return;
         }
       }
-      await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ["content.js"] });
-      const result = await chrome.tabs.sendMessage(tab.id, { type: "HOOKENGINE_EXTRACT" });
+      let result = null;
+      try {
+        await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ["content.js"] });
+        result = await chrome.tabs.sendMessage(tab.id, { type: "HOOKENGINE_EXTRACT" });
+      } catch (error) {
+        console.warn("HookEngine: normal page extraction failed; trying direct visible-text fallback", error);
+      }
+      if (!isYouTube && (!result || (result.text || "").trim().length < 80)) {
+        const fallbackResult = await fallbackReadPage(tab.id);
+        if (fallbackResult && (fallbackResult.text || "").trim().length >= 80) {
+          sendResponse({ ok: true, ...fallbackResult });
+          return;
+        }
+      }
+      if (!result) throw new Error("Could not read this page. Refresh it and try again.");
       if (isYouTube && result?.captionTrackUrl) {
         try {
           const captions = await fetch(result.captionTrackUrl);
