@@ -53,7 +53,7 @@ $("extractBtn").addEventListener("click", () => {
     if (!response?.ok) return showError(response?.error || "Could not extract page content.");
     if (response.needsTranscript) {
       $("sourceLabel").textContent = "Transcript not found";
-      showError("YouTube did not expose its transcript. Open YouTube’s “Show transcript” panel, then click Read current tab again.");
+      showError("HookEngine tried to fetch the captions automatically, but YouTube did not provide a usable track for this video. Try another video with captions, or paste a transcript manually.");
       if (response.text) sourceText.value = response.text;
     } else {
       sourceText.value = response.text || "";
