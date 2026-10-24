@@ -113,7 +113,13 @@ async function requestGeneration(payload) {
     body: JSON.stringify(payload)
   });
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data.error || (response.status === 401 ? "Supabase rejected the API key. Reload the extension and try again." : "Request failed (" + response.status + ")."));
+  if (!response.ok) {
+    const message = typeof data.error === "string" ? data.error : "";
+    const safeMessage = /gemini|google ai|generativelanguage/i.test(message)
+      ? "AI generation could not complete. Please try again in a moment."
+      : message;
+    throw new Error(safeMessage || (response.status === 401 ? "The service rejected its API key. Reload the extension and try again." : "Request failed (" + response.status + ")."));
+  }
   for (const key of ["x_thread", "linkedin_post", "tiktok_hooks"]) {
     if (typeof data[key] !== "string") throw new Error("The server returned an invalid response. Please try again.");
     $(key).value = data[key];
