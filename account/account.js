@@ -37,7 +37,12 @@ async function restoreSession() {
     session=saved;
     if(saved.expires_at && saved.expires_at*1000<Date.now()+30000) {
       if(!saved.refresh_token) {storeSession(null);return false;}
-      const next=await api("/auth/v1/token?grant_type=refresh_token",{method:"POST",body:JSON.stringify({refresh_token:saved.refresh_token}),headers:{Authorization:""}});
+      const response=await fetch(SUPABASE_URL+"/auth/v1/token?grant_type=refresh_token",{
+        method:"POST",headers:{apikey:SUPABASE_KEY,"Content-Type":"application/json"},
+        body:JSON.stringify({refresh_token:saved.refresh_token})
+      });
+      const next=await response.json().catch(()=>({}));
+      if(!response.ok||!next.access_token) throw new Error("Session expired");
       next.expires_at=Math.floor(Date.now()/1000)+(next.expires_in||3600);
       storeSession(next);
     }
@@ -89,14 +94,15 @@ async function showDashboard() {
   try {
     const user=await api("/auth/v1/user");
     $("accountEmail").textContent=user.email||"Signed in";
-    const [subs,history]=await Promise.all([
+    const today=utcStart();
+    const [subs,history,todayRows]=await Promise.all([
       api("/rest/v1/hookengine_subscriptions?select=plan,status,current_period_end&limit=1"),
-      api("/rest/v1/hookengine_generations?select=id,source_type,source_title,source_url,status,x_thread,linkedin_post,tiktok_hooks,error_message,created_at,completed_at&order=created_at.desc&limit=50")
+      api("/rest/v1/hookengine_generations?select=id,source_type,source_title,source_url,status,x_thread,linkedin_post,tiktok_hooks,error_message,created_at,completed_at&order=created_at.desc&limit=50"),
+      api("/rest/v1/hookengine_generations?select=id,status,created_at&created_at=gte."+encodeURIComponent(today)+"&order=created_at.desc&limit=100")
     ]);
     const sub=subs[0]||{plan:"free",status:"inactive"};
     currentPlan=sub.status==="active"&&sub.plan==="pro"?"pro":"free";
-    const today=utcStart();
-    const used=history.filter(row=>row.created_at>=today&&["reserved","completed"].includes(row.status)).length;
+    const used=todayRows.filter(row=>["reserved","completed"].includes(row.status)).length;
     const limit=currentPlan==="pro"?100:5;
     $("planBadge").textContent=currentPlan==="pro"?"PRO PLAN":"FREE PLAN";
     $("planBadge").classList.toggle("pro",currentPlan==="pro");
