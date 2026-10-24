@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "HookEngine — Content Repurposer",
-  "version": "1.2.0",
-  "description": "Extract available captions, transcripts, selected text, and article content, then turn it into social drafts.",
+  "version": "1.3.0",
+  "description": "Turn articles and public YouTube videos into social content with Gemini.",
   "minimum_chrome_version": "116",
   "permissions": [
     "activeTab",
