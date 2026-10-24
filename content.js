@@ -3,9 +3,9 @@
   window.__hookEngineContentLoaded = true;
 
   const clean = value => (value || "")
-    .replace(/\\u200b/g, "")
-    .replace(/[ \\t]+/g, " ")
-    .replace(/\\n{3,}/g, "\\n\\n")
+    .replace(/\u200b/g, "")
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
     .trim();
 
   function decodeText(value) {
@@ -26,7 +26,7 @@
           const ch = source[i];
           if (inString) {
             if (escaped) escaped = false;
-            else if (ch === "\\\\") escaped = true;
+            else if (ch === "\\") escaped = true;
             else if (ch === '"') inString = false;
           } else if (ch === '"') inString = true;
           else if (ch === "{") depth++;
@@ -82,7 +82,7 @@
     return [...root.querySelectorAll("h1,h2,h3,h4,p,li,blockquote,pre,figcaption,dd,dt,[data-testid*='paragraph' i]") ]
       .map(node => clean(node.innerText || node.textContent))
       .filter(value => value.length >= 30 &&
-        !/^(share|read more|sign in|subscribe|advertisement|related articles?|cookie settings)\\b/i.test(value));
+        !/^(share|read more|sign in|subscribe|advertisement|related articles?|cookie settings)\b/i.test(value));
   }
 
   function articleText() {
@@ -117,7 +117,7 @@
     for (const original of candidates) {
       const clone = cleanedClone(original);
       const blocks = blockText(clone);
-      const text = clean(blocks.join("\\n\\n") || clone.innerText || clone.textContent);
+      const text = clean(blocks.join("\n\n") || clone.innerText || clone.textContent);
       if (text.length < 80) continue;
       const longBlocks = blocks.filter(block => block.length >= 60).length;
       const links = [...clone.querySelectorAll("a")].reduce((n, a) => n + clean(a.innerText || a.textContent).length, 0);
@@ -138,15 +138,15 @@
     const body = document.body;
     if (!body) return best;
     const bodyClone = cleanedClone(body);
-    const fallback = blockText(bodyClone).join("\\n\\n");
+    const fallback = blockText(bodyClone).join("\n\n");
     if (fallback.length > best.length) best = clean(fallback);
 
     // Last resort: use readable body text after removing obvious site chrome.
     if (best.length < 120) {
       const raw = clean(bodyClone.innerText || bodyClone.textContent);
-      const lines = raw.split("\\n").map(clean).filter(line => line.length >= 35 &&
+      const lines = raw.split("\n").map(clean).filter(line => line.length >= 35 &&
         !/^(home|menu|search|sign in|log in|subscribe|accept all|privacy policy|terms of use|share|read more)$/i.test(line));
-      const fallbackText = clean(lines.join("\\n\\n"));
+      const fallbackText = clean(lines.join("\n\n"));
       if (fallbackText.length > best.length) best = fallbackText;
     }
     return best;
@@ -154,7 +154,7 @@
 
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message?.type !== "HOOKENGINE_EXTRACT") return;
-    const isYouTube = /(^|\\.)youtube\\.com$|(^|\\.)youtu\\.be$/i.test(location.hostname);
+    const isYouTube = /(^|\.)youtube\.com$|(^|\.)youtu\.be$/i.test(location.hostname);
     const transcript = isYouTube ? youtubeTranscript() : "";
     const text = transcript || articleText();
     const usable = text.length >= 80;
