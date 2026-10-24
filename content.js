@@ -1,4 +1,6 @@
 (() => {
+  if (window.__hookEngineContentLoaded) return;
+  window.__hookEngineContentLoaded = true;
   const clean = (value) => (value || "").replace(/\u200b/g, "").replace(/[ \t]+/g, " ").replace(/\n{3,}/g, "\n\n").trim();
   function youtubeTranscript() {
     const selectors = ["ytd-transcript-renderer #segments-container","ytd-transcript-renderer .segment-text","ytd-transcript-segment-renderer .segment-text","[data-purpose='transcript-segment']"];
