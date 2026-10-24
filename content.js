@@ -137,33 +137,33 @@
 
   function articleText() {
     const selectors = [
-      "article","main","[role='main']","[itemprop='articleBody']","[itemprop='text']",
+      "[itemprop='articleBody']","article","main","[role='main']","[itemprop='text']",
       "[class*='article-body' i]","[class*='article-content' i]","[class*='story-body' i]",
       "[class*='storyBody' i]","[class*='post-content' i]","[class*='entry-content' i]",
       "[class*='rich-text' i]","[class*='prose' i]","[class*='article__body' i]",
       "[data-component='text-block']","[data-testid*='article' i]","[data-testid*='story' i]",
-      "[data-testid*='content' i]","[data-testid*='paragraph' i]","#content","#main-content",
-      ".markdown-body",".documentation",".StoryBodyCompanionColumn",".meteredContent"
+      "[data-testid*='content' i]","#content","#main-content",".markdown-body",".documentation"
     ];
     const candidates = new Set();
     for (const selector of selectors) {
       document.querySelectorAll(selector).forEach(el => {
-        const rects = el.getClientRects();
         const style = getComputedStyle(el);
-        if (rects.length && style.display !== "none" && style.visibility !== "hidden" && style.opacity !== "0") candidates.add(el);
+        if (el.getClientRects().length && style.display !== "none" &&
+            style.visibility !== "hidden" && style.opacity !== "0") candidates.add(el);
       });
     }
 
-    // Capture rich containers even when the publisher uses undocumented class names.
-    for (const el of [...document.querySelectorAll("div,section")].slice(0, 2200)) {
+    // Include rich containers whose publishers use custom or undocumented markup.
+    for (const el of document.querySelectorAll("main,article,section,div")) {
+      if (candidates.size > 900) break;
       const style = getComputedStyle(el);
-      if (!el.getClientRects().length || style.display === "none" || style.visibility === "hidden") continue;
-      const paragraphs = el.querySelectorAll("p,li,blockquote").length;
-      if (paragraphs >= 2) candidates.add(el);
+      if (!el.getClientRects().length || style.display === "none" ||
+          style.visibility === "hidden" || style.opacity === "0") continue;
+      if (el.querySelectorAll("p,li,blockquote").length >= 2) candidates.add(el);
     }
 
     let best = "";
-    let bestScore = -1;
+    let bestScore = -Infinity;
     for (const original of candidates) {
       const clone = cleanedClone(original);
       const blocks = blockText(clone);
@@ -182,26 +182,32 @@
       const score = Math.min(text.length, 22000) + longBlocks * 110 + positive - negative - Math.min(1, density) * 900;
       if (score > bestScore) { bestScore = score; best = text; }
     }
-    if (best.length >= 120) return best;
 
-    // Fallback for sites that render readable content without semantic article markup.
+    // Prefer publisher-provided Article schema when it contains the actual body.
+    const structured = structuredArticleText();
+    if (structured.length >= 120 && (structured.length > best.length || best.length < 300)) best = structured;
+    if (best.length >= 120) return best.slice(0, 60000);
+
+    // Final fallback: preserve short paragraphs and headings on simple/static sites,
+    // including GitHub Pages transcript archives without semantic article markup.
     const body = document.body;
     if (!body) return best;
     const bodyClone = cleanedClone(body);
-    const fallback = blockText(bodyClone).join("\n\n");
-    if (fallback.length > best.length) best = clean(fallback);
+    const fallbackBlocks = [...bodyClone.querySelectorAll("h1,h2,h3,h4,p,li,blockquote,pre,figcaption,dd,dt")]
+      .map(node => clean(node.innerText || node.textContent))
+      .filter(value => value.length >= 18 &&
+        !/^(share|read more|sign in|subscribe|advertisement|related articles?|cookie settings|pull requests?)\b/i.test(value));
+    const fallback = clean(fallbackBlocks.join("\n\n"));
+    if (fallback.length > best.length) best = fallback;
 
-    // Last resort: use readable body text after removing obvious site chrome.
     if (best.length < 120) {
-      const raw = clean(bodyClone.innerText || bodyClone.textContent);
-      const lines = raw.split("\n").map(clean).filter(line => line.length >= 35 &&
-        !/^(home|menu|search|sign in|log in|subscribe|accept all|privacy policy|terms of use|share|read more)$/i.test(line));
-      const fallbackText = clean(lines.join("\n\n"));
-      if (fallbackText.length > best.length) best = fallbackText;
+      const lines = clean(bodyClone.innerText || bodyClone.textContent)
+        .split("\n").map(clean).filter(line => line.length >= 18 &&
+          !/^(home|menu|search|sign in|log in|subscribe|accept all|privacy policy|terms of use|share|read more|pull requests?)$/i.test(line));
+      const readable = clean(lines.join("\n\n"));
+      if (readable.length > best.length) best = readable;
     }
-    const structured = structuredArticleText();
-    if (structured.length > best.length && (best.length < 300 || structured.length > best.length * 1.15)) best = structured;
-    return best;
+    return best.slice(0, 60000);
   }
 
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
