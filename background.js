@@ -160,7 +160,7 @@ async function fetchYouTubeTranscript(videoUrl) {
     const url = new URL(videoUrl);
     const videoId = url.hostname === "youtu.be"
       ? url.pathname.split("/").filter(Boolean)[0]
-      : (url.searchParams.get("v") || url.pathname.match(/\\/(?:shorts|embed|live)\\/([^/?]+)/)?.[1]);
+      : (url.searchParams.get("v") || url.pathname.match(/\/(?:shorts|embed|live)\/([^/?]+)/)?.[1]);
     if (!videoId) return "";
 
     const response = await fetch("https://www.youtube.com/watch?v=" + encodeURIComponent(videoId), {
