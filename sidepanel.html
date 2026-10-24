@@ -11,7 +11,7 @@
 <main class="app">
   <header class="topbar">
     <div class="brand-mark" aria-hidden="true">h.</div>
-    <div class="brand-copy"><h1>HookEngine</h1><p>Make more of what you make.</p></div>
+    <div class="brand-copy"><h1>HookEngine</h1><p>Source to social drafts</p></div>
     <span class="status-label"><span class="status-dot"></span> Ready</span>
     <button id="themeToggle" class="icon-button theme-toggle" type="button" aria-label="Switch to light mode" title="Switch theme">
       <svg class="sun-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"></path></svg>
@@ -19,10 +19,9 @@
     </button>
   </header>
 
-  <section class="intro">
-    <span class="eyebrow">YOUR IDEAS, REWORKED</span>
-    <h2>One good idea.<br><span>Three ways to share it.</span></h2>
-    <p>Turn a video or article into social content that still sounds like you.</p>
+  <section class="intro compact-intro">
+    <h2>Repurpose content</h2>
+    <p>Turn an article or YouTube video into three editable drafts.</p>
   </section>
 
   <section class="source-card">
@@ -39,7 +38,7 @@
     <input id="sourceUrl" type="hidden" value="">
   </section>
 
-  <button id="analyzeVideoBtn" class="video-button" type="button"><span aria-hidden="true">▶</span><span id="analyzeVideoLabel">Analyze YouTube with Gemini</span><span class="video-button-note">No transcript needed</span></button>
+  <button id="analyzeVideoBtn" class="video-button" type="button"><span aria-hidden="true">▶</span><span id="analyzeVideoLabel">Analyze YouTube video with AI</span><span class="video-button-note">No transcript needed</span></button>
   <button id="generateBtn" class="generate-button" type="button">
     <span id="generateIcon" class="sparkle-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m12 3 1.9 5.8L20 11l-6.1 2.2L12 19l-1.9-5.8L4 11l6.1-2.2L12 3Z"></path><path d="m19 14 1.1 2.9L23 18l-2.9 1.1L19 22l-1.1-2.9L15 18l2.9-1.1L19 14Z"></path></svg></span>
     <span id="generateLabel">Make my content</span><span class="button-arrow" aria-hidden="true">→</span>
