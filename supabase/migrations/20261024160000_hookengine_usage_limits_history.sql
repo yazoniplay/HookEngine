@@ -93,3 +93,7 @@ grant execute on function public.hookengine_reserve_generation(uuid,text,text,te
 grant execute on function public.hookengine_finish_generation(uuid,uuid,text,text,text,text,text) to service_role;
 
 revoke all on function public.hookengine_on_user_created() from public, anon, authenticated;
+
+-- Backfill accounts that existed before this migration was installed.
+insert into public.hookengine_profiles(user_id) select id from auth.users on conflict (user_id) do nothing;
+insert into public.hookengine_subscriptions(user_id,plan,status) select id,'free','inactive' from auth.users on conflict (user_id) do nothing;

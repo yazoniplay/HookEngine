@@ -92,6 +92,7 @@ async function signInExtension() {
     $("accountPassword").value = "";
     $("accountMessage").textContent = "";
     renderAccountPanel();
+    refreshExtensionUsage();
   } catch (error) {
     $("accountMessage").textContent = error.message || "Could not sign in.";
   } finally { $("accountSignIn").disabled = false; }

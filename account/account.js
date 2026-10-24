@@ -66,7 +66,7 @@ $("authForm").addEventListener("submit",async e=>{
   const email=$("email").value.trim(),password=$("password").value;
   try {
     if(mode==="signup") {
-      const result=await api("/auth/v1/signup",{method:"POST",body:JSON.stringify({email,password})});
+      const result=await api("/auth/v1/signup?redirect_to="+encodeURIComponent("https://yazoniplay.github.io/HookEngine/account/"),{method:"POST",body:JSON.stringify({email,password})});
       if(!result.access_token) {
         authMessage("Account created. Check your email to confirm it, then sign in.");
         setAuthMode("login");
@@ -98,7 +98,7 @@ async function showDashboard() {
     const [subs,history,todayRows]=await Promise.all([
       api("/rest/v1/hookengine_subscriptions?select=plan,status,current_period_end&limit=1"),
       api("/rest/v1/hookengine_generations?select=id,source_type,source_title,source_url,status,x_thread,linkedin_post,tiktok_hooks,error_message,created_at,completed_at&order=created_at.desc&limit=50"),
-      api("/rest/v1/hookengine_generations?select=id,status,created_at&created_at=gte."+encodeURIComponent(today)+"&order=created_at.desc&limit=100")
+      api("/rest/v1/hookengine_generations?select=id,status,created_at&created_at=gte."+encodeURIComponent(today)+"&status=in.%28reserved%2Ccompleted%29&order=created_at.desc&limit=100")
     ]);
     const sub=subs[0]||{plan:"free",status:"inactive"};
     currentPlan=sub.status==="active"&&sub.plan==="pro"?"pro":"free";
