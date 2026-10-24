@@ -148,7 +148,7 @@ chrome.runtime.onInstalled.addListener(() => {
 });
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message?.type !== "HOOKENGINE_EXTRACT_ACTIVE_TAB") return;
+  if (message?.type !== "HOOKENGINE_EXTRACT_ACTIVE_TAB" && message?.type !== "HOOKENGINE_EXTRACT_SELECTION") return;
   (async () => {
     try {
       const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
