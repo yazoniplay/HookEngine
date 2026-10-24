@@ -129,7 +129,6 @@
       return style.display !== "none" && style.visibility !== "hidden" && style.opacity !== "0";
     };
     const extractBlocks = root => [...root.querySelectorAll("h1,h2,h3,h4,p,li,blockquote,pre,figcaption,dd,dt")]
-      .filter(isVisible)
       .map(el => clean(el.innerText || el.textContent))
       .filter(text => text.length >= 35 && !/^(share|read more|sign in|subscribe|advertisement|related articles?)\b/i.test(text));
     const candidates = new Set();
