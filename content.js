@@ -171,7 +171,8 @@
       title: document.title || "",
       url: location.href,
       sourceType: transcript ? "youtube-transcript" : (isYouTube ? "youtube-page" : "article"),
-      needsTranscript: isYouTube && !transcript,\n      captionTrackUrl: isYouTube && !transcript ? findEmbeddedCaptionTrack() : "",\n      captionTrackUrl: isYouTube && !transcript ? youtubeCaptionTrackUrl() : "",
+      needsTranscript: isYouTube && !transcript,
+      captionTrackUrl: isYouTube && !transcript ? findEmbeddedCaptionTrack() : "",
       extractionFailed: !usable
     });
   });
