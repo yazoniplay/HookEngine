@@ -48,7 +48,7 @@ function setLoading(loading, message = "Finding the best angles…") {
   $("loadingText").textContent = message;
   $("generateIcon").style.visibility = loading ? "hidden" : "visible";
   $("generateLabel").textContent = loading ? "Working on it…" : "Make my content";
-  $("analyzeVideoLabel").textContent = loading ? "Analyzing…" : "Analyze YouTube with Gemini";
+  $("analyzeVideoLabel").textContent = loading ? "Analyzing…" : "Analyze YouTube video with AI";
 }
 
 function applyExtractResponse(response) {
@@ -131,11 +131,11 @@ analyzeVideoBtn.addEventListener("click", () => {
     try { parsedUrl = new URL(tab.url); } catch {}
     const host = parsedUrl?.hostname?.toLowerCase().replace(/^www\./, "");
     if (!parsedUrl || !["youtube.com", "m.youtube.com", "music.youtube.com", "youtu.be"].includes(host)) {
-      return showError("Open a public YouTube video first, then choose Analyze YouTube with Gemini.");
+      return showError("Open a public YouTube video first, then choose Analyze YouTube video with AI.");
     }
     $("sourceUrl").value = tab.url;
     $("sourceTitle").value = tab.title || "YouTube video";
-    setLoading(true, "Gemini is analyzing the public YouTube video…");
+    setLoading(true, "Analyzing the YouTube video…");
     try {
       const data = await requestGeneration({
         text: "",
@@ -143,10 +143,10 @@ analyzeVideoBtn.addEventListener("click", () => {
         sourceUrl: tab.url,
         sourceMode: "youtube_video"
       });
-      $("sourceLabel").textContent = data.sourceMethod === "server-transcript" ? "YouTube transcript · server fallback" : "Gemini video analysis";
+      $("sourceLabel").textContent = data.sourceMethod === "server-transcript" ? "YouTube transcript · server fallback" : "AI video analysis";
       sourceText.value = "";
       if (data.sourceMethod === "server-transcript") {
-        showError("Gemini's direct video route wasn't available, so HookEngine used the server-side transcript fallback instead.");
+        showError("The video was processed using an alternate transcript route.");
       } else {
         clearError();
       }
@@ -161,7 +161,7 @@ analyzeVideoBtn.addEventListener("click", () => {
 
 generateBtn.addEventListener("click", async () => {
   clearError();
-  if (sourceText.value.trim().length < 80) return showError("Add at least 80 characters of source text before generating. For a YouTube video, use Analyze YouTube with Gemini instead.");
+  if (sourceText.value.trim().length < 80) return showError("Add at least 80 characters of source text before generating. For a YouTube video, use Analyze YouTube video with AI instead.");
   setLoading(true);
   try {
     await requestGeneration({
