@@ -111,53 +111,80 @@
   }
 
   function articleText() {
-    // BBC pages can render the story inside a nested article/content block rather
-    // than the first generic <main>, so test likely article roots individually.
+    // Best-effort extraction for news sites, blogs, documentation, forums and
+    // web apps. Score candidate containers by meaningful text, paragraph density,
+    // semantic hints and boilerplate signals instead of stopping at the first root.
+    const noiseSelector = [
+      "script","style","noscript","nav","header","footer","aside","form","button",
+      "input","select","textarea","[aria-hidden='true']","[role='navigation']",
+      "[role='banner']","[role='dialog']","[aria-modal='true']","iframe","svg",
+      "[class*='cookie' i]","[id*='cookie' i]","[class*='consent' i]","[id*='consent' i]",
+      "[class*='advert' i]","[id*='advert' i]","[class*='promo' i]","[class*='related' i]",
+      "[class*='recommend' i]","[class*='newsletter' i]","[class*='share' i]",
+      "[class*='social' i]","[class*='comment' i]","[id*='comment' i]"
+    ].join(",");
+    const isVisible = el => {
+      if (!el || !el.getClientRects().length) return false;
+      const style = getComputedStyle(el);
+      return style.display !== "none" && style.visibility !== "hidden" && style.opacity !== "0";
+    };
+    const extractBlocks = root => [...root.querySelectorAll("h1,h2,h3,h4,p,li,blockquote,pre,figcaption,dd,dt")]
+      .filter(isVisible)
+      .map(el => clean(el.innerText || el.textContent))
+      .filter(text => text.length >= 35 && !/^(share|read more|sign in|subscribe|advertisement|related articles?)\b/i.test(text));
+    const candidates = new Set();
     const selectors = [
-      "article [data-component='text-block']",
-      "[data-component='text-block']",
-      "article",
-      "main",
-      "[role='main']",
-      "[itemprop='articleBody']",
-      ".article-body",
-      ".story-body"
+      "article","main","[role='main']","[itemprop='articleBody']","[class*='article-body' i]",
+      "[class*='article-content' i]","[class*='story-body' i]","[class*='post-content' i]",
+      "[class*='entry-content' i]","[class*='rich-text' i]","[class*='prose' i]",
+      "[data-component='text-block']","[data-testid*='article' i]","[data-testid*='content' i]",
+      "#content","#main-content",".markdown-body",".documentation"
     ];
-
-    let best = "";
     for (const selector of selectors) {
-      const roots = [...document.querySelectorAll(selector)];
-      for (const original of roots) {
-        const clone = removeNoise(original.cloneNode(true));
-        const parts = [...clone.querySelectorAll("h1,h2,h3,p,li,blockquote,pre")]
-          .map(el => el.innerText || el.textContent)
-          .map(clean)
-          .filter(text => text.length > 25);
-        const candidate = clean(parts.join("\n\n") || clone.innerText || clone.textContent);
-        if (candidate.length > best.length) best = candidate;
-      }
-      if (best.length >= 250) break;
+      document.querySelectorAll(selector).forEach(el => { if (isVisible(el)) candidates.add(el); });
+    }
+    // Include content-rich divs. Limit the scan to avoid doing expensive work on
+    // every element on large web apps.
+    [...document.querySelectorAll("div,section")].slice(0, 1800).forEach(el => {
+      if (!isVisible(el)) return;
+      const text = clean(el.innerText || "");
+      if (text.length >= 250 && el.querySelectorAll("p,li,blockquote").length >= 2) candidates.add(el);
+    });
+
+    let bestText = "";
+    let bestScore = -Infinity;
+    for (const original of candidates) {
+      const clone = removeNoise(original.cloneNode(true));
+      const blocks = extractBlocks(clone);
+      const text = clean(blocks.join("\n\n") || clone.innerText || clone.textContent);
+      if (text.length < 80) continue;
+      const paragraphCount = blocks.filter(t => t.length >= 60).length;
+      const linkText = [...clone.querySelectorAll("a")].map(a => clean(a.innerText || a.textContent)).join(" ").length;
+      const linkDensity = Math.min(1, linkText / Math.max(1, text.length));
+      const hint = ((original.getAttribute("itemprop") || "") + " " +
+        (original.getAttribute("role") || "") + " " +
+        (original.id || "") + " " + (typeof original.className === "string" ? original.className : "")).toLowerCase();
+      const positive = /article|content|story|post|entry|main|body|prose|reader|document|transcript/.test(hint) ? 180 : 0;
+      const negative = /nav|menu|footer|header|sidebar|comment|recommend|related|share|advert|cookie|promo/.test(hint) ? 260 : 0;
+      const score = Math.min(text.length, 18000) + paragraphCount * 90 + positive - negative - linkDensity * 700;
+      if (score > bestScore) { bestScore = score; bestText = text; }
     }
 
-    // Fallback for sites whose article text is not wrapped in semantic tags.
-    if (best.length < 120) {
+    if (bestText.length >= 120) return bestText;
+
+    // Fallback: keep visible text blocks from the page, skipping common UI labels.
+    const fallback = extractBlocks(document.body)
+      .filter(text => !/^(home|menu|search|sign in|log in|subscribe|accept all|privacy policy|terms of use)$/i.test(text));
+    const fallbackText = clean(fallback.join("\n\n"));
+    if (fallbackText.length >= bestText.length) bestText = fallbackText;
+
+    // Some web apps render text in custom elements or unusual containers.
+    if (bestText.length < 120 && document.body) {
       const clone = removeNoise(document.body.cloneNode(true));
       const bodyText = clean(clone.innerText || clone.textContent);
-      if (bodyText.length > best.length) best = bodyText;
+      if (bodyText.length > bestText.length) bestText = bodyText;
     }
-
-    // If the page uses paragraphs outside a normal article wrapper, use the
-    // visible page paragraphs but skip short navigation fragments.
-    if (best.length < 120) {
-      const paragraphs = [...document.querySelectorAll("p")]
-        .filter(el => el.getClientRects().length)
-        .map(el => clean(el.innerText || el.textContent))
-        .filter(text => text.length > 25);
-      const fallback = clean(paragraphs.join("\n\n"));
-      if (fallback.length > best.length) best = fallback;
-    }
-
-    return best;
+    return bestText;
   }
 
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
