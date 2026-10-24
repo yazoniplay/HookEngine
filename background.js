@@ -8,6 +8,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     try {
       const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
       if (!tab?.id || !tab.url || !/^https?:/.test(tab.url)) throw new Error("Open a YouTube video or article first.");
+      await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ["content.js"] });
       const result = await chrome.tabs.sendMessage(tab.id, { type: "HOOKENGINE_EXTRACT" });
       sendResponse({ ok: true, ...result });
     } catch (error) {
