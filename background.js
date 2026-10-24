@@ -154,6 +154,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
       if (!tab?.id || !tab.url || !/^https?:/.test(tab.url)) throw new Error("Open a YouTube video or article first.");
       const isYouTube = /(^|\.)youtube\.com$|(^|\.)youtu\.be$/i.test(new URL(tab.url).hostname);
+      if (message.type === "HOOKENGINE_EXTRACT_SELECTION") {
+        await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ["content.js"] });
+        const selected = await chrome.tabs.sendMessage(tab.id, { type: "HOOKENGINE_EXTRACT", selectionOnly: true });
+        sendResponse({ ok: true, ...selected });
+        return;
+      }
       if (isYouTube) {
         const transcript = await fetchYouTubeTranscript(tab.url);
         if (transcript) {
