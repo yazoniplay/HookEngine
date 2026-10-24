@@ -42,6 +42,26 @@ async function loadAccountSession() {
   }
   renderAccountPanel();
 }
+function utcDayStart() {
+  const now = new Date();
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())).toISOString();
+}
+async function refreshExtensionUsage() {
+  if (!accountUser || !accountSession?.access_token) return;
+  try {
+    const start = encodeURIComponent(utcDayStart());
+    const [subs, rows] = await Promise.all([
+      fetch(SUPABASE_URL + "/rest/v1/hookengine_subscriptions?select=plan,status&user_id=eq." + encodeURIComponent(accountUser.id) + "&limit=1", { headers:{ apikey:SUPABASE_KEY, Authorization:"Bearer "+accountSession.access_token } }).then(r=>r.ok?r.json():[]),
+      fetch(SUPABASE_URL + "/rest/v1/hookengine_generations?select=id,status&user_id=eq." + encodeURIComponent(accountUser.id) + "&created_at=gte." + start + "&status=in.%28reserved%2Ccompleted%29&limit=100", { headers:{ apikey:SUPABASE_KEY, Authorization:"Bearer "+accountSession.access_token } }).then(r=>r.ok?r.json():[])
+    ]);
+    const sub=subs[0]||{plan:"free",status:"inactive"};
+    accountUsage.plan=sub.plan==="pro"&&sub.status==="active"?"pro":"free";
+    accountUsage.limit=accountUsage.plan==="pro"?100:5;
+    accountUsage.used=rows.length;
+    accountUsage.remaining=Math.max(0,accountUsage.limit-accountUsage.used);
+  } catch {}
+  renderAccountPanel();
+}
 function renderAccountPanel() {
   $("signedOutPanel").hidden = !!accountUser;
   $("signedInPanel").hidden = !accountUser;
