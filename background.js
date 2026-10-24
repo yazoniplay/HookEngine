@@ -24,6 +24,17 @@ function parseCaptionPayload(payload) {
       if (lines.trim().length >= 40) return decodeCaptionText(lines);
     } catch {}
   }
+  if (/^WEBVTT\b/m.test(raw) || /-->/.test(raw)) {
+    const vtt = raw
+      .replace(/^\uFEFF?WEBVTT[^\n]*\n?/i, "")
+      .split(/\r?\n/)
+      .filter(line => line.trim() && !/^\d+$/.test(line.trim()) &&
+        !/^(?:NOTE|STYLE|REGION)\b/.test(line.trim()) && !/^\d{2}:\d{2}(?::\d{2})?[.,]\d{3}\s*-->/.test(line.trim()))
+      .map(line => decodeCaptionText(line))
+      .filter(Boolean)
+      .join(" ");
+    if (vtt.length >= 40) return vtt;
+  }
   const xmlLines = [];
   for (const match of raw.matchAll(/<(?:text|p)\b[^>]*>([\s\S]*?)<\/(?:text|p)>/gi)) {
     const line = decodeCaptionText(match[1]);
