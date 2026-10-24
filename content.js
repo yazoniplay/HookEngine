@@ -220,7 +220,7 @@
       });
       return;
     }
-    const transcript = isYouTube ? youtubeTranscript() : nativeVideoTranscript();
+    const transcript = (isYouTube ? youtubeTranscript() : "") || nativeVideoTranscript();
     const text = transcript || selection || articleText();
     const usable = text.length >= 80;
     sendResponse({
