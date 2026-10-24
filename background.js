@@ -80,12 +80,87 @@ function extractPlayerResponse(html) {
   return null;
 }
 
+async function fetchCaptionTracks(tracks) {
+  if (!Array.isArray(tracks) || !tracks.length) return "";
+  const ranked = [...tracks].sort((a, b) => {
+    const score = t => (/^en(-|$)/i.test(t.languageCode || "") ? 100 : 0) +
+      (t.kind === "asr" ? 1 : 5) + (t.isTranslatable ? 0 : 2);
+    return score(b) - score(a);
+  });
+  let best = "";
+  for (const track of ranked.slice(0, 8)) {
+    if (!track?.baseUrl) continue;
+    const attempts = [track.baseUrl];
+    for (const fmt of ["json3", "srv3", "vtt"]) {
+      try {
+        const candidate = new URL(track.baseUrl);
+        candidate.searchParams.set("fmt", fmt);
+        attempts.push(candidate.toString());
+      } catch {}
+    }
+    for (const captionUrl of [...new Set(attempts)]) {
+      try {
+        const captions = await fetch(captionUrl, {
+          credentials: "include",
+          cache: "no-store"
+        });
+        if (!captions.ok) continue;
+        const transcript = parseCaptionPayload(await captions.text());
+        if (transcript.length > best.length) best = transcript;
+        if (transcript.length >= 80) return transcript.slice(0, 60000);
+      } catch (error) {
+        console.warn("HookEngine: caption format failed", error);
+      }
+    }
+  }
+  return best.length >= 80 ? best.slice(0, 60000) : "";
+}
+
+async function getPageCaptionTracks(tabId) {
+  try {
+    const results = await chrome.scripting.executeScript({
+      target: { tabId },
+      world: "MAIN",
+      func: () => {
+        const parse = value => {
+          if (typeof value !== "string") return null;
+          try { return JSON.parse(value); } catch { return null; }
+        };
+        const candidates = [
+          window.ytInitialPlayerResponse,
+          parse(window.ytplayer?.config?.args?.player_response),
+          parse(window.ytcfg?.get?.("PLAYER_RESPONSE"))
+        ].filter(Boolean);
+        for (const player of candidates) {
+          const tracks = player?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
+          if (Array.isArray(tracks) && tracks.length) {
+            return {
+              title: player?.videoDetails?.title || document.title || "",
+              captionTracks: tracks.map(track => ({
+                baseUrl: track.baseUrl,
+                languageCode: track.languageCode,
+                kind: track.kind,
+                isTranslatable: track.isTranslatable
+              })).filter(track => typeof track.baseUrl === "string")
+            };
+          }
+        }
+        return { title: document.title || "", captionTracks: [] };
+      }
+    });
+    return results?.[0]?.result || { title: "", captionTracks: [] };
+  } catch (error) {
+    console.warn("HookEngine: could not read player data from the YouTube page", error);
+    return { title: "", captionTracks: [] };
+  }
+}
+
 async function fetchYouTubeTranscript(videoUrl) {
   try {
     const url = new URL(videoUrl);
     const videoId = url.hostname === "youtu.be"
       ? url.pathname.split("/").filter(Boolean)[0]
-      : (url.searchParams.get("v") || url.pathname.match(/\/(?:shorts|embed|live)\/([^/?]+)/)?.[1]);
+      : (url.searchParams.get("v") || url.pathname.match(/\\/(?:shorts|embed|live)\\/([^/?]+)/)?.[1]);
     if (!videoId) return "";
 
     const response = await fetch("https://www.youtube.com/watch?v=" + encodeURIComponent(videoId), {
@@ -96,47 +171,8 @@ async function fetchYouTubeTranscript(videoUrl) {
       console.warn("HookEngine: YouTube watch request failed", response.status);
       return "";
     }
-
-    const html = await response.text();
-    const player = extractPlayerResponse(html);
-    const tracks = player?.captions?.playerCaptionsTracklistRenderer?.captionTracks || [];
-    if (!tracks.length) {
-      console.warn("HookEngine: no caption tracks found in player response");
-      return "";
-    }
-
-    const ranked = [...tracks].sort((a, b) => {
-      const score = t => (/^en(-|$)/i.test(t.languageCode || "") ? 100 : 0) +
-        (t.kind === "asr" ? 1 : 5) + (t.isTranslatable ? 0 : 2);
-      return score(b) - score(a);
-    });
-    let best = "";
-    for (const track of ranked.slice(0, 6)) {
-      if (!track?.baseUrl) continue;
-      const attempts = [track.baseUrl];
-      for (const fmt of ["json3", "srv3", "vtt"]) {
-        try {
-          const candidate = new URL(track.baseUrl);
-          candidate.searchParams.set("fmt", fmt);
-          attempts.push(candidate.toString());
-        } catch {}
-      }
-      for (const captionUrl of [...new Set(attempts)]) {
-        try {
-          const captions = await fetch(captionUrl, {
-            credentials: "include",
-            cache: "no-store"
-          });
-          if (!captions.ok) continue;
-          const transcript = parseCaptionPayload(await captions.text());
-          if (transcript.length > best.length) best = transcript;
-          if (transcript.length >= 80) return transcript.slice(0, 60000);
-        } catch (error) {
-          console.warn("HookEngine: caption format failed", error);
-        }
-      }
-    }
-    return best.length >= 80 ? best.slice(0, 60000) : "";
+    const player = extractPlayerResponse(await response.text());
+    return await fetchCaptionTracks(player?.captions?.playerCaptionsTracklistRenderer?.captionTracks || []);
   } catch (error) {
     console.warn("HookEngine: YouTube transcript retrieval failed", error);
     return "";
@@ -161,9 +197,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         return;
       }
       if (isYouTube) {
-        const transcript = await fetchYouTubeTranscript(tab.url);
+        // Read the live player response from YouTube's page first. This avoids
+        // relying only on a second, potentially different watch-page response.
+        const pagePlayer = await getPageCaptionTracks(tab.id);
+        let transcript = await fetchCaptionTracks(pagePlayer.captionTracks);
+        if (!transcript) transcript = await fetchYouTubeTranscript(tab.url);
         if (transcript) {
-          sendResponse({ ok: true, text: transcript, title: tab.title || "YouTube video", url: tab.url, sourceType: "youtube-transcript", needsTranscript: false, extractionFailed: false });
+          sendResponse({ ok: true, text: transcript, title: pagePlayer.title || tab.title || "YouTube video", url: tab.url, sourceType: "youtube-transcript", needsTranscript: false, extractionFailed: false });
           return;
         }
       }
