@@ -1,11 +1,11 @@
 {
   "manifest_version": 3,
   "name": "HookEngine — Content Repurposer",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Turn YouTube videos and articles into platform-ready social content.",
   "minimum_chrome_version": "116",
   "permissions": ["activeTab", "scripting", "storage", "sidePanel", "clipboardWrite"],
-  "host_permissions": ["https://www.youtube.com/*", "https://youtu.be/*", "http://localhost:3000/*", "https://*.vercel.app/*", "https://*.railway.app/*"],
+  "host_permissions": ["https://www.youtube.com/*", "https://youtu.be/*", "https://ppaknwuwiublxogclqdw.supabase.co/*"],
   "action": { "default_title": "Open HookEngine" },
   "background": { "service_worker": "background.js", "type": "module" },
   "side_panel": { "default_path": "sidepanel.html" },
