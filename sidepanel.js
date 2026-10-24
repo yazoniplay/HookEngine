@@ -53,13 +53,18 @@ $("extractBtn").addEventListener("click", () => {
     if (!response?.ok) return showError(response?.error || "Could not extract page content.");
     if (response.needsTranscript) {
       $("sourceLabel").textContent = "Transcript not found";
-      showError("HookEngine tried to fetch the captions automatically, but YouTube did not provide a usable track for this video. Try another video with captions, or paste a transcript manually.");
+      showError("HookEngine couldn't retrieve captions for this video. Try a video with captions, or paste its transcript manually.");
       if (response.text) sourceText.value = response.text;
+      $("sourceTitle").value = response.title || "";
+      $("sourceUrl").value = response.url || "";
     } else {
       sourceText.value = response.text || "";
       $("sourceTitle").value = response.title || "";
       $("sourceUrl").value = response.url || "";
       $("sourceLabel").textContent = response.sourceType === "youtube-transcript" ? "YouTube transcript" : "Page content";
+      if (response.extractionFailed || (response.text || "").trim().length < 80) {
+        showError("HookEngine couldn't find enough readable content on this page. Some sites block access or load text only after interaction. Try refreshing, selecting the article text and copying it here, or using Reader mode if available.");
+      }
     }
     updateCount();
   });
