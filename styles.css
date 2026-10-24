@@ -96,3 +96,22 @@ footer{display:flex;justify-content:space-between;align-items:center;gap:8px;bor
 .video-button{border-radius:9px;margin-bottom:8px;padding:11px}
 .generate-button{border-radius:9px;padding:12px}
 @media(max-width:390px){.app{padding:10px}.intro{padding:13px 0 10px}.intro h2{font-size:20px}.source-card,.output-card{padding:10px}.video-button-note{margin-left:4px}}
+
+.account-panel{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:11px;margin:0 0 10px}
+.account-panel-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.account-panel-head strong{font-size:12px;font-weight:700;color:var(--text)}
+.account-panel-head p{font-size:10px;line-height:1.45;color:var(--muted);margin:4px 0 0}
+.account-mini-icon{display:grid;place-items:center;width:25px;height:25px;border-radius:8px;background:#c8f36a13;color:var(--accent)}
+.account-panel label{display:block;font-size:10px;color:var(--muted);margin:9px 0 5px}
+.account-panel input{width:100%;padding:8px 9px;border-radius:7px;background:var(--input,#0c0e13);border:1px solid var(--line);color:var(--text);font-size:11px;outline:none}
+.account-panel input:focus{border-color:var(--accent)}
+.account-signin{margin-top:9px;border:1px solid var(--accent);background:var(--accent);color:#171a11;border-radius:7px;padding:8px 10px;font-size:11px;font-weight:700;width:100%;text-align:left}
+.account-message{font-size:10px;color:#ff9c9c;margin:7px 0 0;line-height:1.4}
+.account-link{display:inline-block;color:var(--muted);font-size:10px;text-decoration:none;margin-top:9px}
+.account-link:hover{color:var(--accent)}
+.extension-plan{font-size:9px;letter-spacing:.7px;border:1px solid var(--line);padding:4px 6px;border-radius:6px;color:var(--accent)}
+.mini-progress{height:4px;background:var(--line);border-radius:5px;margin-top:11px;overflow:hidden}
+.mini-progress span{display:block;width:0;height:100%;background:var(--accent);transition:width .25s}
+.account-panel-foot{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.account-link-button{border:0;background:transparent;color:var(--muted);font-size:10px;padding:0;margin-top:9px}
+.account-link-button:hover{color:var(--text)}

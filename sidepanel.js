@@ -6,6 +6,106 @@ const FUNCTION_URL = SUPABASE_URL + "/functions/v1/hookengine-generate";
 const sourceText = $("sourceText");
 const generateBtn = $("generateBtn");
 const analyzeVideoBtn = $("analyzeVideoBtn");
+const ACCOUNT_URL = "https://yazoniplay.github.io/HookEngine/account/";
+const SESSION_KEY = "hookengine-account-session";
+let accountSession = null;
+let accountUser = null;
+let accountUsage = { plan: "free", used: 0, limit: 5, remaining: 5 };
+
+async function loadAccountSession() {
+  try {
+    const saved = await chrome.storage.local.get(SESSION_KEY);
+    accountSession = saved[SESSION_KEY] || null;
+    if (accountSession?.expires_at && accountSession.expires_at * 1000 < Date.now() + 30000 && accountSession.refresh_token) {
+      const refreshed = await fetch(SUPABASE_URL + "/auth/v1/token?grant_type=refresh_token", {
+        method: "POST",
+        headers: { apikey: SUPABASE_KEY, "Content-Type": "application/json" },
+        body: JSON.stringify({ refresh_token: accountSession.refresh_token })
+      });
+      if (!refreshed.ok) throw new Error("Session expired");
+      accountSession = await refreshed.json();
+      accountSession.expires_at = Math.floor(Date.now() / 1000) + (accountSession.expires_in || 3600);
+      await chrome.storage.local.set({ [SESSION_KEY]: accountSession });
+    }
+    if (accountSession?.access_token) {
+      const userResponse = await fetch(SUPABASE_URL + "/auth/v1/user", {
+        headers: { apikey: SUPABASE_KEY, Authorization: "Bearer " + accountSession.access_token }
+      });
+      if (!userResponse.ok) throw new Error("Session expired");
+      accountUser = await userResponse.json();
+    } else {
+      accountSession = null;
+    }
+  } catch {
+    accountSession = null; accountUser = null;
+    await chrome.storage.local.remove(SESSION_KEY);
+  }
+  renderAccountPanel();
+  if (accountUser) refreshExtensionUsage();
+}
+function utcDayStart() {
+  const now = new Date();
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())).toISOString();
+}
+async function refreshExtensionUsage() {
+  if (!accountUser || !accountSession?.access_token) return;
+  try {
+    const start = encodeURIComponent(utcDayStart());
+    const [subs, rows] = await Promise.all([
+      fetch(SUPABASE_URL + "/rest/v1/hookengine_subscriptions?select=plan,status&user_id=eq." + encodeURIComponent(accountUser.id) + "&limit=1", { headers:{ apikey:SUPABASE_KEY, Authorization:"Bearer "+accountSession.access_token } }).then(r=>r.ok?r.json():[]),
+      fetch(SUPABASE_URL + "/rest/v1/hookengine_generations?select=id,status&user_id=eq." + encodeURIComponent(accountUser.id) + "&created_at=gte." + start + "&status=in.%28reserved%2Ccompleted%29&limit=100", { headers:{ apikey:SUPABASE_KEY, Authorization:"Bearer "+accountSession.access_token } }).then(r=>r.ok?r.json():[])
+    ]);
+    const sub=subs[0]||{plan:"free",status:"inactive"};
+    accountUsage.plan=sub.plan==="pro"&&sub.status==="active"?"pro":"free";
+    accountUsage.limit=accountUsage.plan==="pro"?100:5;
+    accountUsage.used=rows.length;
+    accountUsage.remaining=Math.max(0,accountUsage.limit-accountUsage.used);
+  } catch {}
+  renderAccountPanel();
+}
+function renderAccountPanel() {
+  $("signedOutPanel").hidden = !!accountUser;
+  $("signedInPanel").hidden = !accountUser;
+  if (accountUser) {
+    $("signedInEmail").textContent = accountUser.email || "Signed in";
+    $("dailyUsage").textContent = accountUsage.remaining + " of " + accountUsage.limit + " generations left today";
+    $("extensionPlan").textContent = accountUsage.plan === "pro" ? "PRO" : "FREE";
+    $("extensionProgress").style.width = Math.min(100, accountUsage.used / Math.max(1, accountUsage.limit) * 100) + "%";
+  }
+}
+async function signInExtension() {
+  const email = $("accountEmail").value.trim();
+  const password = $("accountPassword").value;
+  $("accountSignIn").disabled = true;
+  $("accountMessage").textContent = "Signing in…";
+  try {
+    const response = await fetch(SUPABASE_URL + "/auth/v1/token?grant_type=password", {
+      method: "POST",
+      headers: { apikey: SUPABASE_KEY, "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password })
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.msg || data.message || "Sign in failed. Check your email and password.");
+    data.expires_at = Math.floor(Date.now() / 1000) + (data.expires_in || 3600);
+    accountSession = data; accountUser = data.user;
+    await chrome.storage.local.set({ [SESSION_KEY]: data });
+    $("accountPassword").value = "";
+    $("accountMessage").textContent = "";
+    renderAccountPanel();
+  } catch (error) {
+    $("accountMessage").textContent = error.message || "Could not sign in.";
+  } finally { $("accountSignIn").disabled = false; }
+}
+$("accountSignIn").addEventListener("click", signInExtension);
+$("accountPassword").addEventListener("keydown", event => { if (event.key === "Enter") signInExtension(); });
+$("accountSignOut").addEventListener("click", async () => {
+  if (accountSession?.access_token) {
+    fetch(SUPABASE_URL + "/auth/v1/logout", { method:"POST", headers:{apikey:SUPABASE_KEY,Authorization:"Bearer "+accountSession.access_token} }).catch(()=>{});
+  }
+  accountSession=null; accountUser=null; accountUsage={plan:"free",used:0,limit:5,remaining:5};
+  await chrome.storage.local.remove(SESSION_KEY);
+  renderAccountPanel();
+});
 
 function applyTheme(theme) {
   const resolved = theme === "light" ? "light" : "dark";
@@ -107,9 +207,10 @@ $("clearSourceBtn").addEventListener("click", () => {
 });
 
 async function requestGeneration(payload) {
+  if (!accountSession?.access_token) throw new Error("Sign in above to use your daily generations.");
   const response = await fetch(FUNCTION_URL, {
     method: "POST",
-    headers: { "Content-Type": "application/json", apikey: SUPABASE_KEY },
+    headers: { "Content-Type": "application/json", apikey: SUPABASE_KEY, ...(accountSession?.access_token ? { Authorization: "Bearer " + accountSession.access_token } : {}) },
     body: JSON.stringify(payload)
   });
   const data = await response.json().catch(() => ({}));
@@ -120,6 +221,9 @@ async function requestGeneration(payload) {
       : message;
     throw new Error(safeMessage || (response.status === 401 ? "The service rejected its API key. Reload the extension and try again." : "Request failed (" + response.status + ")."));
   }
+  if (data.usage) accountUsage = data.usage;
+  else accountUsage = { plan: accountUsage.plan, used: accountUsage.used + 1, limit: accountUsage.limit, remaining: Math.max(0, accountUsage.remaining - 1) };
+  renderAccountPanel();
   for (const key of ["x_thread", "linkedin_post", "tiktok_hooks"]) {
     if (typeof data[key] !== "string") throw new Error("The server returned an invalid response. Please try again.");
     $(key).value = data[key];
@@ -201,4 +305,5 @@ document.querySelectorAll("[data-copy]").forEach(button => button.addEventListen
 }));
 
 initTheme();
+loadAccountSession();
 updateCount();

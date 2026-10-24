@@ -24,6 +24,22 @@
     <p>Turn an article or YouTube video into three editable drafts.</p>
   </section>
 
+  <section id="accountPanel" class="account-panel">
+    <div id="signedOutPanel">
+      <div class="account-panel-head"><div><strong>Sign in to HookEngine</strong><p>Track your daily usage and save your history.</p></div><span class="account-mini-icon">↗</span></div>
+      <label for="accountEmail">Email</label><input id="accountEmail" type="email" placeholder="you@example.com" autocomplete="email">
+      <label for="accountPassword">Password</label><input id="accountPassword" type="password" placeholder="Your password" autocomplete="current-password">
+      <button id="accountSignIn" class="account-signin" type="button">Sign in</button>
+      <p id="accountMessage" class="account-message" role="status"></p>
+      <a class="account-link" href="https://yazoniplay.github.io/HookEngine/account/" target="_blank" rel="noopener">Create an account · View plans</a>
+    </div>
+    <div id="signedInPanel" hidden>
+      <div class="account-panel-head"><div><strong id="signedInEmail">Signed in</strong><p id="dailyUsage">Daily allowance loading…</p></div><span id="extensionPlan" class="extension-plan">FREE</span></div>
+      <div class="mini-progress"><span id="extensionProgress"></span></div>
+      <div class="account-panel-foot"><a class="account-link" href="https://yazoniplay.github.io/HookEngine/account/" target="_blank" rel="noopener">Account & history ↗</a><button id="accountSignOut" class="account-link-button" type="button">Sign out</button></div>
+    </div>
+  </section>
+
   <section class="source-card">
     <div class="section-heading">
       <h2><svg class="heading-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L8 18l-4 1 1-4Z"></path></svg>Your source</h2>

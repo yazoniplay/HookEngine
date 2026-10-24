@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <title>HookEngine Account</title>
+  <link rel="stylesheet" href="account.css">
+  <script defer src="account.js"></script>
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <a class="brand" href="./"><span class="mark">h.</span><span>HookEngine</span></a>
+      <div class="top-actions"><span class="secure-label"><i></i> Account portal</span><button id="signOutBtn" class="button quiet" hidden>Sign out</button></div>
+    </header>
+
+    <main>
+      <section id="authView" class="auth-layout">
+        <div class="auth-copy">
+          <span class="eyebrow">YOUR CREATOR WORKSPACE</span>
+          <h1>Make every<br><span>good idea travel.</span></h1>
+          <p>Manage your daily generations, revisit drafts, and upgrade when you need more room to create.</p>
+          <div class="mini-features"><span>✓ Daily usage tracking</span><span>✓ Saved generation history</span><span>✓ One account across devices</span></div>
+        </div>
+        <div class="auth-card">
+          <div class="auth-tabs"><button id="loginTab" class="tab active">Sign in</button><button id="signupTab" class="tab">Create account</button></div>
+          <form id="authForm">
+            <label for="email">Email address</label><input id="email" type="email" autocomplete="email" placeholder="you@example.com" required>
+            <label for="password">Password</label><input id="password" type="password" autocomplete="current-password" minlength="8" placeholder="At least 8 characters" required>
+            <button id="authSubmit" class="button primary full" type="submit">Sign in <span>→</span></button>
+          </form>
+          <p id="authMessage" class="message" role="status"></p>
+          <p class="fine-print">Your generations are private to your account. Use an email you can access.</p>
+        </div>
+      </section>
+
+      <section id="dashboardView" hidden>
+        <div class="welcome-row"><div><span class="eyebrow">WORKSPACE OVERVIEW</span><h1>Your account<span class="period">.</span></h1><p id="accountEmail" class="muted"></p></div><span id="planBadge" class="plan-badge">FREE PLAN</span></div>
+        <div class="overview-grid">
+          <article class="panel usage-panel">
+            <div class="panel-head"><div><span class="eyebrow">TODAY</span><h2>Daily generations</h2></div><span class="usage-icon">↗</span></div>
+            <div class="usage-number"><strong id="usedCount">—</strong><span id="limitCount">/ 5</span></div>
+            <div class="progress"><span id="usageProgress"></span></div>
+            <div class="usage-foot"><span id="remainingText">Loading allowance…</span><span>Resets at midnight UTC</span></div>
+          </article>
+          <article class="panel plan-panel">
+            <div class="panel-head"><div><span class="eyebrow">YOUR PLAN</span><h2 id="currentPlan">Free</h2></div><span class="plan-icon">✳</span></div>
+            <p id="planDescription" class="muted">5 generations every day.</p>
+            <div class="plan-price"><strong id="planPrice">€0</strong><span>/ month</span></div>
+            <button id="upgradeBtn" class="button primary full">Get Pro <span>→</span></button>
+            <p id="billingMessage" class="fine-print">Pro: 100 generations per day · €4.99/month.</p>
+          </article>
+        </div>
+
+        <section class="history-section">
+          <div class="section-heading"><div><span class="eyebrow">YOUR WORK</span><h2>Generation history</h2><p class="muted">Your recent articles and videos, with drafts saved automatically.</p></div><button id="refreshBtn" class="button quiet">↻ Refresh</button></div>
+          <div id="historyList" class="history-list"><div class="empty-state">Loading your history…</div></div>
+        </section>
+        <footer><span>HookEngine Account</span><span>Manage your content and plan in one place.</span></footer>
+      </section>
+      <div id="globalMessage" class="global-message" role="status" hidden></div>
+    </main>
+  </div>
+</body>
+</html>
