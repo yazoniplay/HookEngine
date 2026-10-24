@@ -1,6 +1,6 @@
 const $ = (id) => document.getElementById(id);
 const SUPABASE_URL = "https://ppaknwuwiublxogclqdw.supabase.co";
-const SUPABASE_KEY = "sb_publishable_3_4_b-tj5VnnD-OR2bgX_g8_8mktyac9";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBwYWtud3V3aXVibHhvZ2NscWR3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE5NzkxNzQsImV4cCI6MjEwNzU1NTE3NH0.mlJayLmT_xCRfGjyrA7j8bqKQVhQrjhCBD5e3czVfr0";
 const FUNCTION_URL = SUPABASE_URL + "/functions/v1/hookengine-generate";
 const sourceText = $("sourceText");
 const generateBtn = $("generateBtn");
