@@ -46,6 +46,43 @@
     return "";
   }
 
+  function findEmbeddedCaptionTrack() {
+    const scripts = [...document.scripts].map(s => s.textContent || "").filter(Boolean);
+    const sources = scripts.concat(document.documentElement?.innerHTML || "");
+    for (const source of sources) {
+      const marker = "ytInitialPlayerResponse";
+      let offset = 0;
+      while ((offset = source.indexOf(marker, offset)) !== -1) {
+        const start = source.indexOf("{", offset + marker.length);
+        if (start < 0 || start - offset > 100) { offset += marker.length; continue; }
+        let depth = 0, inString = false, escaped = false;
+        for (let i = start; i < source.length; i++) {
+          const ch = source[i];
+          if (inString) {
+            if (escaped) escaped = false;
+            else if (ch === "\\") escaped = true;
+            else if (ch === '"') inString = false;
+          } else if (ch === '"') inString = true;
+          else if (ch === "{") depth++;
+          else if (ch === "}") {
+            depth--;
+            if (depth === 0) {
+              try {
+                const data = JSON.parse(source.slice(start, i + 1));
+                const tracks = data?.captions?.playerCaptionsTracklistRenderer?.captionTracks || [];
+                const track = tracks.find(t => /^en(-|$)/i.test(t.languageCode || "")) || tracks[0];
+                if (track?.baseUrl) return track.baseUrl;
+              } catch {}
+              break;
+            }
+          }
+        }
+        offset += marker.length;
+      }
+    }
+    return "";
+  }
+
   function youtubeTranscript() {
     const selectors = [
       "ytd-transcript-renderer #segments-container",
@@ -134,7 +171,8 @@
       title: document.title || "",
       url: location.href,
       sourceType: transcript ? "youtube-transcript" : (isYouTube ? "youtube-page" : "article"),
-      needsTranscript: isYouTube && !transcript,\n      captionTrackUrl: isYouTube && !transcript ? youtubeCaptionTrackUrl() : "",
+      needsTranscript: isYouTube && !transcript,
+      captionTrackUrl: isYouTube && !transcript ? findEmbeddedCaptionTrack() : "",
       extractionFailed: !usable
     });
   });
