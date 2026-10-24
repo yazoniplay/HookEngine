@@ -6,6 +6,33 @@ const FUNCTION_URL = SUPABASE_URL + "/functions/v1/hookengine-generate";
 const sourceText = $("sourceText");
 const generateBtn = $("generateBtn");
 
+function applyTheme(theme) {
+  const resolved = theme === "light" ? "light" : "dark";
+  document.documentElement.dataset.theme = resolved;
+  const toggle = $("themeToggle");
+  if (toggle) {
+    const next = resolved === "dark" ? "light" : "dark";
+    toggle.setAttribute("aria-label", "Switch to " + next + " mode");
+    toggle.setAttribute("title", "Switch to " + next + " mode");
+  }
+}
+
+async function initTheme() {
+  try {
+    const saved = await chrome.storage.local.get("hookengine-theme");
+    const theme = saved["hookengine-theme"] || (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+    applyTheme(theme);
+  } catch {
+    applyTheme(window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+  }
+}
+
+$("themeToggle").addEventListener("click", async () => {
+  const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+  applyTheme(next);
+  try { await chrome.storage.local.set({ "hookengine-theme": next }); } catch { /* Theme still works for this session. */ }
+});
+
 function updateCount() { $("charCount").textContent = sourceText.value.length.toLocaleString() + " characters"; }
 sourceText.addEventListener("input", updateCount);
 function showError(message) { $("errorMessage").textContent = message; $("errorMessage").hidden = false; }
@@ -13,8 +40,8 @@ function clearError() { $("errorMessage").hidden = true; }
 function setLoading(loading) {
   generateBtn.disabled = loading;
   $("loading").hidden = !loading;
-  $("generateIcon").textContent = loading ? "" : "✦";
-  $("generateLabel").textContent = loading ? "Generating…" : "Generate content";
+  $("generateIcon").style.visibility = loading ? "hidden" : "visible";
+  $("generateLabel").textContent = loading ? "Working on it…" : "Make my content";
 }
 
 $("extractBtn").addEventListener("click", () => {
@@ -72,13 +99,19 @@ generateBtn.addEventListener("click", async () => {
 document.querySelectorAll("[data-copy]").forEach(button => button.addEventListener("click", async () => {
   const value = $(button.dataset.copy).value;
   if (!value) return;
+  const label = button.querySelector("span");
   try {
     await navigator.clipboard.writeText(value);
-    button.textContent = "Copied ✓";
-    setTimeout(() => { button.textContent = "Copy ↗"; }, 1300);
+    if (label) label.textContent = "Copied";
+    button.classList.add("copied");
+    setTimeout(() => {
+      if (label) label.textContent = "Copy";
+      button.classList.remove("copied");
+    }, 1300);
   } catch {
     showError("Clipboard access failed. Select the output and copy it manually.");
   }
 }));
 
+initTheme();
 updateCount();
