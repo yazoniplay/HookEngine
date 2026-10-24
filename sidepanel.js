@@ -144,7 +144,7 @@ analyzeVideoBtn.addEventListener("click", () => {
         sourceMode: "youtube_video"
       });
       $("sourceLabel").textContent = data.sourceMethod === "server-transcript" ? "YouTube transcript · server fallback" : "Gemini video analysis";
-      sourceText.value = data.sourceMethod === "server-transcript" ? "" : "Video analyzed directly by Gemini. Generated drafts are based on the public YouTube video.";
+      sourceText.value = "";
       if (data.sourceMethod === "server-transcript") {
         showError("Gemini's direct video route wasn't available, so HookEngine used the server-side transcript fallback instead.");
       } else {
