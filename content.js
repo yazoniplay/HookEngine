@@ -8,6 +8,44 @@
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 
+  function youtubeCaptionTrackUrl() {
+    // YouTube embeds the player response in the page HTML even when its transcript
+    // panel is closed. Read the caption track metadata without scraping page chrome.
+    const html = document.documentElement?.innerHTML || "";
+    const markers = ["ytInitialPlayerResponse", "playerResponse"];
+    for (const marker of markers) {
+      let from = 0;
+      while ((from = html.indexOf(marker, from)) !== -1) {
+        const start = html.indexOf("{", from + marker.length);
+        if (start < 0 || start - from > 120) { from += marker.length; continue; }
+        let depth = 0, inString = false, escaped = false;
+        for (let i = start; i < html.length; i++) {
+          const ch = html[i];
+          if (inString) {
+            if (escaped) escaped = false;
+            else if (ch === "\\\\") escaped = true;
+            else if (ch === '"') inString = false;
+          } else if (ch === '"') inString = true;
+          else if (ch === "{") depth++;
+          else if (ch === "}") {
+            depth--;
+            if (depth === 0) {
+              try {
+                const player = JSON.parse(html.slice(start, i + 1));
+                const tracks = player?.captions?.playerCaptionsTracklistRenderer?.captionTracks || [];
+                const track = tracks.find(t => /^en(-|$)/i.test(t.languageCode || "")) || tracks[0];
+                if (track?.baseUrl) return track.baseUrl;
+              } catch {}
+              break;
+            }
+          }
+        }
+        from += marker.length;
+      }
+    }
+    return "";
+  }
+
   function youtubeTranscript() {
     const selectors = [
       "ytd-transcript-renderer #segments-container",
@@ -96,7 +134,7 @@
       title: document.title || "",
       url: location.href,
       sourceType: transcript ? "youtube-transcript" : (isYouTube ? "youtube-page" : "article"),
-      needsTranscript: isYouTube && !transcript,
+      needsTranscript: isYouTube && !transcript,\n      captionTrackUrl: isYouTube && !transcript ? youtubeCaptionTrackUrl() : "",
       extractionFailed: !usable
     });
   });
