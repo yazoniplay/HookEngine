@@ -85,6 +85,33 @@
         !/^(share|read more|sign in|subscribe|advertisement|related articles?|cookie settings)\b/i.test(value));
   }
 
+  function structuredArticleText() {
+    const found = [];
+    for (const script of document.querySelectorAll('script[type="application/ld+json"]')) {
+      const raw = script.textContent || "";
+      if (!raw.trim()) continue;
+      try {
+        const parsed = JSON.parse(raw);
+        const visit = value => {
+          if (!value) return;
+          if (Array.isArray(value)) return value.forEach(visit);
+          if (typeof value !== "object") return;
+          const type = value["@type"];
+          const types = Array.isArray(type) ? type : [type];
+          if (types.some(t => /article|newsarticle|reportage|blogposting/i.test(String(t))) &&
+              typeof value.articleBody === "string" && value.articleBody.trim().length > 80) {
+            found.push(value.articleBody.trim());
+          }
+          for (const [key, child] of Object.entries(value)) {
+            if (key !== "articleBody") visit(child);
+          }
+        };
+        visit(parsed);
+      } catch {}
+    }
+    return found.sort((a, b) => b.length - a.length)[0] || "";
+  }
+
   function articleText() {
     const selectors = [
       "article","main","[role='main']","[itemprop='articleBody']","[itemprop='text']",
@@ -148,6 +175,10 @@
         !/^(home|menu|search|sign in|log in|subscribe|accept all|privacy policy|terms of use|share|read more)$/i.test(line));
       const fallbackText = clean(lines.join("\n\n"));
       if (fallbackText.length > best.length) best = fallbackText;
+    }
+    if (best.length < 120) {
+      const structured = structuredArticleText();
+      if (structured.length > best.length) best = structured;
     }
     return best;
   }

@@ -10,16 +10,18 @@ function decodeCaptionText(value) {
 }
 
 function parseCaptionPayload(payload) {
-  const raw = (payload || "").trim();
+  let raw = (payload || "").trim();
   if (!raw) return "";
-  // YouTube may return XML in legacy timed-text, srv3, or JSON3 formats.
+  raw = raw.replace(/^\)\]\}'(?:\r?\n)?/, "").trim();
   if (raw.startsWith("{")) {
     try {
       const data = JSON.parse(raw);
-      const lines = (data.events || []).flatMap(event =>
-        (event.segs || []).map(seg => seg.utf8 || "")
-      ).join("");
-      if (lines.trim().length >= 40) return lines.replace(/\s+/g, " ").trim();
+      const events = Array.isArray(data.events) ? data.events : [];
+      const lines = events.map(event => {
+        const segs = Array.isArray(event.segs) ? event.segs : [];
+        return segs.map(seg => seg.utf8 || "").join("");
+      }).join(" ");
+      if (lines.trim().length >= 40) return decodeCaptionText(lines);
     } catch {}
   }
   const xmlLines = [];
@@ -74,30 +76,58 @@ async function fetchYouTubeTranscript(videoUrl) {
       ? url.pathname.split("/").filter(Boolean)[0]
       : (url.searchParams.get("v") || url.pathname.match(/\/(?:shorts|embed|live)\/([^/?]+)/)?.[1]);
     if (!videoId) return "";
-    const response = await fetch("https://www.youtube.com/watch?v=" + encodeURIComponent(videoId), { credentials: "include" });
-    if (!response.ok) return "";
-    const player = extractPlayerResponse(await response.text());
-    const tracks = player?.captions?.playerCaptionsTracklistRenderer?.captionTracks || [];
-    const track = tracks.find(t => /^en(-|$)/i.test(t.languageCode || "")) ||
-      tracks.find(t => !t.kind || t.kind !== "asr") || tracks[0];
-    if (!track?.baseUrl) return "";
-    const base = track.baseUrl;
-    const attempts = [
-      base,
-      base + (base.includes("?") ? "&" : "?") + "fmt=json3",
-      base + (base.includes("?") ? "&" : "?") + "fmt=srv3"
-    ];
-    for (const captionUrl of [...new Set(attempts)]) {
-      try {
-        const captions = await fetch(captionUrl, { credentials: "include" });
-        if (!captions.ok) continue;
-        const transcript = parseCaptionPayload(await captions.text());
-        if (transcript.length >= 80) return transcript.slice(0, 60000);
-      } catch {}
+
+    const response = await fetch("https://www.youtube.com/watch?v=" + encodeURIComponent(videoId), {
+      credentials: "include",
+      cache: "no-store"
+    });
+    if (!response.ok) {
+      console.warn("HookEngine: YouTube watch request failed", response.status);
+      return "";
     }
-    return "";
+
+    const html = await response.text();
+    const player = extractPlayerResponse(html);
+    const tracks = player?.captions?.playerCaptionsTracklistRenderer?.captionTracks || [];
+    if (!tracks.length) {
+      console.warn("HookEngine: no caption tracks found in player response");
+      return "";
+    }
+
+    const ranked = [...tracks].sort((a, b) => {
+      const score = t => (/^en(-|$)/i.test(t.languageCode || "") ? 100 : 0) +
+        (t.kind === "asr" ? 1 : 5) + (t.isTranslatable ? 0 : 2);
+      return score(b) - score(a);
+    });
+    let best = "";
+    for (const track of ranked.slice(0, 6)) {
+      if (!track?.baseUrl) continue;
+      const attempts = [track.baseUrl];
+      for (const fmt of ["json3", "srv3", "vtt"]) {
+        try {
+          const candidate = new URL(track.baseUrl);
+          candidate.searchParams.set("fmt", fmt);
+          attempts.push(candidate.toString());
+        } catch {}
+      }
+      for (const captionUrl of [...new Set(attempts)]) {
+        try {
+          const captions = await fetch(captionUrl, {
+            credentials: "include",
+            cache: "no-store"
+          });
+          if (!captions.ok) continue;
+          const transcript = parseCaptionPayload(await captions.text());
+          if (transcript.length > best.length) best = transcript;
+          if (transcript.length >= 80) return transcript.slice(0, 60000);
+        } catch (error) {
+          console.warn("HookEngine: caption format failed", error);
+        }
+      }
+    }
+    return best.length >= 80 ? best.slice(0, 60000) : "";
   } catch (error) {
-    console.warn("Automatic YouTube captions unavailable:", error);
+    console.warn("HookEngine: YouTube transcript retrieval failed", error);
     return "";
   }
 }
