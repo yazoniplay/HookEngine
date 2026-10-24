@@ -28,11 +28,12 @@
   <section class="source-card">
     <div class="section-heading">
       <h2><svg class="heading-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L8 18l-4 1 1-4Z"></path></svg>Your source</h2>
-      <button id="extractBtn" class="text-button" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M10 14 21 3"></path><path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"></path></svg>Read current tab</button>
+      <div class="source-actions"><button id="selectionBtn" class="text-button" type="button" title="Use text you highlighted on the page">Use selection</button><button id="extractBtn" class="text-button" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M10 14 21 3"></path><path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"></path></svg>Read current tab</button></div>
     </div>
     <label for="sourceText">Paste text or pull it from a page</label>
     <textarea id="sourceText" placeholder="Paste a transcript or article here — or open a page and choose “Read current tab”…" rows="7"></textarea>
     <div class="source-meta"><span id="charCount">0 characters</span><span id="sourceLabel">Nothing added yet</span></div>
+    <div class="source-tools"><button id="clearSourceBtn" class="quiet-button" type="button">Clear source</button><span id="sourceWords">0 words</span></div>
     <label for="sourceTitle" class="title-label">Title <span>· optional</span></label>
     <input id="sourceTitle" type="text" placeholder="What is this piece about?">
     <input id="sourceUrl" type="hidden" value="">

@@ -63,6 +63,29 @@
     return "";
   }
 
+
+  function nativeVideoTranscript() {
+    const pieces = [];
+    for (const video of document.querySelectorAll("video")) {
+      try {
+        for (const track of video.textTracks || []) {
+          if (track.kind !== "captions" && track.kind !== "subtitles" && track.kind !== "descriptions") continue;
+          try { track.mode = "hidden"; } catch {}
+          for (const cue of track.cues || []) {
+            const value = clean(cue.text || "");
+            if (value) pieces.push(value);
+          }
+        }
+      } catch {}
+    }
+    const unique = [...new Set(pieces)];
+    return clean(unique.join(" ")).slice(0, 60000);
+  }
+
+  function selectedText() {
+    return clean(window.getSelection ? window.getSelection().toString() : "");
+  }
+
   const NOISE = [
     "script","style","noscript","nav","header","footer","aside","form","button","input","select","textarea",
     "iframe","svg","[aria-hidden='true']","[role='navigation']","[role='banner']","[role='dialog']",
@@ -176,26 +199,37 @@
       const fallbackText = clean(lines.join("\n\n"));
       if (fallbackText.length > best.length) best = fallbackText;
     }
-    if (best.length < 120) {
-      const structured = structuredArticleText();
-      if (structured.length > best.length) best = structured;
-    }
+    const structured = structuredArticleText();
+    if (structured.length > best.length && (best.length < 300 || structured.length > best.length * 1.15)) best = structured;
     return best;
   }
 
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message?.type !== "HOOKENGINE_EXTRACT") return;
     const isYouTube = /(^|\.)youtube\.com$|(^|\.)youtu\.be$/i.test(location.hostname);
-    const transcript = isYouTube ? youtubeTranscript() : "";
-    const text = transcript || articleText();
+    const selection = selectedText();
+    if (message?.selectionOnly) {
+      const selected = selection.length >= 20 ? selection : "";
+      sendResponse({
+        text: selected.slice(0, 60000),
+        title: document.title || "",
+        url: location.href,
+        sourceType: "selected-text",
+        needsTranscript: false,
+        extractionFailed: !selected
+      });
+      return;
+    }
+    const transcript = (isYouTube ? youtubeTranscript() : "") || nativeVideoTranscript();
+    const text = transcript || selection || articleText();
     const usable = text.length >= 80;
     sendResponse({
       text: usable ? text.slice(0, 60000) : "",
       title: document.title || "",
       url: location.href,
-      sourceType: transcript ? "youtube-transcript" : (isYouTube ? "youtube-page" : "article"),
-      needsTranscript: isYouTube && !transcript,
-      captionTrackUrl: isYouTube && !transcript ? findEmbeddedCaptionTrack() : "",
+      sourceType: transcript ? (isYouTube ? "youtube-transcript" : "video-captions") : (selection ? "selected-text" : (isYouTube ? "youtube-page" : "article")),
+      needsTranscript: isYouTube && !transcript && !selection,
+      captionTrackUrl: isYouTube && !transcript && !selection ? findEmbeddedCaptionTrack() : "",
       extractionFailed: !usable
     });
   });

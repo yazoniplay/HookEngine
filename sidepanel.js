@@ -33,7 +33,10 @@ $("themeToggle").addEventListener("click", async () => {
   try { await chrome.storage.local.set({ "hookengine-theme": next }); } catch { /* Theme still works for this session. */ }
 });
 
-function updateCount() { $("charCount").textContent = sourceText.value.length.toLocaleString() + " characters"; }
+function updateCount() {
+  $("charCount").textContent = sourceText.value.length.toLocaleString() + " characters";
+  $("sourceWords").textContent = (sourceText.value.trim().match(/\S+/g) || []).length.toLocaleString() + " words";
+}
 sourceText.addEventListener("input", updateCount);
 function showError(message) { $("errorMessage").textContent = message; $("errorMessage").hidden = false; }
 function clearError() { $("errorMessage").hidden = true; }
@@ -44,30 +47,59 @@ function setLoading(loading) {
   $("generateLabel").textContent = loading ? "Working on it…" : "Make my content";
 }
 
+function applyExtractResponse(response) {
+  if (!response?.ok) return showError(response?.error || "Could not extract page content.");
+  if (response.needsTranscript) {
+    $("sourceLabel").textContent = "Transcript not found";
+    showError("No caption text could be read from this video. Captions visible in the player are not always exposed to extensions. Try opening the video's transcript and choosing Use selection, or paste the transcript manually.");
+    $("sourceTitle").value = response.title || "";
+    $("sourceUrl").value = response.url || "";
+  } else {
+    sourceText.value = response.text || "";
+    $("sourceTitle").value = response.title || "";
+    $("sourceUrl").value = response.url || "";
+    const labels = {
+      "youtube-transcript": "YouTube transcript",
+      "video-captions": "Video captions",
+      "selected-text": "Selected text",
+      "article": "Page content"
+    };
+    $("sourceLabel").textContent = labels[response.sourceType] || "Page content";
+    if (response.extractionFailed || (response.text || "").trim().length < 80) {
+      showError("Not enough text was exposed to HookEngine. Try selecting the article or transcript text and choosing Use selection. Some sites restrict content or render it inside a protected player.");
+    }
+  }
+  updateCount();
+}
+
 $("extractBtn").addEventListener("click", () => {
   clearError();
   $("extractBtn").disabled = true;
   chrome.runtime.sendMessage({ type: "HOOKENGINE_EXTRACT_ACTIVE_TAB" }, response => {
     $("extractBtn").disabled = false;
     if (chrome.runtime.lastError) return showError(chrome.runtime.lastError.message);
-    if (!response?.ok) return showError(response?.error || "Could not extract page content.");
-    if (response.needsTranscript) {
-      $("sourceLabel").textContent = "Transcript not found";
-      showError("HookEngine couldn't retrieve captions for this video. Try a video with captions, or paste its transcript manually.");
-      if (response.text) sourceText.value = response.text;
-      $("sourceTitle").value = response.title || "";
-      $("sourceUrl").value = response.url || "";
-    } else {
-      sourceText.value = response.text || "";
-      $("sourceTitle").value = response.title || "";
-      $("sourceUrl").value = response.url || "";
-      $("sourceLabel").textContent = response.sourceType === "youtube-transcript" ? "YouTube transcript" : "Page content";
-      if (response.extractionFailed || (response.text || "").trim().length < 80) {
-        showError("HookEngine couldn't find enough readable content on this page. Some sites block access or load text only after interaction. Try refreshing, selecting the article text and copying it here, or using Reader mode if available.");
-      }
-    }
-    updateCount();
+    applyExtractResponse(response);
   });
+});
+
+$("selectionBtn").addEventListener("click", () => {
+  clearError();
+  $("selectionBtn").disabled = true;
+  chrome.runtime.sendMessage({ type: "HOOKENGINE_EXTRACT_SELECTION" }, response => {
+    $("selectionBtn").disabled = false;
+    if (chrome.runtime.lastError) return showError(chrome.runtime.lastError.message);
+    applyExtractResponse(response);
+  });
+});
+
+$("clearSourceBtn").addEventListener("click", () => {
+  sourceText.value = "";
+  $("sourceTitle").value = "";
+  $("sourceUrl").value = "";
+  $("sourceLabel").textContent = "Nothing added yet";
+  clearError();
+  updateCount();
+  sourceText.focus();
 });
 
 generateBtn.addEventListener("click", async () => {
