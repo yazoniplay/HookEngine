@@ -63,6 +63,29 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       }
       await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ["content.js"] });
       const result = await chrome.tabs.sendMessage(tab.id, { type: "HOOKENGINE_EXTRACT" });
+      if (isYouTube && result?.captionTrackUrl) {
+        try {
+          const captionUrl = new URL(result.captionTrackUrl);
+          captionUrl.searchParams.set("fmt", "srv3");
+          const captionResponse = await fetch(captionUrl.toString());
+          if (captionResponse.ok) {
+            const xml = await captionResponse.text();
+            const transcript = [...xml.matchAll(/<text\b[^>]*>([\s\S]*?)<\/text>/gi)]
+              .map(m => m[1].replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'").replace(/\s+/g, " ").trim())
+              .filter(Boolean).join(" ");
+            if (transcript.length >= 80) {
+              sendResponse({ ok: true, text: transcript.slice(0, 60000), title: result.title || tab.title || "YouTube video", url: tab.url, sourceType: "youtube-transcript", needsTranscript: false, extractionFailed: false });
+              return;
+            }
+          }
+        } catch (error) {
+          console.warn("Could not fetch embedded YouTube captions:", error);
+        }
+      }
+      if (isYouTube && result?.needsTranscript) {
+        sendResponse({ ok: true, text: "", title: result.title || tab.title || "YouTube video", url: tab.url, sourceType: "youtube-page", needsTranscript: true, extractionFailed: true });
+        return;
+      }
       sendResponse({ ok: true, ...result });
     } catch (error) {
       sendResponse({ ok: false, error: error.message || "Could not read this page. Refresh it and try again." });
