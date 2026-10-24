@@ -1,7 +1,7 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
-import OpenAI from "openai";
+import { GoogleGenAI } from "@google/genai";
 import { createClient } from "@supabase/supabase-js";
 
 const app = express();
@@ -10,7 +10,8 @@ const allowedOrigins = (process.env.ALLOWED_ORIGINS || "").split(",").map(s => s
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
 const supabase = supabaseUrl && supabaseAnonKey ? createClient(supabaseUrl, supabaseAnonKey) : null;
-const openai = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
+const gemini = process.env.GEMINI_API_KEY ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY }) : null;
+const MODEL = process.env.GEMINI_MODEL || "gemini-3.5-flash-lite";
 
 app.disable("x-powered-by");
 app.use(cors({
@@ -50,7 +51,7 @@ TIKTOK HOOKS
 - Each should create high tension using a surprising implication, a clear problem, a counterintuitive insight, or an open loop that the source can actually pay off.
 - Make them sound natural when spoken aloud in the first 1–3 seconds. Short, concrete, and specific. No fake promises, fabricated stakes, or generic "you won't believe" phrasing.`;
 
-app.get("/health", (_req, res) => res.json({ ok: true, service: "hookengine-api" }));
+app.get("/health", (_req, res) => res.json({ ok: true, service: "hookengine-api", model: MODEL }));
 
 async function authenticate(req, res, next) {
   if (process.env.AUTH_REQUIRED !== "true") return next();
@@ -64,22 +65,36 @@ async function authenticate(req, res, next) {
 }
 
 app.post("/api/generate", authenticate, async (req, res) => {
-  if (!openai) return res.status(503).json({ error: "Server is missing OPENAI_API_KEY." });
+  if (!gemini) return res.status(503).json({ error: "Server is missing GEMINI_API_KEY." });
   const { text, title = "", sourceUrl = "" } = req.body || {};
   if (typeof text !== "string" || text.trim().length < 80) return res.status(400).json({ error: "Source text must contain at least 80 characters." });
   if (text.length > 60000) return res.status(413).json({ error: "Source text is too long (60,000 characters maximum)." });
 
   try {
-    const completion = await openai.chat.completions.create({
-      model: process.env.OPENAI_MODEL || "gpt-4o",
-      temperature: 0.8,
-      response_format: { type: "json_object" },
-      messages: [
-        { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: JSON.stringify({ title: String(title).slice(0, 300), sourceUrl: String(sourceUrl).slice(0, 2000), sourceText: text.trim() }) }
-      ]
+    const response = await gemini.models.generateContent({
+      model: MODEL,
+      contents: JSON.stringify({
+        title: String(title).slice(0, 300),
+        sourceUrl: String(sourceUrl).slice(0, 2000),
+        sourceText: text.trim()
+      }),
+      config: {
+        systemInstruction: SYSTEM_PROMPT,
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: "OBJECT",
+          properties: {
+            x_thread: { type: "STRING" },
+            linkedin_post: { type: "STRING" },
+            tiktok_hooks: { type: "STRING" }
+          },
+          required: ["x_thread", "linkedin_post", "tiktok_hooks"]
+        },
+        maxOutputTokens: 5000,
+        thinkingConfig: { thinkingLevel: "minimal" }
+      }
     });
-    const raw = completion.choices[0]?.message?.content;
+    const raw = response.text;
     if (!raw) throw new Error("The model returned an empty response.");
     const parsed = JSON.parse(raw);
     const keys = ["x_thread", "linkedin_post", "tiktok_hooks"];
@@ -98,4 +113,4 @@ app.use((err, _req, res, _next) => {
   res.status(500).json({ error: "Unexpected server error." });
 });
 
-app.listen(PORT, () => console.log(`HookEngine API listening on port ${PORT}`));
+app.listen(PORT, () => console.log(`HookEngine API listening on port ${PORT} (model: ${MODEL})`));
