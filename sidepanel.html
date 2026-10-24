@@ -3,16 +3,11 @@
 <body><main class="app">
 <header class="topbar"><div class="brand-mark">H</div><div><h1>HookEngine</h1><p>One source. Three formats.</p></div><span class="status-dot" title="Supabase connection"></span></header>
 <section class="intro"><span class="eyebrow">CONTENT REPURPOSER</span><h2>Make one idea<br><span>travel further.</span></h2><p>Extract a video transcript or article, then turn it into social content worth reading.</p></section>
-<section class="source-card auth-card"><div class="section-heading"><span>ACCOUNT / SUPABASE</span><span id="authStatus" class="result-tag">SIGNED OUT</span></div>
-<p id="authHelp" class="dialog-copy">Sign in or create an account to generate content securely.</p>
-<div id="authForm"><label for="authEmail">Email</label><input id="authEmail" type="email" autocomplete="email" placeholder="you@example.com" required><label for="authPassword">Password</label><input id="authPassword" type="password" autocomplete="current-password" minlength="8" placeholder="At least 8 characters" required><div class="auth-actions"><button id="signInBtn" class="auth-button" type="button">Sign in</button><button id="signUpBtn" class="auth-button secondary" type="button">Create account</button></div></div>
-<div id="signedIn" hidden><p id="signedInEmail" class="signed-in-email"></p><button id="signOutBtn" class="auth-button secondary" type="button">Sign out</button></div>
-</section>
 <section class="source-card"><div class="section-heading"><span>01 / SOURCE</span><button id="extractBtn" class="text-button">Read current tab ↗</button></div>
 <label for="sourceText">Source text</label><textarea id="sourceText" placeholder="Open a YouTube video or article and select “Read current tab”, or paste text here…" rows="7"></textarea>
 <div class="source-meta"><span id="charCount">0 characters</span><span id="sourceLabel">No source loaded</span></div>
 <label for="sourceTitle" class="title-label">Content title <span>(optional)</span></label><input id="sourceTitle" type="text" placeholder="e.g. Why most startups fail"><input id="sourceUrl" type="hidden" value=""></section>
-<button id="generateBtn" class="generate-button" disabled><span id="generateIcon">✦</span><span id="generateLabel">Sign in to generate</span><span class="button-arrow">→</span></button><p id="errorMessage" class="error" role="alert" hidden></p>
+<button id="generateBtn" class="generate-button"><span id="generateIcon">✦</span><span id="generateLabel">Generate content</span><span class="button-arrow">→</span></button><p id="errorMessage" class="error" role="alert" hidden></p>
 <div id="loading" class="loading" hidden><span class="spinner"></span><span>Finding the strongest angles…</span></div>
 <section id="results" class="results" hidden><div class="section-heading"><span>02 / YOUR OUTPUTS</span><span class="result-tag">READY TO EDIT</span></div>
 <article class="output-card"><div class="output-heading"><div class="platform-icon x-icon">𝕏</div><div><h3>X thread</h3><p>Opinionated. Clear. Shareable.</p></div><button class="copy-btn" data-copy="x_thread">Copy ↗</button></div><textarea id="x_thread" class="output-text" rows="7" aria-label="X thread output"></textarea></article>
