@@ -74,3 +74,9 @@ footer{display:flex;justify-content:space-between;align-items:center;gap:8px;bor
 @media(min-width:560px){.app{padding:24px}.intro h2{font-size:34px}.source-card,.output-card{padding:16px}}
 @media(max-width:360px){.app{padding:14px 12px}.intro h2{font-size:26px}.brand-copy p{font-size:10px}.status-label{font-size:0;gap:0}.status-dot{width:7px}.output-heading{gap:8px}.output-heading p{font-size:9px}.copy-btn{padding:7px 8px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
+
+.source-actions{display:flex;align-items:center;gap:10px}
+.source-tools{display:flex;align-items:center;justify-content:space-between;gap:10px;color:var(--muted);font-size:10px;padding-top:7px}
+.quiet-button{border:0;background:none;color:var(--muted);font-size:10px;padding:3px 0;cursor:pointer}
+.quiet-button:hover{color:var(--accent)}
+@media(max-width:390px){.section-heading{align-items:flex-start;flex-wrap:wrap}.source-actions{margin-left:auto;gap:8px}.source-actions .text-button{font-size:10px}}
