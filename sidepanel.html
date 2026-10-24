@@ -39,12 +39,13 @@
     <input id="sourceUrl" type="hidden" value="">
   </section>
 
+  <button id="analyzeVideoBtn" class="video-button" type="button"><span aria-hidden="true">▶</span><span id="analyzeVideoLabel">Analyze YouTube with Gemini</span><span class="video-button-note">No transcript needed</span></button>
   <button id="generateBtn" class="generate-button" type="button">
     <span id="generateIcon" class="sparkle-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m12 3 1.9 5.8L20 11l-6.1 2.2L12 19l-1.9-5.8L4 11l6.1-2.2L12 3Z"></path><path d="m19 14 1.1 2.9L23 18l-2.9 1.1L19 22l-1.1-2.9L15 18l2.9-1.1L19 14Z"></path></svg></span>
     <span id="generateLabel">Make my content</span><span class="button-arrow" aria-hidden="true">→</span>
   </button>
   <p id="errorMessage" class="error" role="alert" hidden></p>
-  <div id="loading" class="loading" hidden><span class="spinner"></span><span>Finding the best angles…</span></div>
+  <div id="loading" class="loading" hidden><span class="spinner"></span><span id="loadingText">Finding the best angles…</span></div>
 
   <section id="results" class="results" hidden>
     <div class="results-intro"><div><span class="eyebrow">FRESH FROM YOUR SOURCE</span><h2>Your drafts</h2></div><span class="result-tag"><span class="result-dot"></span>Ready to edit</span></div>
