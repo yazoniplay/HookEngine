@@ -5,6 +5,7 @@ const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const FUNCTION_URL = SUPABASE_URL + "/functions/v1/hookengine-generate";
 const sourceText = $("sourceText");
 const generateBtn = $("generateBtn");
+const analyzeVideoBtn = $("analyzeVideoBtn");
 
 function applyTheme(theme) {
   const resolved = theme === "light" ? "light" : "dark";
@@ -40,11 +41,14 @@ function updateCount() {
 sourceText.addEventListener("input", updateCount);
 function showError(message) { $("errorMessage").textContent = message; $("errorMessage").hidden = false; }
 function clearError() { $("errorMessage").hidden = true; }
-function setLoading(loading) {
+function setLoading(loading, message = "Finding the best angles…") {
   generateBtn.disabled = loading;
+  analyzeVideoBtn.disabled = loading;
   $("loading").hidden = !loading;
+  $("loadingText").textContent = message;
   $("generateIcon").style.visibility = loading ? "hidden" : "visible";
   $("generateLabel").textContent = loading ? "Working on it…" : "Make my content";
+  $("analyzeVideoLabel").textContent = loading ? "Analyzing…" : "Analyze YouTube with Gemini";
 }
 
 function applyExtractResponse(response) {
@@ -102,30 +106,70 @@ $("clearSourceBtn").addEventListener("click", () => {
   sourceText.focus();
 });
 
+async function requestGeneration(payload) {
+  const response = await fetch(FUNCTION_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", apikey: SUPABASE_KEY },
+    body: JSON.stringify(payload)
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error || (response.status === 401 ? "Supabase rejected the API key. Reload the extension and try again." : "Request failed (" + response.status + ")."));
+  for (const key of ["x_thread", "linkedin_post", "tiktok_hooks"]) {
+    if (typeof data[key] !== "string") throw new Error("The server returned an invalid response. Please try again.");
+    $(key).value = data[key];
+  }
+  $("results").hidden = false;
+  return data;
+}
+
+analyzeVideoBtn.addEventListener("click", () => {
+  clearError();
+  chrome.runtime.sendMessage({ type: "HOOKENGINE_GET_ACTIVE_TAB" }, async tab => {
+    if (chrome.runtime.lastError) return showError(chrome.runtime.lastError.message);
+    if (!tab?.ok || !tab.url) return showError(tab?.error || "Could not read the active tab.");
+    let parsedUrl;
+    try { parsedUrl = new URL(tab.url); } catch {}
+    const host = parsedUrl?.hostname?.toLowerCase().replace(/^www\./, "");
+    if (!parsedUrl || !["youtube.com", "m.youtube.com", "music.youtube.com", "youtu.be"].includes(host)) {
+      return showError("Open a public YouTube video first, then choose Analyze YouTube with Gemini.");
+    }
+    $("sourceUrl").value = tab.url;
+    $("sourceTitle").value = tab.title || "YouTube video";
+    setLoading(true, "Gemini is analyzing the public YouTube video…");
+    try {
+      const data = await requestGeneration({
+        text: "",
+        title: $("sourceTitle").value.trim(),
+        sourceUrl: tab.url,
+        sourceMode: "youtube_video"
+      });
+      $("sourceLabel").textContent = data.sourceMethod === "server-transcript" ? "YouTube transcript · server fallback" : "Gemini video analysis";
+      sourceText.value = data.sourceMethod === "server-transcript" ? "" : "Video analyzed directly by Gemini. Generated drafts are based on the public YouTube video.";
+      if (data.sourceMethod === "server-transcript") {
+        showError("Gemini's direct video route wasn't available, so HookEngine used the server-side transcript fallback instead.");
+      } else {
+        clearError();
+      }
+      updateCount();
+    } catch (error) {
+      showError(error.message || "Could not analyze this YouTube video.");
+    } finally {
+      setLoading(false);
+    }
+  });
+});
+
 generateBtn.addEventListener("click", async () => {
   clearError();
-  if (sourceText.value.trim().length < 80) return showError("Add at least 80 characters of source text before generating.");
+  if (sourceText.value.trim().length < 80) return showError("Add at least 80 characters of source text before generating. For a YouTube video, use Analyze YouTube with Gemini instead.");
   setLoading(true);
   try {
-    const response = await fetch(FUNCTION_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        apikey: SUPABASE_KEY
-      },
-      body: JSON.stringify({
-        text: sourceText.value.trim(),
-        title: $("sourceTitle").value.trim(),
-        sourceUrl: $("sourceUrl").value || ""
-      })
+    await requestGeneration({
+      text: sourceText.value.trim(),
+      title: $("sourceTitle").value.trim(),
+      sourceUrl: $("sourceUrl").value || "",
+      sourceMode: "text"
     });
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(data.error || (response.status === 401 ? "Supabase rejected the API key. Reload the extension and try again." : "Request failed (" + response.status + ")."));
-    for (const key of ["x_thread", "linkedin_post", "tiktok_hooks"]) {
-      if (typeof data[key] !== "string") throw new Error("The server returned an invalid response. Please try again.");
-      $(key).value = data[key];
-    }
-    $("results").hidden = false;
   } catch (error) {
     showError(error.message || "Could not connect to Supabase. Check the function configuration.");
   } finally {
