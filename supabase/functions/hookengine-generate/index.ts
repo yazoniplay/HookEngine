@@ -147,10 +147,72 @@ async function generateFromYouTubeUrl(sourceUrl: string, title: string) {
   return { ...drafts, sourceMethod: "gemini-youtube" };
 }
 
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
+const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") || Deno.env.get("SUPABASE_PUBLISHABLE_KEY") || "";
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+
+async function authenticateUser(req: Request): Promise<string | null> {
+  const auth = req.headers.get("authorization") || "";
+  const token = auth.match(/^Bearer\s+(.+)$/i)?.[1];
+  if (!token || !SUPABASE_URL || !SUPABASE_ANON_KEY) return null;
+  const response = await fetch(SUPABASE_URL + "/auth/v1/user", {
+    headers: { apikey: SUPABASE_ANON_KEY, Authorization: "Bearer " + token },
+  });
+  if (!response.ok) return null;
+  const user = await response.json().catch(() => null);
+  return typeof user?.id === "string" ? user.id : null;
+}
+
+async function callUsageRpc(name: string, args: Record<string, unknown>) {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) throw new Error("Usage database is not configured.");
+  const response = await fetch(SUPABASE_URL + "/rest/v1/rpc/" + name, {
+    method: "POST",
+    headers: {
+      apikey: SUPABASE_SERVICE_ROLE_KEY,
+      Authorization: "Bearer " + SUPABASE_SERVICE_ROLE_KEY,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(args),
+  });
+  if (!response.ok) {
+    console.error("HookEngine usage RPC failed:", name, response.status, (await response.text()).slice(0, 300));
+    throw new Error("Could not update your usage. Please try again.");
+  }
+  return await response.json();
+}
+
+async function reserveUsage(userId: string, sourceType: string, title: string, sourceUrl: string, sourceText: string) {
+  return await callUsageRpc("hookengine_reserve_generation", {
+    p_user_id: userId,
+    p_source_type: sourceType,
+    p_source_title: title,
+    p_source_url: sourceUrl,
+    p_source_text: sourceText,
+  });
+}
+
+async function finishUsage(userId: string, generationId: string, status: "completed" | "failed", drafts?: Record<string, string>, errorMessage?: string) {
+  try {
+    await callUsageRpc("hookengine_finish_generation", {
+      p_generation_id: generationId,
+      p_user_id: userId,
+      p_status: status,
+      p_x_thread: drafts?.x_thread ?? null,
+      p_linkedin_post: drafts?.linkedin_post ?? null,
+      p_tiktok_hooks: drafts?.tiktok_hooks ?? null,
+      p_error_message: errorMessage ?? null,
+    });
+  } catch (error) {
+    console.error("Could not finalize generation history:", error);
+  }
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Method not allowed." }, 405);
-  if (!GEMINI_API_KEY) return json({ error: "The server is missing GEMINI_API_KEY. Add it in Supabase Edge Function secrets." }, 503);
+  const userId = await authenticateUser(req);
+  if (!userId) return json({ error: "Sign in to HookEngine to use your daily allowance." }, 401);
+  if (!GEMINI_API_KEY) return json({ error: "AI generation is temporarily unavailable. Please try again later." }, 503);
 
   let body: { text?: unknown; title?: unknown; sourceUrl?: unknown; sourceMode?: unknown };
   try {
@@ -166,22 +228,45 @@ Deno.serve(async (req: Request) => {
 
   if (sourceMode === "youtube_video") {
     if (!isPublicYouTubeUrl(sourceUrl)) {
-      return json({ error: "Open a public YouTube video and try again. Gemini's direct video input supports public videos only." }, 400);
+      return json({ error: "Open a public YouTube video and try again. AI analysis supports public videos only." }, 400);
     }
+    const reservation = await reserveUsage(userId, "youtube_video", title, sourceUrl, "");
+    if (!reservation?.allowed) return json({
+      error: "You've reached today's generation limit.",
+      limitReached: true,
+      plan: reservation?.plan || "free",
+      used: reservation?.used || 0,
+      limit: reservation?.limit || 5,
+      remaining: 0,
+    }, 429);
     try {
-      return json(await generateFromYouTubeUrl(sourceUrl, title));
+      const drafts = await generateFromYouTubeUrl(sourceUrl, title);
+      await finishUsage(userId, reservation.generation_id, "completed", drafts);
+      return json({ ...drafts, usage: { plan: reservation.plan, used: reservation.used, limit: reservation.limit, remaining: reservation.remaining } });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Could not analyze this YouTube video.";
+      await finishUsage(userId, reservation.generation_id, "failed", undefined, message);
       console.error("YouTube analysis failed:", message);
       const status = message.includes("timed out") || message.includes("TimeoutError") ? 504 : 502;
-      return json({ error: message }, status);
+      return json({ error: "Could not analyze this YouTube video. Please try again." }, status);
     }
   }
 
+  if (sourceMode !== "text") return json({ error: "Unsupported source mode." }, 400);
   if (typeof text !== "string" || text.trim().length < 80) {
     return json({ error: "Source text must contain at least 80 characters." }, 400);
   }
   if (text.length > 60000) return json({ error: "Source text is too long (60,000 characters maximum)." }, 413);
+
+  const reservation = await reserveUsage(userId, "article", title, sourceUrl, text.trim());
+  if (!reservation?.allowed) return json({
+    error: "You've reached today's generation limit.",
+    limitReached: true,
+    plan: reservation?.plan || "free",
+    used: reservation?.used || 0,
+    limit: reservation?.limit || 5,
+    remaining: 0,
+  }, 429);
 
   try {
     const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(MODEL) + ":generateContent?key=" + encodeURIComponent(GEMINI_API_KEY), {
@@ -215,11 +300,13 @@ Deno.serve(async (req: Request) => {
 
     const generated = result?.candidates?.[0]?.content?.parts?.map((part: { text?: string }) => part.text || "").join("").trim();
     const parsed = generated ? parseDraftJson(generated) : null;
-    if (!parsed) throw new Error("Gemini returned an invalid content response.");
-    return json(parsed);
+    if (!parsed) throw new Error("The AI returned an invalid content response.");
+    await finishUsage(userId, reservation.generation_id, "completed", parsed);
+    return json({ ...parsed, usage: { plan: reservation.plan, used: reservation.used, limit: reservation.limit, remaining: reservation.remaining } });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Content generation failed. Please try again.";
+    await finishUsage(userId, reservation.generation_id, "failed", undefined, message);
     console.error("Generation failed:", message);
-    return json({ error: message }, 502);
+    return json({ error: "Content generation failed. Please try again." }, 502);
   }
 });
