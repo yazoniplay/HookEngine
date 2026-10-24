@@ -41,6 +41,7 @@ async function loadAccountSession() {
     await chrome.storage.local.remove(SESSION_KEY);
   }
   renderAccountPanel();
+  if (accountUser) refreshExtensionUsage();
 }
 function utcDayStart() {
   const now = new Date();
