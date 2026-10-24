@@ -1,0 +1,16 @@
+{
+  "name": "hookengine-api",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "HookEngine API proxy for OpenAI and Supabase",
+  "scripts": { "start": "node server.js", "dev": "node --watch server.js" },
+  "engines": { "node": ">=20" },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.57.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^5.1.0",
+    "openai": "^5.12.2"
+  }
+}
