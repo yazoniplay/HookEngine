@@ -1,12 +1,12 @@
 function decodeCaptionText(value) {
   return (value || "")
-    .replace(/<br\\s*\\/?\\s*>/gi, " ")
+    .replace(/<br\s*\/?\s*>/gi, " ")
     .replace(/<[^>]*>/g, " ")
     .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
     .replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'")
-    .replace(/&#(\\d+);/g, (_, n) => String.fromCodePoint(Number(n)))
+    .replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n)))
     .replace(/&#x([0-9a-f]+);/gi, (_, n) => String.fromCodePoint(parseInt(n, 16)))
-    .replace(/\\s+/g, " ").trim();
+    .replace(/\s+/g, " ").trim();
 }
 
 function parseCaptionPayload(payload) {
@@ -19,15 +19,15 @@ function parseCaptionPayload(payload) {
       const lines = (data.events || []).flatMap(event =>
         (event.segs || []).map(seg => seg.utf8 || "")
       ).join("");
-      if (lines.trim().length >= 40) return lines.replace(/\\s+/g, " ").trim();
+      if (lines.trim().length >= 40) return lines.replace(/\s+/g, " ").trim();
     } catch {}
   }
   const xmlLines = [];
-  for (const match of raw.matchAll(/<(?:text|p)\\b[^>]*>([\\s\\S]*?)<\\/(?:text|p)>/gi)) {
+  for (const match of raw.matchAll(/<(?:text|p)\b[^>]*>([\s\S]*?)<\/(?:text|p)>/gi)) {
     const line = decodeCaptionText(match[1]);
     if (line) xmlLines.push(line);
   }
-  return xmlLines.join(" ").replace(/\\s+/g, " ").trim();
+  return xmlLines.join(" ").replace(/\s+/g, " ").trim();
 }
 
 function extractPlayerResponse(html) {
@@ -42,7 +42,7 @@ function extractPlayerResponse(html) {
         const ch = html[i];
         if (inString) {
           if (escaped) escaped = false;
-          else if (ch === "\\\\") escaped = true;
+          else if (ch === "\\") escaped = true;
           else if (ch === '"') inString = false;
         } else if (ch === '"') inString = true;
         else if (ch === "{") depth++;
@@ -72,7 +72,7 @@ async function fetchYouTubeTranscript(videoUrl) {
     const url = new URL(videoUrl);
     const videoId = url.hostname === "youtu.be"
       ? url.pathname.split("/").filter(Boolean)[0]
-      : (url.searchParams.get("v") || url.pathname.match(/\\/(?:shorts|embed|live)\\/([^/?]+)/)?.[1]);
+      : (url.searchParams.get("v") || url.pathname.match(/\/(?:shorts|embed|live)\/([^/?]+)/)?.[1]);
     if (!videoId) return "";
     const response = await fetch("https://www.youtube.com/watch?v=" + encodeURIComponent(videoId), { credentials: "include" });
     if (!response.ok) return "";
@@ -112,7 +112,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     try {
       const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
       if (!tab?.id || !tab.url || !/^https?:/.test(tab.url)) throw new Error("Open a YouTube video or article first.");
-      const isYouTube = /(^|\\.)youtube\\.com$|(^|\\.)youtu\\.be$/i.test(new URL(tab.url).hostname);
+      const isYouTube = /(^|\.)youtube\.com$|(^|\.)youtu\.be$/i.test(new URL(tab.url).hostname);
       if (isYouTube) {
         const transcript = await fetchYouTubeTranscript(tab.url);
         if (transcript) {
