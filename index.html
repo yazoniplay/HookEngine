@@ -160,6 +160,68 @@
     @media(max-width:620px){.hero{padding-top:58px;padding-bottom:66px}section.content{padding-top:72px;padding-bottom:72px}}
     @media(prefers-reduced-motion:reduce){.feature,.step,.price-card,.platforms span,.button,.preview,.step-icon{transition:none!important;transform:none!important}}
 
+  
+    /* HookEngine brand pass: use the extension's real green and a quieter, more human layout. */
+    :root{
+      color-scheme:light;
+      --ink:#20221d;--text:#20221d;--paper:#f7f7f2;--bg:#f7f7f2;
+      --lime:#405d2b;--accent:#405d2b;--accent-ink:#fff;
+      --muted:#686b60;--line:#e1e3d9;--surface:#fff;--surface-2:#f0f1e9;
+      --card:#fff;--shadow:0 1px 2px #2221;
+    }
+    body{background:var(--paper);color:var(--text);font-family:Arial,Helvetica,sans-serif;letter-spacing:0}
+    h1,h2,h3,.brand,.price,.preview h3,.step h3,.feature h3,.final-cta h2{
+      font-family:Arial,Helvetica,sans-serif;letter-spacing:-.045em
+    }
+    .announcement{background:#f0f1e9;color:#686b60;border-bottom:1px solid var(--line)}
+    .brand-mark{background:var(--accent);color:#fff;border:0;border-radius:6px;transform:none}
+    nav a:hover,footer a:hover{color:var(--accent)}
+    .button{background:#fff;color:var(--text);border:1px solid #d8dbcf;border-radius:7px;box-shadow:0 2px 0 #d8dbcf;transition:transform .16s ease,background .16s ease,border-color .16s ease,box-shadow .16s ease}
+    .button:hover{background:#f0f1e9;border-color:#aeb99f;transform:translateY(-2px);box-shadow:0 4px 0 #d8dbcf}
+    .button:active{transform:translateY(1px);box-shadow:0 0 0 #d8dbcf}
+    .button-pink,.price-card .button,.price-card.pro .button{background:var(--accent);color:#fff;border-color:var(--accent);box-shadow:0 2px 0 #2d4520}
+    .button-pink:hover,.price-card .button:hover,.price-card.pro .button:hover{background:#344c24;border-color:#344c24;color:#fff;box-shadow:0 4px 0 #2d4520}
+    .hero h1 .highlight:after{background:#c7df9b;height:13px;bottom:7px;opacity:.9}
+    .eyebrow:before{background:var(--accent);transform:none;border-radius:50%}
+    .preview-wrap:before{background:#e8eddf;border:1px solid #dce3d1;transform:rotate(2deg);border-radius:14px}
+    .preview{background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 22px #20221d0d;transform:none}
+    .preview-wrap:hover .preview{transform:translateY(-2px)}
+    .preview-brand i{background:var(--accent);color:#fff;border-radius:5px}
+    .live,.marquee em{color:var(--accent)}
+    .live:before{background:var(--accent)}
+    .source-chip{background:#f0f1e9;color:#686b60;border-radius:5px}
+    .preview-tabs span{border-radius:5px}
+    .preview-tabs span.active{background:var(--accent);border-color:var(--accent);color:#fff}
+    .draft{background:#f7f7f2;border-color:var(--line);border-radius:7px}
+    .draft p{color:var(--text)}
+    .copy{border-radius:5px}
+    .sticker{background:#c7df9b;color:#26351e;border:0;box-shadow:none;width:72px;height:72px;font-size:11px}
+    .marquee{background:#f0f1e9;border-color:var(--line)}
+    .marquee-track{color:#686b60}
+    .feature{background:#fff;border:1px solid var(--line);border-radius:9px;box-shadow:0 2px 0 #e5e7df;transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease}
+    .feature:hover{transform:translateY(-3px);border-color:#b8c5a9;box-shadow:0 5px 0 #e5e7df}
+    .feature-icon{background:#edf2e6!important;color:var(--accent);border:1px solid #e0e8d6;border-radius:7px}
+    .workflow{background:#f0f1e9;border-color:var(--line)}
+    .step{border-color:#cfd4c7;transition:transform .18s ease,border-color .18s ease}
+    .step:hover{transform:translateY(-2px);border-color:var(--accent)}
+    .step:before{content:none}
+    .step-icon{display:grid;place-items:center;width:34px;height:34px;margin:0 0 15px;background:#e3ead9;color:var(--accent);border-radius:7px}
+    .step-icon svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+    .platforms span{background:#fff;border-color:var(--line);border-radius:6px;color:var(--text);transition:transform .16s ease,border-color .16s ease}
+    .platforms span:hover{transform:translateY(-2px);border-color:#aeb99f;background:#fff}
+    .pricing{background:#ecefe7;border-color:var(--line);color:var(--text)}
+    .price-card{background:#fff;border-color:var(--line);border-radius:9px;box-shadow:0 2px 0 #dfe3d8}
+    .price-card.pro{background:#fff;color:var(--text);border:1px solid #aebd9e;box-shadow:0 3px 0 #d6dfcc;transform:none}
+    .price-card:hover,.price-card.pro:hover{transform:translateY(-3px);border-color:#8fa47a;box-shadow:0 6px 0 #d6dfcc}
+    .plan-name,.price small,.price-card>p,.pro .plan-name,.pro .price small,.price-card.pro>p{color:var(--muted)}
+    .price-card li:before,.price-card.pro li:before{background:#edf2e6;color:var(--accent);border:1px solid #e0e8d6}
+    .final-cta{background:var(--paper)}
+    footer{border-color:var(--line)}
+    .reveal{transform:translateY(12px);transition:opacity .45s ease,transform .45s ease}
+    .reveal.visible{transform:translateY(0)}
+    .feature,.step,.price-card,.platforms span{will-change:auto}
+    @media(prefers-reduced-motion:reduce){.reveal,.feature,.step,.price-card,.platforms span,.button,.preview{transition:none!important;transform:none!important}}
+
   </style>
 </head>
 <body>
