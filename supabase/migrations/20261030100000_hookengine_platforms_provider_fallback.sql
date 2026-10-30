@@ -4,7 +4,6 @@ alter table public.hookengine_generations
   add column if not exists selected_platforms text[] not null default array['x_thread','linkedin_post','tiktok_hooks']::text[],
   add column if not exists provider text;
 
-drop function if exists public.hookengine_finish_generation(uuid,uuid,text,text,text,text,text);
 create or replace function public.hookengine_finish_generation(
   p_generation_id uuid,
   p_user_id uuid,
