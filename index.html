@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#fff9f2">
+  <meta name="description" content="Turn articles and YouTube videos into platform-ready social drafts. One source, more ways to show up.">
+  <title>HookEngine — Make one idea go further</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{--ink:#191714;--paper:#fff9f2;--muted:#777168;--line:#e9e0d6;--pink:#ff9eb5;--pink-dark:#ef7895;--lime:#d9f06b;--card:#fff;--shadow:0 16px 45px #39291a12}
+    *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.55 "DM Sans",sans-serif}a{color:inherit;text-decoration:none}button{font:inherit}
+    .wrap{width:min(1160px,calc(100% - 48px));margin:auto}.announcement{background:var(--ink);color:#fff;padding:9px 16px;text-align:center;font-size:12px;font-weight:600;letter-spacing:.02em}.announcement span{color:var(--lime)}
+    header{height:78px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line)}.brand{display:flex;align-items:center;gap:10px;font:700 20px "Space Grotesk",sans-serif;letter-spacing:-.8px}.brand-mark{display:grid;place-items:center;width:34px;height:34px;background:var(--ink);color:var(--lime);border-radius:10px;font:700 21px "Space Grotesk";transform:rotate(-5deg)}nav{display:flex;align-items:center;gap:30px;color:#575149;font-size:13px;font-weight:600}nav a{transition:color .2s}nav a:hover{color:var(--pink-dark)}.nav-actions{display:flex;align-items:center;gap:12px}
+    .button{display:inline-flex;align-items:center;justify-content:center;gap:12px;padding:13px 19px;border:1.5px solid var(--ink);border-radius:9px;background:var(--ink);color:white;font-size:13px;font-weight:700;box-shadow:4px 4px 0 var(--ink);transition:transform .18s cubic-bezier(.2,.8,.2,1),box-shadow .18s,background .18s,color .18s;will-change:transform}.button:hover{transform:translate(2px,2px);box-shadow:2px 2px 0 var(--ink)}.button:active{transform:translate(4px,4px);box-shadow:0 0 0 var(--ink)}.button-pink{background:var(--pink);color:var(--ink);border-color:var(--ink)}.button-pink:hover{background:#ffb2c3}.button-small{padding:10px 14px;font-size:12px}.button-plain{background:transparent;color:var(--ink);box-shadow:none;border-color:transparent}.button-plain:hover{box-shadow:none;background:#f5ece2;transform:translateY(-1px)}
+    .hero{display:grid;grid-template-columns:1fr .92fr;align-items:center;gap:54px;padding:86px 0 82px}.eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#655d52}.eyebrow:before{content:"";width:8px;height:8px;border-radius:2px;background:var(--pink-dark);transform:rotate(45deg)}h1,h2,h3,p{margin-top:0}.hero h1{max-width:620px;margin:20px 0 20px;font:700 clamp(48px,6.3vw,78px)/.99 "Space Grotesk",sans-serif;letter-spacing:-.075em}.hero h1 .highlight{position:relative;display:inline-block;z-index:0}.hero h1 .highlight:after{content:"";position:absolute;z-index:-1;left:-3px;right:-5px;bottom:5px;height:22px;background:var(--pink);transform:rotate(-1.8deg);border-radius:4px}.hero-copy{max-width:480px;color:#655f56;font-size:17px;line-height:1.65}.hero-actions{display:flex;align-items:center;gap:18px;margin-top:29px;flex-wrap:wrap}.micro-proof{display:flex;align-items:center;gap:8px;margin-top:22px;color:#827a70;font-size:11px}.micro-proof b{color:var(--ink)}.dot{width:5px;height:5px;background:#aaa096;border-radius:50%}
+    .preview-wrap{position:relative;padding:20px 0 20px 12px}.preview-wrap:before{content:"";position:absolute;inset:4% -4% 2% 7%;background:var(--lime);border:1.5px solid var(--ink);border-radius:28px;transform:rotate(4deg)}.preview{position:relative;background:#fff;border:1.5px solid var(--ink);border-radius:16px;padding:19px;box-shadow:9px 10px 0 var(--ink);transform:rotate(-2deg);transition:transform .35s cubic-bezier(.2,.8,.2,1)}.preview-wrap:hover .preview{transform:rotate(0) translateY(-4px)}.preview-top{display:flex;align-items:center;justify-content:space-between;padding-bottom:14px;border-bottom:1px solid #eee8e1}.preview-brand{display:flex;align-items:center;gap:7px;font-weight:800;font-size:12px}.preview-brand i{display:grid;place-items:center;width:22px;height:22px;background:var(--ink);color:var(--lime);border-radius:6px;font-style:normal}.live{font-size:9px;color:#58854a;font-weight:800}.live:before{content:"";display:inline-block;width:6px;height:6px;background:#74b968;border-radius:50%;margin-right:5px}.source-chip{display:inline-flex;padding:6px 9px;border-radius:5px;background:#f6f1ea;color:#766c61;font-size:9px;font-weight:700;margin:17px 0 12px}.preview h3{font:700 19px/1.2 "Space Grotesk";letter-spacing:-.7px;margin-bottom:7px}.preview-sub{font-size:10px;color:#8a8177;margin-bottom:16px}.preview-tabs{display:flex;gap:6px;margin-bottom:11px}.preview-tabs span{padding:6px 9px;border:1px solid #e9e2d9;border-radius:6px;color:#83796f;font-size:9px;font-weight:700}.preview-tabs span.active{background:var(--ink);border-color:var(--ink);color:white}.draft{padding:13px;border:1px solid #e8e1d8;border-radius:9px;background:#fffdfa}.draft-label{font-size:9px;font-weight:800;color:#9b8f82;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px}.draft p{font-size:11px;line-height:1.65;margin:0;color:#38332d}.draft-actions{display:flex;justify-content:space-between;align-items:center;margin-top:12px;color:#8e857b;font-size:9px}.copy{padding:6px 9px;border:1px solid #e5ddd3;border-radius:5px;color:var(--ink);font-weight:700}.variation-row{display:flex;gap:5px;margin-top:12px}.variation-row i{height:4px;width:30px;background:#e9e1d7;border-radius:4px}.variation-row i:first-child{background:var(--pink-dark)}.sticker{position:absolute;right:-24px;top:-26px;display:grid;place-items:center;width:84px;height:84px;border:1.5px solid var(--ink);border-radius:50%;background:var(--pink);font:700 13px/1.05 "Space Grotesk";text-align:center;transform:rotate(12deg);box-shadow:3px 4px 0 var(--ink)}
+    .marquee{overflow:hidden;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:16px 0;background:#fffdf9}.marquee-track{display:flex;justify-content:space-around;gap:35px;white-space:nowrap;color:#8a8177;font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase}.marquee b{color:var(--ink)}.marquee em{color:var(--pink-dark);font-style:normal}
+    section.content{padding:100px 0}.section-head{text-align:center;max-width:650px;margin:0 auto 46px}.section-head h2{font:700 clamp(34px,4.2vw,52px)/1.05 "Space Grotesk";letter-spacing:-.065em;margin:15px 0}.section-head p{color:var(--muted);font-size:15px}.feature-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.feature{min-height:230px;padding:25px;border:1.5px solid var(--ink);border-radius:13px;background:#fff;box-shadow:4px 4px 0 var(--ink);transition:transform .22s,box-shadow .22s}.feature:hover{transform:translate(2px,2px);box-shadow:2px 2px 0 var(--ink)}.feature-icon{display:grid;place-items:center;width:42px;height:42px;border:1.5px solid var(--ink);border-radius:10px;background:var(--lime);font-size:19px;margin-bottom:24px}.feature:nth-child(2) .feature-icon{background:var(--pink)}.feature:nth-child(3) .feature-icon{background:#d7c7ff}.feature h3{font:700 19px "Space Grotesk";letter-spacing:-.5px;margin-bottom:9px}.feature p{font-size:13px;color:var(--muted);line-height:1.65;margin:0}
+    .workflow{background:#f4ede4;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:30px;counter-reset:step}.step{position:relative;padding-top:19px;border-top:1.5px solid var(--ink)}.step:before{counter-increment:step;content:"0" counter(step);font:700 13px "Space Grotesk";color:var(--pink-dark)}.step h3{font:700 21px "Space Grotesk";letter-spacing:-.6px;margin:17px 0 8px}.step p{font-size:13px;color:var(--muted);line-height:1.65}
+    .platforms{display:flex;justify-content:center;flex-wrap:wrap;gap:10px;margin-top:28px}.platforms span{padding:11px 16px;border:1px solid var(--line);border-radius:8px;background:#fff;font-size:12px;font-weight:700}
+    .pricing{background:var(--ink);color:#fff}.pricing .section-head p{color:#b8b0a7}.pricing .eyebrow{color:#d4c9bd}.pricing-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;max-width:800px;margin:auto}.price-card{padding:28px;border:1px solid #4a453f;border-radius:13px;background:#24211d}.price-card.pro{background:var(--pink);color:var(--ink);border:1.5px solid #fff;box-shadow:7px 7px 0 var(--lime);transform:translateY(-7px)}.plan-name{font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#bdb4a9}.pro .plan-name{color:#6e3947}.price{font:700 43px "Space Grotesk";letter-spacing:-.06em;margin:17px 0 5px}.price small{font:500 12px "DM Sans";letter-spacing:0;color:#bdb4a9}.pro .price small{color:#714c55}.price-card>p{min-height:40px;color:#bdb4a9;font-size:12px}.price-card.pro>p{color:#714c55}.price-card ul{list-style:none;padding:0;margin:23px 0 28px;display:grid;gap:12px;font-size:12px}.price-card li:before{content:"✓";display:inline-grid;place-items:center;width:17px;height:17px;margin-right:9px;border-radius:50%;background:#454039;color:var(--lime);font-size:10px;font-weight:800}.price-card.pro li:before{background:var(--ink);color:var(--lime)}.price-card .button{width:100%;box-shadow:4px 4px 0 #090807}.price-card.pro .button{background:var(--ink);color:#fff;border-color:var(--ink);box-shadow:4px 4px 0 #fff}
+    .final-cta{padding:95px 0;text-align:center}.final-cta h2{max-width:680px;margin:17px auto;font:700 clamp(39px,5vw,60px)/1.02 "Space Grotesk";letter-spacing:-.07em}.final-cta p{color:var(--muted);margin-bottom:26px}.final-cta .button{margin:0 auto}
+    footer{padding:25px 0;border-top:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;color:#898176;font-size:11px}footer .brand{font-size:15px;color:var(--ink)}footer .brand-mark{width:26px;height:26px;font-size:16px;border-radius:7px}footer .links{display:flex;gap:20px}footer a:hover{color:var(--pink-dark)}
+    .reveal{opacity:0;transform:translateY(18px);transition:opacity .65s ease,transform .65s cubic-bezier(.2,.8,.2,1)}.reveal.visible{opacity:1;transform:translateY(0)}.delay-1{transition-delay:.08s}.delay-2{transition-delay:.16s}
+    @media(max-width:850px){.hero{grid-template-columns:1fr;gap:28px;padding:64px 0}.hero-copy{max-width:580px}.preview-wrap{max-width:560px;margin:0 auto;width:100%}.feature-grid{grid-template-columns:1fr 1fr}.feature:last-child{grid-column:1/-1}.hero h1{max-width:650px}}
+    @media(max-width:620px){.wrap{width:min(100% - 34px,500px)}header{height:66px}nav{display:none}.nav-actions{gap:5px}.nav-actions .button-plain{display:none}.hero{padding:54px 0 58px}.hero h1{font-size:clamp(47px,13vw,66px)}.hero-copy{font-size:15px}.hero-actions{gap:13px}.preview-wrap{padding:15px 7px}.preview{padding:14px}.sticker{width:69px;height:69px;font-size:11px;right:-9px;top:-19px}.marquee-track{justify-content:flex-start;width:max-content;animation:marquee 24s linear infinite}.marquee-track span{padding-right:20px}@keyframes marquee{to{transform:translateX(-30%)}}section.content{padding:70px 0}.section-head{margin-bottom:32px}.feature-grid,.steps,.pricing-grid{grid-template-columns:1fr}.feature{min-height:0}.feature:last-child{grid-column:auto}.steps{gap:24px}.price-card.pro{transform:none}.price-card>p{min-height:0}.final-cta{padding:72px 0}footer{align-items:flex-start;gap:18px;flex-direction:column}footer .links{gap:15px}}
+    @media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}.reveal{opacity:1;transform:none}}
+  </style>
+</head>
+<body>
+  <div class="announcement"><span>NEW</span> · Three variations per platform with HookEngine Pro</div>
+  <div class="wrap">
+    <header>
+      <a class="brand" href="#" aria-label="HookEngine home"><span class="brand-mark">H</span>HookEngine</a>
+      <nav aria-label="Main navigation"><a href="#how">How it works</a><a href="#features">Features</a><a href="#pricing">Pricing</a></nav>
+      <div class="nav-actions"><a class="button button-plain button-small" href="https://yazoniplay.github.io/HookEngine/account/">Sign in</a><a class="button button-pink button-small" href="https://chromewebstore.google.com/detail/hookengine-%E2%80%94-content-repu/ikalaemjdindfenbbaecekkocbbocjma">Add to Chrome <span>↗</span></a></div>
+    </header>
+    <main>
+      <section class="hero">
+        <div class="reveal visible">
+          <span class="eyebrow">YOUR CONTENT, REIMAGINED</span>
+          <h1>One good idea.<br><span class="highlight">A whole lot</span><br>more content.</h1>
+          <p class="hero-copy">Turn articles and YouTube videos into ready-to-edit social drafts. Less rewriting from scratch. More time making things worth sharing.</p>
+          <div class="hero-actions"><a class="button button-pink" href="https://chromewebstore.google.com/detail/hookengine-%E2%80%94-content-repu/ikalaemjdindfenbbaecekkocbbocjma">Get HookEngine <span>↗</span></a><a class="button button-plain" href="#how">See how it works <span>↓</span></a></div>
+          <div class="micro-proof"><b>Free to start</b><span class="dot"></span>5 generations every day<span class="dot"></span>No card required to try</div>
+        </div>
+        <div class="preview-wrap reveal delay-1" aria-label="Illustrative HookEngine product preview">
+          <div class="sticker">ONE SOURCE<br>3 VERSIONS<br>✳</div>
+          <div class="preview">
+            <div class="preview-top"><div class="preview-brand"><i>H</i> HookEngine</div><span class="live">DRAFTS READY</span></div>
+            <span class="source-chip">↗ ARTICLE · 6 MIN READ</span>
+            <h3>Your idea, across the feed.</h3>
+            <p class="preview-sub">Choose a platform. Get a draft that fits.</p>
+            <div class="preview-tabs"><span class="active">X thread</span><span>LinkedIn</span><span>TikTok</span></div>
+            <div class="draft"><div class="draft-label">VERSION 01 · X THREAD</div><p>Most people don't need more ideas. They need a better way to get more out of the ideas they already have.<br><br>Here's how to turn one useful insight into content people actually want to read. 🧵</p><div class="draft-actions"><span>Editable draft</span><span class="copy">Copy text ↗</span></div></div>
+            <div class="variation-row"><i></i><i></i><i></i></div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+  <div class="marquee"><div class="wrap"><div class="marquee-track"><span><b>ONE SOURCE</b> <em>✳</em></span><span>MORE WAYS TO SHARE</span><span><b>LESS REPETITIVE WORK</b> <em>✳</em></span><span>YOUR VOICE, YOUR SETTINGS</span><span><b>ONE SOURCE</b> <em>✳</em></span></div></div></div>
+  <section id="features" class="content">
+    <div class="wrap">
+      <div class="section-head reveal"><span class="eyebrow">A BETTER CONTENT WORKFLOW</span><h2>Keep the idea.<br>Change the format.</h2><p>HookEngine gives your source material a useful second life—without making you start with a blank page every time.</p></div>
+      <div class="feature-grid">
+        <article class="feature reveal"><div class="feature-icon">↗</div><h3>Start with what you have</h3><p>Pull from the article in your current tab, analyze a public YouTube video, or paste text directly.</p></article>
+        <article class="feature reveal delay-1"><div class="feature-icon">✳</div><h3>Write for each platform</h3><p>Generate drafts for X, LinkedIn, TikTok, Instagram, Threads and Facebook—with platform-specific formats.</p></article>
+        <article class="feature reveal delay-2"><div class="feature-icon">☷</div><h3>Make it sound like you</h3><p>Set your preferred tone, writing style, length and target audience in the extension settings.</p></article>
+      </div>
+    </div>
+  </section>
+  <section id="how" class="content workflow">
+    <div class="wrap">
+      <div class="section-head reveal"><span class="eyebrow">THREE STEPS. THAT'S IT.</span><h2>From source to social-ready.</h2><p>A small workflow that gets out of your way.</p></div>
+      <div class="steps">
+        <article class="step reveal"><h3>Bring a source</h3><p>Read the page you're on, analyze a YouTube video, or paste in your own text.</p></article>
+        <article class="step reveal delay-1"><h3>Choose your platforms</h3><p>Select where you want to publish. Set your writing preferences once, then reuse them.</p></article>
+        <article class="step reveal delay-2"><h3>Edit and make it yours</h3><p>Review your drafts, switch between Pro variations, and copy the version you want.</p></article>
+      </div>
+      <div class="platforms reveal"><span>𝕏 · X</span><span>in · LinkedIn</span><span>♪ · TikTok</span><span>◎ · Instagram</span><span>◉ · Threads</span><span>f · Facebook</span></div>
+    </div>
+  </section>
+  <section id="pricing" class="content pricing">
+    <div class="wrap">
+      <div class="section-head reveal"><span class="eyebrow">STRAIGHTFORWARD PLANS</span><h2>Start small. Go further.</h2><p>Try the workflow for free. Upgrade when you want more room and more options.</p></div>
+      <div class="pricing-grid">
+        <article class="price-card reveal"><span class="plan-name">Free</span><div class="price">€0 <small>/ month</small></div><p>Everything you need to try a better way to repurpose content.</p><ul><li>5 generations per day</li><li>X threads</li><li>LinkedIn posts</li><li>TikTok hooks</li><li>Editable drafts</li></ul><a class="button" href="https://yazoniplay.github.io/HookEngine/account/">Create free account <span>↗</span></a></article>
+        <article class="price-card pro reveal delay-1"><span class="plan-name">HookEngine Pro</span><div class="price">€4.99 <small>/ month</small></div><p>For creators who want more platforms, more options and more daily capacity.</p><ul><li>100 generations per day</li><li>Everything in Free</li><li>Instagram, Threads and Facebook</li><li>3 variations per platform</li><li>Tone, style, length and audience controls</li></ul><a class="button" href="https://yazoniplay.github.io/HookEngine/account/">Explore Pro <span>↗</span></a></article>
+      </div>
+    </div>
+  </section>
+  <section class="final-cta">
+    <div class="wrap reveal"><span class="eyebrow">YOUR NEXT POST STARTS HERE</span><h2>Stop staring at the blank page.</h2><p>Keep your best ideas moving. HookEngine is free to get started.</p><a class="button button-pink" href="https://chromewebstore.google.com/detail/hookengine-%E2%80%94-content-repu/ikalaemjdindfenbbaecekkocbbocjma">Add HookEngine to Chrome <span>↗</span></a></div>
+  </section>
+  <div class="wrap"><footer><a class="brand" href="#"><span class="brand-mark">H</span>HookEngine</a><div class="links"><a href="https://yazoniplay.github.io/HookEngine/account/">Account</a><a href="https://chromewebstore.google.com/detail/hookengine-%E2%80%94-content-repu/ikalaemjdindfenbbaecekkocbbocjma">Chrome Web Store</a></div><span>© <span id="year"></span> HookEngine</span></footer></div>
+  <script>
+    document.getElementById("year").textContent=new Date().getFullYear();
+    const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{if(entry.isIntersecting){entry.target.classList.add("visible");observer.unobserve(entry.target)}}),{threshold:.12});
+    document.querySelectorAll(".reveal:not(.visible)").forEach(el=>observer.observe(el));
+  </script>
+</body>
+</html>
