@@ -8,13 +8,13 @@ create or replace function public.hookengine_finish_generation(
   p_generation_id uuid,
   p_user_id uuid,
   p_status text,
-  p_x_thread text default null,
-  p_linkedin_post text default null,
-  p_tiktok_hooks text default null,
-  p_error_message text default null,
-  p_outputs jsonb default '{}'::jsonb,
-  p_selected_platforms text[] default array[]::text[],
-  p_provider text default null
+  p_x_thread text,
+  p_linkedin_post text,
+  p_tiktok_hooks text,
+  p_error_message text,
+  p_outputs jsonb,
+  p_selected_platforms text[],
+  p_provider text
 )
 returns boolean
 language plpgsql
