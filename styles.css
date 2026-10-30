@@ -178,3 +178,9 @@ body{overflow-y:auto}
 
 /* The first-run gate must disappear once a valid session is loaded. */
 .auth-gate[hidden]{display:none!important}
+
+/* Settings shortcut and Pro variation selector */
+.settings-button svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.variation-tabs{display:flex;gap:5px;padding:0 0 8px}
+.variation-tab{padding:5px 9px;border:1px solid var(--line);border-radius:5px;background:var(--surface-2);color:var(--muted);font-size:9px;font-weight:650}
+.variation-tab.active{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 13%,var(--surface));color:var(--text)}
