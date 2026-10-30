@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>HookEngine</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<main class="app">
+  <header class="topbar">
+    <a class="brand" href="#" aria-label="HookEngine home"><span class="brand-mark">h</span><span>HookEngine</span></a>
+    <div class="top-actions">
+      <span id="statusLabel" class="status-label"><i></i> Ready</span>
+      <button id="themeToggle" class="icon-button" type="button" aria-label="Switch theme" title="Switch theme">
+        <svg class="sun-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg>
+        <svg class="moon-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 15.2A8.5 8.5 0 0 1 8.8 4 8.5 8.5 0 1 0 20 15.2Z"></path></svg>
+      </button>
+    </div>
+  </header>
+
+  <section class="account-strip" id="accountStrip">
+    <div class="account-state"><span class="account-indicator"></span><span id="accountSummary">Sign in to use HookEngine</span></div>
+    <button id="accountToggle" class="text-button" type="button">Sign in</button>
+  </section>
+  <section id="accountPanel" class="account-panel" hidden>
+    <div id="signedOutPanel">
+      <label for="accountEmail">Email</label><input id="accountEmail" type="email" autocomplete="email" placeholder="you@example.com">
+      <label for="accountPassword">Password</label><input id="accountPassword" type="password" autocomplete="current-password" placeholder="Password">
+      <button id="accountSignIn" class="small-primary" type="button">Sign in</button>
+      <p id="accountMessage" class="inline-message" role="status"></p>
+      <a class="subtle-link" href="https://yazoniplay.github.io/HookEngine/account/" target="_blank" rel="noopener">Create account · Plans</a>
+    </div>
+    <div id="signedInPanel" hidden>
+      <div class="account-user"><strong id="signedInEmail"></strong><span id="extensionPlan" class="plan-tag">FREE</span></div>
+      <p id="dailyUsage" class="muted"></p>
+      <div class="usage-track"><span id="extensionProgress"></span></div>
+      <div class="account-foot"><a class="subtle-link" href="https://yazoniplay.github.io/HookEngine/account/" target="_blank" rel="noopener">Account & history</a><button id="accountSignOut" class="text-button" type="button">Sign out</button></div>
+    </div>
+  </section>
+
+  <section class="source-section">
+    <div class="section-head"><h1>Repurpose content</h1><span id="sourceLabel" class="source-label">No source</span></div>
+    <div class="source-actions">
+      <button id="extractBtn" class="secondary-button" type="button"><span aria-hidden="true">↧</span> Read page</button>
+      <button id="selectionBtn" class="secondary-button" type="button">Use selection</button>
+      <button id="analyzeVideoBtn" class="secondary-button video-action" type="button">▶ YouTube</button>
+    </div>
+    <textarea id="sourceText" rows="5" placeholder="Paste an article or transcript, or read the current page…"></textarea>
+    <div class="source-meta"><span id="charCount">0 characters</span><button id="clearSourceBtn" class="text-button" type="button">Clear</button></div>
+    <label class="field-label" for="sourceTitle">Title <span>Optional</span></label>
+    <input id="sourceTitle" type="text" placeholder="Source title">
+    <input id="sourceUrl" type="hidden">
+  </section>
+
+  <section class="platform-section">
+    <div class="section-head"><h2>Make drafts for</h2><span id="platformCount" class="source-label">3 selected</span></div>
+    <div id="platformPicker" class="platform-picker">
+      <label class="platform-option"><input type="checkbox" value="x_thread" checked><span class="platform-name">X</span><span class="platform-detail">Thread</span></label>
+      <label class="platform-option"><input type="checkbox" value="linkedin_post" checked><span class="platform-name">in</span><span class="platform-detail">LinkedIn</span></label>
+      <label class="platform-option"><input type="checkbox" value="tiktok_hooks" checked><span class="platform-name">♪</span><span class="platform-detail">TikTok</span></label>
+      <label class="platform-option pro-option"><input type="checkbox" value="instagram_caption" disabled><span class="platform-name">◎</span><span class="platform-detail">Instagram <em>Pro</em></span></label>
+      <label class="platform-option pro-option"><input type="checkbox" value="threads_posts" disabled><span class="platform-name">@</span><span class="platform-detail">Threads <em>Pro</em></span></label>
+      <label class="platform-option pro-option"><input type="checkbox" value="facebook_post" disabled><span class="platform-name">f</span><span class="platform-detail">Facebook <em>Pro</em></span></label>
+    </div>
+    <p id="proHint" class="pro-hint">Pro unlocks Instagram, Threads and Facebook. <a href="https://yazoniplay.github.io/HookEngine/account/" target="_blank" rel="noopener">View plans</a></p>
+  </section>
+
+  <button id="generateBtn" class="generate-button" type="button"><span id="generateLabel">Generate drafts</span><span aria-hidden="true">→</span></button>
+  <div id="loading" class="loading" hidden><span class="spinner"></span><span id="loadingText">Generating drafts…</span></div>
+  <p id="errorMessage" class="error" role="alert" hidden></p>
+  <p id="providerNote" class="provider-note" role="status" hidden></p>
+
+  <section id="results" class="results" hidden>
+    <div class="results-head"><h2>Drafts</h2><span id="resultCount" class="source-label"></span></div>
+    <div id="outputList" class="output-list"></div>
+  </section>
+  <footer><span>HookEngine</span><a href="https://yazoniplay.github.io/HookEngine/account/" target="_blank" rel="noopener">Manage account ↗</a></footer>
+</main>
+<script src="sidepanel.js"></script>
+</body>
+</html>

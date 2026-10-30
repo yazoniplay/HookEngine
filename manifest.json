@@ -8,7 +8,6 @@
     "activeTab",
     "scripting",
     "storage",
-    "sidePanel",
     "clipboardWrite"
   ],
   "host_permissions": [
@@ -17,14 +16,12 @@
     "https://ppaknwuwiublxogclqdw.supabase.co/*"
   ],
   "action": {
-    "default_title": "Open HookEngine"
+    "default_title": "Open HookEngine",
+    "default_popup": "popup.html"
   },
   "background": {
     "service_worker": "background.js",
     "type": "module"
-  },
-  "side_panel": {
-    "default_path": "sidepanel.html"
   },
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self';"

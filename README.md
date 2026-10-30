@@ -1,6 +1,6 @@
 # HookEngine
 
-Chrome Manifest V3 extension that turns articles, selected page text and public YouTube videos into editable social drafts.
+Chrome Manifest V3 extension popup that opens from the browser toolbar and turns articles, selected page text and public YouTube videos into editable social drafts.
 
 ## Plans
 - Free: X threads, LinkedIn posts and TikTok hooks; 5 generations per day.
@@ -24,7 +24,9 @@ Text generation order: Gemini, then Groq, then Ollama Cloud. Fallback is attempt
 ## Supabase database
 Apply the new migration under `supabase/migrations` before deploying the updated Edge Function. It adds JSON output, selected-platform metadata and provider attribution to generation history, and updates the server-only finalize RPC.
 
-## Extension
+## Extension popup
+HookEngine opens as a toolbar popup, not a Chrome side panel.
+
 1. Open `chrome://extensions`.
 2. Enable Developer mode and choose **Load unpacked**.
 3. Select this repository folder.

@@ -230,10 +230,6 @@ async function fallbackReadPage(tabId) {
   }
 }
 
-chrome.runtime.onInstalled.addListener(() => {
-  chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(console.error);
-});
-
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message?.type !== "HOOKENGINE_EXTRACT_ACTIVE_TAB" && message?.type !== "HOOKENGINE_EXTRACT_SELECTION" && message?.type !== "HOOKENGINE_GET_ACTIVE_TAB") return;
   (async () => {
