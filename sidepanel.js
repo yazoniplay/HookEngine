@@ -35,7 +35,6 @@ $("themeToggle").addEventListener("click", async () => {
 
 function renderAccount() {
   const signedIn = !!accountUser;
-  $("appShell");
   document.querySelector(".app").classList.toggle("auth-required", !signedIn);
   $("upgradeButton").hidden = accountUsage.plan === "pro";
   $("accountPanel").hidden = true;
@@ -108,7 +107,6 @@ async function refreshUsage() {
   renderAccount();
 }
 async function signIn() {
-  const gateMode = !accountUser && $("appShell") === null;
   const email=($("gateEmail")?.value || $("accountEmail").value).trim(),password=$("gatePassword")?.value || $("accountPassword").value;
   const message=$("gateMessage") || $("accountMessage");
   const signInButton=$("gateSignIn") || $("accountSignIn");
@@ -125,10 +123,12 @@ async function signIn() {
     await chrome.storage.local.set({[SESSION_KEY]:data});
     $("accountPassword").value="";if($("gatePassword"))$("gatePassword").value="";message.textContent="";
     await refreshUsage();renderAccount();
-  } catch(error) {$("accountMessage").textContent=error.message||"Could not sign in.";}
-  finally {$("accountSignIn").disabled=false;}
+  } catch(error) {message.textContent=error.message||"Could not sign in.";}
+  finally {signInButton.disabled=false;}
 }
-$("accountSignIn").addEventListener("click",signIn);\n$("gateSignIn").addEventListener("click",signIn);\n$("gatePassword").addEventListener("keydown",e=>{if(e.key==="Enter")signIn();});
+$("accountSignIn").addEventListener("click",signIn);
+$("gateSignIn").addEventListener("click",signIn);
+$("gatePassword").addEventListener("keydown",e=>{if(e.key==="Enter")signIn();});
 $("accountPassword").addEventListener("keydown",e=>{if(e.key==="Enter")signIn();});
 $("accountSignOut").addEventListener("click",async()=>{
   if(accountSession?.access_token) fetch(SUPABASE_URL+"/auth/v1/logout",{method:"POST",headers:{apikey:SUPABASE_KEY,Authorization:"Bearer "+accountSession.access_token}}).catch(()=>{});
