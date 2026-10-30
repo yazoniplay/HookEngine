@@ -87,3 +87,10 @@ footer a{color:var(--muted);text-decoration:none}
 [hidden]{display:none!important}
 @media(max-width:340px){.app{padding:10px}.source-actions{gap:4px}.secondary-button{padding:5px 6px;font-size:9px}.platform-picker{gap:4px}.platform-option{padding:6px 4px;gap:4px}.platform-detail{font-size:8px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
+/* Chrome toolbar popup sizing */
+html,body{width:390px;min-width:350px;max-width:390px;min-height:0;max-height:600px;overflow-x:hidden}
+body{overflow-y:auto}
+.app{width:100%;max-width:none;padding:12px 13px 14px}
+.source-section textarea{min-height:76px;max-height:145px}
+.output-text{min-height:84px;max-height:210px;resize:vertical}
