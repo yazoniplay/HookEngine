@@ -122,6 +122,9 @@ async function showDashboard() {
   try {
     const user=await api("/auth/v1/user");
     $("accountEmail").textContent=user.email||"Signed in";
+    const isAdmin = String(user.email || "").toLowerCase() === "yayazan.mahmoud@gmail.com" && !!user.email_confirmed_at;
+    $("adminPlanControls").hidden = !isAdmin;
+    if (isAdmin) $("adminPlanMessage").textContent = "";
     const today=utcStart();
     const [subs,history,todayRows]=await Promise.all([
       api("/rest/v1/hookengine_subscriptions?select=plan,status,current_period_end&limit=1"),
@@ -165,6 +168,22 @@ function renderHistory(rows) {
   }));
 }
 $("refreshBtn").addEventListener("click",()=>showDashboard());
+async function setAdminPlan(plan) {
+  const freeButton=$("adminFreeBtn"),proButton=$("adminProBtn"),status=$("adminPlanMessage");
+  freeButton.disabled=true;proButton.disabled=true;status.textContent="Updating plan…";
+  try {
+    const result=await api("/functions/v1/hookengine-admin-plan",{method:"POST",body:JSON.stringify({plan})});
+    if(!result.ok || result.plan!==plan) throw new Error("The plan update could not be confirmed.");
+    await showDashboard();
+    $("adminPlanMessage").textContent="Plan switched to "+(plan==="pro"?"Pro":"Free")+".";
+  } catch(err) {
+    status.textContent=err.message||"Could not update plan.";
+  } finally {
+    freeButton.disabled=false;proButton.disabled=false;
+  }
+}
+$("adminFreeBtn").addEventListener("click",()=>setAdminPlan("free"));
+$("adminProBtn").addEventListener("click",()=>setAdminPlan("pro"));
 $("upgradeBtn").addEventListener("click",async()=>{
   const button=$("upgradeBtn");button.disabled=true;button.innerHTML="Opening secure checkout…";
   try {
