@@ -1,259 +1,174 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#fff8ef">
-  <meta name="description" content="Turn articles and YouTube videos into platform-ready social drafts. One source, more ways to show up.">
-  <title>HookEngine — Make one idea go further</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-  <style>
-    :root{color-scheme:dark;--ink:#f0f0e9;--paper:#10110f;--bg:#10110f;--lime:#c7df9b;--muted:#a2a397;--line:#30322b;--accent:#c7df9b;--accent-ink:#202719;--surface:#171815;--surface-2:#1e201b;--card:#171815;--shadow:0 16px 45px #0005}
-    *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.55 "DM Sans",sans-serif}a{color:inherit;text-decoration:none}button{font:inherit}
-    .wrap{width:min(1160px,calc(100% - 48px));margin:auto}.announcement{background:var(--ink);color:var(--text);padding:9px 16px;text-align:center;font-size:12px;font-weight:600;letter-spacing:.02em}.announcement span{color:var(--accent)}
-    header{height:78px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line)}.brand{display:flex;align-items:center;gap:10px;font:700 20px "Space Grotesk",sans-serif;letter-spacing:-.8px}.brand-mark{display:grid;place-items:center;width:34px;height:34px;background:var(--surface-2);color:var(--accent);border-radius:10px;font:700 21px "Space Grotesk";transform:rotate(-5deg)}nav{display:flex;align-items:center;gap:30px;color:var(--muted);font-size:13px;font-weight:600}nav a{transition:color .2s}nav a:hover{color:var(--accent)}.nav-actions{display:flex;align-items:center;gap:12px}
-    .button{display:inline-flex;align-items:center;justify-content:center;gap:12px;padding:13px 19px;border:1px solid var(--line);border-radius:9px;background:var(--accent);color:var(--accent-ink);font-size:13px;font-weight:700;box-shadow:0 2px 8px #0003;transition:transform .18s cubic-bezier(.2,.8,.2,1),box-shadow .18s,background .18s,color .18s;will-change:transform}.button:hover{transform:translate(2px,2px);box-shadow:2px 2px 0 var(--ink)}.button:active{transform:translate(4px,4px);box-shadow:0 0 0 var(--ink)}.button-pink{background:var(--accent);color:var(--ink);border-color:var(--ink)}.button-pink:hover{background:#d8e9b7}.button-small{padding:10px 14px;font-size:12px}.button-plain{background:transparent;color:var(--ink);box-shadow:none;border-color:transparent}.button-plain:hover{box-shadow:none;background:var(--surface-2);transform:translateY(-1px)}
-    .hero{display:grid;grid-template-columns:1fr .92fr;align-items:center;gap:54px;padding:86px 0 82px}.eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}.eyebrow:before{content:"";width:8px;height:8px;border-radius:2px;background:var(--accent);transform:rotate(45deg)}h1,h2,h3,p{margin-top:0}.hero h1{max-width:620px;margin:20px 0 20px;font:700 clamp(48px,6.3vw,78px)/.99 "Space Grotesk",sans-serif;letter-spacing:-.075em}.hero h1 .highlight{position:relative;display:inline-block;z-index:0}.hero h1 .highlight:after{content:"";position:absolute;z-index:-1;left:-3px;right:-5px;bottom:5px;height:22px;background:var(--accent);transform:rotate(-1.8deg);border-radius:4px}.hero-copy{max-width:480px;color:var(--muted);font-size:17px;line-height:1.65}.hero-actions{display:flex;align-items:center;gap:18px;margin-top:29px;flex-wrap:wrap}.micro-proof{display:flex;align-items:center;gap:8px;margin-top:22px;color:var(--muted);font-size:11px}.micro-proof b{color:var(--ink)}.dot{width:5px;height:5px;background:#aaa096;border-radius:50%}
-    .preview-wrap{position:relative;padding:20px 0 20px 12px}.preview-wrap:before{content:"";position:absolute;inset:4% -4% 2% 7%;background:var(--accent);border:1px solid var(--line);border-radius:28px;transform:rotate(4deg)}.preview{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:19px;box-shadow:0 12px 32px #0005;transform:rotate(-2deg);transition:transform .35s cubic-bezier(.2,.8,.2,1)}.preview-wrap:hover .preview{transform:rotate(0) translateY(-4px)}.preview-top{display:flex;align-items:center;justify-content:space-between;padding-bottom:14px;border-bottom:1px solid var(--line)}.preview-brand{display:flex;align-items:center;gap:7px;font-weight:800;font-size:12px}.preview-brand i{display:grid;place-items:center;width:22px;height:22px;background:var(--surface-2);color:var(--accent);border-radius:6px;font-style:normal}.live{font-size:9px;color:var(--accent);font-weight:800}.live:before{content:"";display:inline-block;width:6px;height:6px;background:var(--accent);border-radius:50%;margin-right:5px}.source-chip{display:inline-flex;padding:6px 9px;border-radius:5px;background:var(--surface-2);color:var(--muted);font-size:9px;font-weight:700;margin:17px 0 12px}.preview h3{font:700 19px/1.2 "Space Grotesk";letter-spacing:-.7px;margin-bottom:7px}.preview-sub{font-size:10px;color:var(--muted);margin-bottom:16px}.preview-tabs{display:flex;gap:6px;margin-bottom:11px}.preview-tabs span{padding:6px 9px;border:1px solid var(--line);border-radius:6px;color:var(--muted);font-size:9px;font-weight:700}.preview-tabs span.active{background:var(--ink);border-color:var(--ink);color:white}.draft{padding:13px;border:1px solid var(--line);border-radius:9px;background:var(--surface-2)}.draft-label{font-size:9px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px}.draft p{font-size:11px;line-height:1.65;margin:0;color:var(--text)}.draft-actions{display:flex;justify-content:space-between;align-items:center;margin-top:12px;color:#8e857b;font-size:9px}.copy{padding:6px 9px;border:1px solid var(--line);border-radius:5px;color:var(--ink);font-weight:700}.variation-row{display:flex;gap:5px;margin-top:12px}.variation-row i{height:4px;width:30px;background:var(--line);border-radius:4px}.variation-row i:first-child{background:var(--accent)}.sticker{position:absolute;right:-24px;top:-26px;display:grid;place-items:center;width:84px;height:84px;border:1px solid var(--line);border-radius:50%;background:var(--accent);font:700 13px/1.05 "Space Grotesk";text-align:center;transform:rotate(12deg);box-shadow:0 5px 18px #0005}
-    .marquee{overflow:hidden;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:16px 0;background:var(--surface)}.marquee-track{display:flex;justify-content:space-around;gap:35px;white-space:nowrap;color:var(--muted);font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase}.marquee b{color:var(--ink)}.marquee em{color:var(--accent);font-style:normal}
-    section.content{padding:100px 0}.section-head{text-align:center;max-width:650px;margin:0 auto 46px}.section-head h2{font:700 clamp(34px,4.2vw,52px)/1.05 "Space Grotesk";letter-spacing:-.065em;margin:15px 0}.section-head p{color:var(--muted);font-size:15px}.feature-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.feature{min-height:230px;padding:25px;border:1px solid var(--line);border-radius:13px;background:var(--surface);box-shadow:0 2px 8px #0003;transition:transform .22s,box-shadow .22s}.feature:hover{transform:translate(2px,2px);box-shadow:2px 2px 0 var(--ink)}.feature-icon{display:grid;place-items:center;width:42px;height:42px;border:1px solid var(--line);border-radius:10px;background:var(--accent);font-size:19px;margin-bottom:24px}.feature:nth-child(2) .feature-icon{background:var(--accent)}.feature:nth-child(3) .feature-icon{background:var(--surface-2)}.feature h3{font:700 19px "Space Grotesk";letter-spacing:-.5px;margin-bottom:9px}.feature p{font-size:13px;color:var(--muted);line-height:1.65;margin:0}
-    .workflow{background:var(--surface);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:30px;counter-reset:step}.step{position:relative;padding-top:19px;border-top:1.5px solid var(--ink)}.step:before{counter-increment:step;content:"0" counter(step);font:700 13px "Space Grotesk";color:var(--accent)}.step h3{font:700 21px "Space Grotesk";letter-spacing:-.6px;margin:17px 0 8px}.step p{font-size:13px;color:var(--muted);line-height:1.65}
-    .platforms{display:flex;justify-content:center;flex-wrap:wrap;gap:10px;margin-top:28px}.platforms span{padding:11px 16px;border:1px solid var(--line);border-radius:8px;background:var(--surface);font-size:12px;font-weight:700}
-    .pricing{background:var(--ink);color:var(--text)}.pricing .section-head p{color:var(--muted)}.pricing .eyebrow{color:var(--accent)}.pricing-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;max-width:800px;margin:auto}.price-card{padding:28px;border:1px solid #4a453f;border-radius:13px;background:var(--surface)}.price-card.pro{background:var(--accent);color:var(--ink);border:1.5px solid #fff;box-shadow:7px 7px 0 var(--lime);transform:translateY(-7px)}.plan-name{font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}.pro .plan-name{color:var(--accent)}.price{font:700 43px "Space Grotesk";letter-spacing:-.06em;margin:17px 0 5px}.price small{font:500 12px "DM Sans";letter-spacing:0;color:var(--muted)}.pro .price small{color:var(--muted)}.price-card>p{min-height:40px;color:var(--muted);font-size:12px}.price-card.pro>p{color:var(--muted)}.price-card ul{list-style:none;padding:0;margin:23px 0 28px;display:grid;gap:12px;font-size:12px}.price-card li:before{content:"✓";display:inline-grid;place-items:center;width:17px;height:17px;margin-right:9px;border-radius:50%;background:#454039;color:var(--accent);font-size:10px;font-weight:800}.price-card.pro li:before{background:var(--surface-2);color:var(--accent)}.price-card .button{width:100%;box-shadow:4px 4px 0 #090807}.price-card.pro .button{background:var(--ink);color:var(--text);border-color:var(--ink);box-shadow:4px 4px 0 #fff}
-    .final-cta{padding:95px 0;text-align:center}.final-cta h2{max-width:680px;margin:17px auto;font:700 clamp(39px,5vw,60px)/1.02 "Space Grotesk";letter-spacing:-.07em}.final-cta p{color:var(--muted);margin-bottom:26px}.final-cta .button{margin:0 auto}
-    footer{padding:25px 0;border-top:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;color:var(--muted);font-size:11px}footer .brand{font-size:15px;color:var(--ink)}footer .brand-mark{width:26px;height:26px;font-size:16px;border-radius:7px}footer .links{display:flex;gap:20px}footer a:hover{color:var(--accent)}
-    .reveal{opacity:0;transform:translateY(18px);transition:opacity .65s ease,transform .65s cubic-bezier(.2,.8,.2,1)}.reveal.visible{opacity:1;transform:translateY(0)}.delay-1{transition-delay:.08s}.delay-2{transition-delay:.16s}
-
-    /* Match the extension's actual dark palette and restrained sage accent. */
-    :root{--text:#f0f0e9}
-    .announcement{background:var(--surface);border-bottom:1px solid var(--line);color:var(--muted)}
-    .announcement span{color:var(--accent)}
-    header{border-color:var(--line)}
-    .brand-mark{background:var(--surface-2);color:var(--accent);border:1px solid var(--line);transform:none;border-radius:7px}
-    nav{color:var(--muted)}nav a:hover,footer a:hover{color:var(--accent)}
-    .button{background:var(--surface-2);color:var(--text);border:1px solid var(--line);border-radius:8px;box-shadow:0 2px 8px #0003}
-    .button:hover{transform:translateY(-2px);box-shadow:0 6px 18px #0004;border-color:var(--accent)}
-    .button:active{transform:translateY(0) scale(.97);box-shadow:0 1px 3px #0003}
-    .button-pink{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
-    .button-pink:hover{background:#d5e8b0;color:#202719}
-    .button-plain{background:transparent;color:var(--text);box-shadow:none;border-color:transparent}
-    .hero h1 .highlight:after{background:color-mix(in srgb,var(--accent) 78%,transparent);height:17px}
-    .eyebrow{color:var(--muted)}.eyebrow:before{background:var(--accent)}
-    .hero-copy,.section-head p,.feature p,.step p,.final-cta p{color:var(--muted)}
-    .micro-proof{color:var(--muted)}.micro-proof b{color:var(--text)}
-    .preview-wrap:before{background:var(--surface-2);border:1px solid var(--line)}
-    .preview{background:var(--surface);border:1px solid var(--line);box-shadow:0 14px 38px #0005}
-    .preview-brand i{background:var(--surface-2);color:var(--accent)}
-    .live{color:var(--accent)}.live:before{background:var(--accent)}
-    .source-chip{background:var(--surface-2);color:var(--muted)}
-    .preview-sub,.draft-label,.draft-actions{color:var(--muted)}
-    .preview-tabs span{border-color:var(--line);color:var(--muted)}
-    .preview-tabs span.active{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
-    .draft{background:var(--surface-2);border-color:var(--line)}.draft p{color:var(--text)}
-    .copy{border-color:var(--line);color:var(--text)}.variation-row i{background:var(--line)}.variation-row i:first-child{background:var(--accent)}
-    .sticker{background:var(--accent);color:var(--accent-ink);border-color:var(--line);box-shadow:0 5px 18px #0005}
-    .marquee{background:var(--surface);border-color:var(--line)}.marquee-track{color:var(--muted)}.marquee b{color:var(--text)}.marquee em{color:var(--accent)}
-    .feature{background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:0 4px 18px #0002}
-    .feature:hover{transform:translateY(-5px);box-shadow:0 14px 28px #0004;border-color:color-mix(in srgb,var(--accent) 55%,var(--line))}
-    .feature-icon{background:var(--surface-2)!important;border:1px solid var(--line);color:var(--accent);border-radius:9px}
-    .feature-icon svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
-    .workflow{background:var(--surface);border-color:var(--line)}
-    .step{border-color:var(--line);transition:transform .35s cubic-bezier(.2,.8,.2,1),border-color .25s}
-    .step:hover{transform:translateY(-5px);border-color:var(--accent)}
-    .step:before{color:var(--accent)}
-    .platforms span{display:inline-flex;align-items:center;gap:9px;background:var(--surface-2);border-color:var(--line);color:var(--text);transition:transform .22s,border-color .22s,background .22s}
-    .platforms span:hover{transform:translateY(-3px);border-color:var(--accent);background:var(--surface)}
-    .platforms svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
-    .pricing{background:var(--bg);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
-    .pricing .section-head p{color:var(--muted)}.pricing .eyebrow{color:var(--muted)}
-    .price-card{background:var(--surface);border:1px solid var(--line);border-radius:10px;transition:transform .3s cubic-bezier(.2,.8,.2,1),border-color .25s,box-shadow .3s}
-    .price-card:hover{transform:translateY(-5px);border-color:var(--accent);box-shadow:0 14px 32px #0004}
-    .price-card.pro{background:var(--surface-2);color:var(--text);border:1px solid var(--accent);box-shadow:0 10px 30px #0004}
-    .price-card.pro:hover{transform:translateY(-11px)}
-    .plan-name,.price small,.price-card>p{color:var(--muted)}.pro .plan-name,.pro .price small,.price-card.pro>p{color:var(--muted)}
-    .price-card li:before,.price-card.pro li:before{background:var(--surface-2);color:var(--accent);border:1px solid var(--line)}
-    .price-card .button,.price-card.pro .button{width:100%;background:var(--accent);color:var(--accent-ink);border-color:var(--accent);box-shadow:none}
-    .final-cta{background:var(--bg)}
-    footer{border-color:var(--line);color:var(--muted)}footer .brand{color:var(--text)}
-    .inline-icon{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle;transition:transform .2s}
-    .button:hover .inline-icon{transform:translate(2px,-2px)}
-    .reveal{opacity:0;transform:translateY(24px) scale(.985);transition:opacity .62s ease,transform .62s cubic-bezier(.2,.8,.2,1)}
-    .reveal.visible{opacity:1;transform:translateY(0) scale(1)}
-    .feature,.step,.price-card,.platforms span{will-change:transform}
-    .feature,.step,.price-card{transition-delay:var(--stagger,0ms)}
-    .feature:hover,.price-card:hover{transition-delay:0ms}
-    .button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:4px}
-    @media(prefers-reduced-motion:reduce){.feature,.step,.price-card,.platforms span,.button,.preview{transition:none!important;transform:none!important}}
-
-    @media(max-width:850px){.hero{grid-template-columns:1fr;gap:28px;padding:64px 0}.hero-copy{max-width:580px}.preview-wrap{max-width:560px;margin:0 auto;width:100%}.feature-grid{grid-template-columns:1fr 1fr}.feature:last-child{grid-column:1/-1}.hero h1{max-width:650px}}
-    @media(max-width:620px){.wrap{width:min(100% - 34px,500px)}header{height:66px}nav{display:none}.nav-actions{gap:5px}.nav-actions .button-plain{display:none}.hero{padding:54px 0 58px}.hero h1{font-size:clamp(47px,13vw,66px)}.hero-copy{font-size:15px}.hero-actions{gap:13px}.preview-wrap{padding:15px 7px}.preview{padding:14px}.sticker{width:69px;height:69px;font-size:11px;right:-9px;top:-19px}.marquee-track{justify-content:flex-start;width:max-content;animation:marquee 24s linear infinite}.marquee-track span{padding-right:20px}@keyframes marquee{to{transform:translateX(-30%)}}section.content{padding:70px 0}.section-head{margin-bottom:32px}.feature-grid,.steps,.pricing-grid{grid-template-columns:1fr}.feature{min-height:0}.feature:last-child{grid-column:auto}.steps{gap:24px}.price-card.pro{transform:none}.price-card>p{min-height:0}.final-cta{padding:72px 0}footer{align-items:flex-start;gap:18px;flex-direction:column}footer .links{gap:15px}}
-    @media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}.reveal{opacity:1;transform:none}}
-
-    /* Light, playful Gumroad-inspired visual system */
-    :root{color-scheme:light;--paper:#fff8ef;--bg:#fff8ef;--ink:#201b18;--text:#201b18;--muted:#766d65;--line:#201b18;--accent:#405d2b;--lime:#405d2b;--accent-ink:#201b18;--surface:#fffdf9;--surface-2:#e8eddf;--card:#fffdf9;--shadow:5px 6px 0 #201b18}
-    body{background:var(--paper);color:var(--ink)}
-    .announcement{background:#405d2b;color:#201b18;border:0;font-weight:800}
-    .announcement span{color:#fff8ef}
-    header{border-bottom:2px solid var(--ink)}
-    .brand-mark{background:#405d2b;color:#201b18;border:2px solid var(--ink);border-radius:9px;box-shadow:3px 3px 0 var(--ink)}
-    nav{color:#514840}nav a:hover,footer a:hover{color:#405d2b}
-    .button{background:#fffdf9;color:var(--ink);border:2px solid var(--ink);border-radius:999px;box-shadow:4px 4px 0 var(--ink);font-weight:800;transition:transform .28s cubic-bezier(.2,1.6,.4,1),box-shadow .28s,background .2s}
-    .button:hover{transform:translate(3px,3px) rotate(-1deg);box-shadow:1px 1px 0 var(--ink);border-color:var(--ink)}
-    .button:active{transform:translate(4px,4px) scale(.96);box-shadow:0 0 0 var(--ink)}
-    .button-pink{background:#405d2b;color:#201b18;border-color:var(--ink)}
-    .button-pink:hover{background:#344c24;color:#201b18}
-    .button-plain{background:transparent;color:var(--ink);border-color:transparent;box-shadow:none}
-    .button-plain:hover{background:#e8eddf;box-shadow:none}
-    .hero{padding-top:96px;padding-bottom:96px}
-    .hero h1,.section-head h2,.final-cta h2{font-family:"Space Grotesk",sans-serif;font-weight:700;letter-spacing:-.075em}
-    .hero h1 .highlight:after{background:#c7df9b;height:23px;bottom:2px;transform:rotate(-2.5deg)}
-    .eyebrow{color:#405d2b;font-weight:800}.eyebrow:before{background:#405d2b}
-    .hero-copy,.section-head p,.feature p,.step p,.final-cta p{color:#766d65}
-    .micro-proof b{color:#201b18}
-    .preview-wrap:before{background:#c7df9b;border:2px solid var(--ink);border-radius:24px;transform:rotate(5deg)}
-    .preview{background:#fffdf9;border:2px solid var(--ink);border-radius:20px;box-shadow:7px 8px 0 var(--ink);transform:rotate(-2deg)}
-    .preview-brand i{background:#405d2b;color:#201b18}
-    .live{color:#39834d}.live:before{background:#39834d}
-    .source-chip{background:#e8eddf;color:#514840}
-    .preview-tabs span{border:1.5px solid #d7c9bd;color:#766d65}
-    .preview-tabs span.active{background:#201b18;border-color:#201b18;color:#fff8ef}
-    .draft{background:#fff8ef;border:1.5px solid #d7c9bd}.draft p{color:#302822}
-    .copy{border:1.5px solid #d7c9bd;color:#201b18}
-    .sticker{background:#c7df9b;color:#201b18;border:2px solid #201b18;box-shadow:4px 4px 0 #201b18;transform:rotate(10deg);font-size:12px}
-    .sticker svg{width:19px;height:19px;stroke:currentColor;stroke-width:2;fill:none;margin-bottom:3px}
-    .marquee{background:#201b18;border:0}.marquee-track{color:#fff8ef}.marquee b{color:#fff8ef}.marquee em{color:#344c24}
-    section.content{padding-top:108px;padding-bottom:108px}
-    .section-head h2{color:#201b18}
-    .feature{background:#fffdf9;border:2px solid #201b18;border-radius:16px;box-shadow:5px 6px 0 #201b18;transition:transform .35s cubic-bezier(.2,1.5,.4,1),box-shadow .3s,background .25s}
-    .feature:hover{transform:translate(-2px,-5px) rotate(-.6deg);box-shadow:8px 11px 0 #201b18;border-color:#201b18;background:#fff}
-    .feature-icon{background:#e8eddf!important;border:1.5px solid #201b18;color:#201b18;border-radius:12px}
-    .feature:nth-child(2) .feature-icon{background:#dff0c8!important}.feature:nth-child(3) .feature-icon{background:#edf2e6!important}
-    .workflow{background:#f0f1e9;border-top:2px solid #201b18;border-bottom:2px solid #201b18}
-    .step{border-top:2px solid #201b18;transition:transform .35s cubic-bezier(.2,1.5,.4,1)}
-    .step:before{content:none}
-    .step-icon{display:grid;place-items:center;width:44px;height:44px;border:2px solid #201b18;border-radius:13px;background:#c7df9b;color:#201b18;box-shadow:3px 3px 0 #201b18;transition:transform .3s cubic-bezier(.2,1.5,.4,1)}
-    .step:nth-child(2) .step-icon{background:#dff0c8}.step:nth-child(3) .step-icon{background:#e3ead9}
-    .step-icon svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-    .step:hover{transform:translateY(-6px)}.step:hover .step-icon{transform:rotate(-8deg) scale(1.08)}
-    .platforms span{background:#fffdf9;border:1.5px solid #201b18;color:#201b18;border-radius:999px;box-shadow:2px 3px 0 #201b18;transition:transform .3s cubic-bezier(.2,1.5,.4,1),box-shadow .2s}
-    .platforms span:hover{transform:translateY(-4px) rotate(-2deg);box-shadow:4px 6px 0 #201b18;background:#fff}
-    .brand-icon{width:17px;height:17px;object-fit:contain}
-    .pricing{background:#e8eddf;border-top:2px solid #201b18;border-bottom:2px solid #201b18;color:#201b18}
-    .pricing .section-head p{color:#766d65}.pricing .eyebrow{color:#405d2b}
-    .price-card{background:#fffdf9;border:2px solid #201b18;border-radius:17px;box-shadow:5px 6px 0 #201b18;transition:transform .35s cubic-bezier(.2,1.5,.4,1),box-shadow .3s}
-    .price-card:hover{transform:translate(-2px,-5px);box-shadow:8px 11px 0 #201b18;border-color:#201b18}
-    .price-card.pro{background:#dff0c8;color:#201b18;border:2px solid #201b18;box-shadow:7px 8px 0 #201b18}
-    .price-card.pro:hover{transform:translate(-2px,-9px);box-shadow:9px 13px 0 #201b18}
-    .plan-name,.price small,.price-card>p,.pro .plan-name,.pro .price small,.price-card.pro>p{color:#766d65}
-    .price-card li:before,.price-card.pro li:before{background:#c7df9b;color:#201b18;border:1px solid #201b18}
-    .price-card .button,.price-card.pro .button{background:#405d2b;color:#201b18;border:2px solid #201b18;box-shadow:3px 4px 0 #201b18}
-    .price-card .button:hover,.price-card.pro .button:hover{box-shadow:1px 1px 0 #201b18}
-    .final-cta{background:#fff8ef}
-    footer{border-top:2px solid #201b18;color:#766d65}footer .brand{color:#201b18}
-    .inline-icon{width:16px;height:16px}
-    .reveal{transform:translateY(30px) rotate(1deg);transition:opacity .65s ease,transform .7s cubic-bezier(.2,1.4,.4,1)}
-    .reveal.visible{transform:translateY(0) rotate(0)}
-    .feature,.step,.price-card,.platforms span{transition-delay:var(--stagger,0ms)}
-    .feature:hover,.step:hover,.price-card:hover,.platforms span:hover{transition-delay:0ms}
-    @media(max-width:620px){.hero{padding-top:58px;padding-bottom:66px}section.content{padding-top:72px;padding-bottom:72px}}
-    @media(prefers-reduced-motion:reduce){.feature,.step,.price-card,.platforms span,.button,.preview,.step-icon{transition:none!important;transform:none!important}}
-
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#F4F4F0">
+<meta name="description" content="Turn a YouTube video or article into an X thread, LinkedIn post and TikTok hooks. Edit your drafts in HookEngine.">
+<meta name="robots" content="index,follow">
+<title>YouTube video to X thread, LinkedIn & TikTok | HookEngine</title>
+<link rel="canonical" href="https://yazoniplay.github.io/HookEngine/">
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<meta property="og:type" content="website">
+<meta property="og:title" content="HookEngine — Article in. Social drafts out.">
+<meta property="og:description" content="Turn a YouTube video or article into an X thread, LinkedIn post and TikTok hooks.">
+<meta property="og:url" content="https://yazoniplay.github.io/HookEngine/">
+<meta property="og:image" content="https://yazoniplay.github.io/HookEngine/assets/og-image.svg">
+<meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="HookEngine — Article in. Social drafts out.">
+<meta name="twitter:description" content="Turn a YouTube video or article into platform-ready drafts.">
+<meta name="twitter:image" content="https://yazoniplay.github.io/HookEngine/assets/og-image.svg">
+<!-- TODO: Bundle Bricolage Grotesque / Inter WOFF2 subsets in assets/fonts and add @font-face declarations. Current fallback is system-first to avoid third-party requests. -->
+<style>
+:root{color-scheme:light;--paper:#F4F4F0;--ink:#000;--pink:#FF90E8;--yellow:#FFC900;--teal:#23A094;--white:#fff;--muted:#514f49;--line:#000;--shadow:4px 4px 0 #000;--radius:10px;--font: "Arial", "Helvetica Neue", sans-serif}
+*{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:92px}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.55 var(--font);-webkit-font-smoothing:antialiased}a{color:inherit;text-decoration:none}button{font:inherit}img,svg{max-width:100%}.wrap{width:min(1160px,calc(100% - 40px));margin-inline:auto}.skip{position:absolute;left:12px;top:-80px;background:var(--yellow);padding:12px;border:2px solid;z-index:99}.skip:focus{top:12px}:focus-visible{outline:3px solid var(--teal);outline-offset:4px}h1,h2,h3,p{margin-top:0}h1,h2,h3{font-weight:900;letter-spacing:-.055em;line-height:1.02}h1{font-size:clamp(2.55rem,6.2vw,5.25rem);max-width:780px;margin:20px 0}.under{position:relative;z-index:0;white-space:nowrap}.under:after{content:"";position:absolute;z-index:-1;height:.22em;background:var(--pink);left:-.04em;right:-.05em;bottom:.02em;transform:rotate(-2deg);border:1px solid #000}.eyebrow{font-size:.76rem;letter-spacing:.12em;text-transform:uppercase;font-weight:900}.sticker{display:inline-block;background:var(--yellow);border:2px solid;border-radius:7px;padding:7px 10px;font-size:.72rem;font-weight:900;box-shadow:3px 3px 0 #000;transform:rotate(-4deg)}.button{display:inline-flex;min-height:48px;align-items:center;justify-content:center;gap:9px;padding:12px 18px;border:2px solid #000;border-radius:9px;background:#000;color:#fff;font-weight:900;box-shadow:4px 4px 0 #000;transition:transform .16s ease,box-shadow .16s ease,background .16s ease}.button.pink{background:var(--pink);color:#000}.button:hover{transform:translate(-2px,-2px);box-shadow:6px 6px 0 #000}.button:active{transform:translate(1px,1px);box-shadow:2px 2px 0 #000}.button svg{width:17px;height:17px;flex:none}.top{position:sticky;top:0;z-index:20;background:var(--paper);border-bottom:2px solid #000}.nav{height:76px;display:flex;align-items:center;justify-content:space-between;gap:22px}.brand{display:flex;align-items:center;gap:10px;font-size:1.22rem;font-weight:950;letter-spacing:-.05em}.mark{display:grid;place-items:center;width:38px;height:38px;border:2px solid #000;background:#10110f;color:#c7df9b;border-radius:8px;box-shadow:3px 3px 0 #000;font-size:1.35rem}.navlinks{display:flex;align-items:center;gap:26px;font-size:.92rem;font-weight:800}.navlinks a:hover{text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:5px}.navcta{min-height:44px;padding:9px 14px}.hero{display:grid;grid-template-columns:1.05fr .95fr;gap:46px;align-items:center;padding:82px 0 72px}.hero-copy{max-width:610px;font-size:1.12rem;color:#333}.hero-actions{display:flex;flex-wrap:wrap;gap:14px;margin:24px 0 12px}.text-link{font-weight:900;text-decoration:underline;text-underline-offset:4px;display:inline-flex;align-items:center;min-height:48px}.trust{font-size:.9rem;font-weight:800;color:#333;margin:13px 0 0}.hero-art{position:relative;padding:20px 14px}.hero-art:before{content:"";position:absolute;inset:5% 2% 0 8%;background:var(--teal);border:2px solid #000;border-radius:16px;transform:rotate(3deg)}.mini-window{position:relative;background:var(--white);border:2px solid #000;border-radius:12px;padding:18px;box-shadow:7px 7px 0 #000;transform:rotate(-1.5deg)}.windowbar{display:flex;gap:7px;padding-bottom:14px;border-bottom:2px solid #000}.windowbar i{width:11px;height:11px;border:1.5px solid #000;border-radius:50%;background:var(--pink)}.windowbar i:nth-child(2){background:var(--yellow)}.windowbar i:nth-child(3){background:var(--teal)}.window-label{margin-left:auto;font-size:.72rem;font-weight:900}.demo-kicker{font-size:.76rem;font-weight:900;text-transform:uppercase;margin:15px 0 5px}.mini-window h2{font-size:1.3rem;margin:0 0 9px}.mini-tabs{display:flex;gap:7px;flex-wrap:wrap}.mini-tabs span{padding:7px 10px;border:2px solid #000;border-radius:7px;font-size:.76rem;font-weight:900}.mini-tabs span:first-child{background:var(--pink)}.mini-draft{background:var(--paper);border:2px solid #000;padding:13px;margin-top:12px;border-radius:8px;font-size:.9rem;font-weight:700}.mini-draft p{margin:0}.hero-sticker{position:absolute;right:-3px;top:0;z-index:2}.section{padding:84px 0}.section-title{max-width:720px;margin-bottom:34px}.section-title h2{font-size:clamp(2.1rem,4.5vw,3.5rem);margin:12px 0}.section-title p{max-width:620px;color:#3c3a35}.demo-section{padding-top:18px}.demo-window{border:2px solid #000;border-radius:12px;background:var(--white);box-shadow:7px 7px 0 #000;overflow:hidden}.demo-chrome{display:flex;align-items:center;gap:8px;padding:13px 16px;border-bottom:2px solid #000;background:#ecece5}.demo-chrome .dots{display:flex;gap:6px}.demo-chrome i{width:10px;height:10px;border:1.5px solid #000;border-radius:50%;background:var(--pink)}.demo-chrome i:nth-child(2){background:var(--yellow)}.demo-chrome i:nth-child(3){background:var(--teal)}.demo-chrome strong{font-size:.8rem;margin-left:6px}.demo-chrome small{margin-left:auto;font-weight:800;color:#444}.demo-inner{padding:clamp(18px,4vw,34px)}.source{border:2px solid #000;background:var(--yellow);padding:13px;border-radius:8px;margin-bottom:22px}.source small{display:block;font-size:.7rem;font-weight:900;letter-spacing:.08em;text-transform:uppercase}.source a{font-weight:900;text-decoration:underline;text-underline-offset:3px}.source p{margin:5px 0 0;font-size:.88rem}.tabs{display:flex;gap:8px;flex-wrap:wrap;border-bottom:2px solid #000;padding-bottom:12px}.tab{min-height:44px;padding:9px 14px;border:2px solid #000;border-radius:8px;background:#fff;font-weight:900;cursor:pointer}.tab[aria-selected=true]{background:var(--pink);box-shadow:3px 3px 0 #000}.panel{padding:20px 0 0}.panel[hidden]{display:none}.draft-label{font-size:.75rem;font-weight:900;letter-spacing:.09em;text-transform:uppercase}.draft-text{white-space:pre-line;font-size:1rem;line-height:1.7;max-width:850px;margin:10px 0 16px}.copy-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.copy-btn{min-height:44px;padding:9px 14px;border:2px solid #000;border-radius:8px;background:var(--teal);font-weight:900;cursor:pointer;box-shadow:3px 3px 0 #000}.copy-btn:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 #000}.copy-status{font-size:.85rem;font-weight:800}.pro-preview{margin-top:25px;padding:16px;border:2px dashed #000;border-radius:9px;background:#fff9d9}.pro-head{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-weight:900}.pro-pills{display:flex;gap:7px;margin:12px 0}.pro-pills button{min-width:44px;min-height:40px;padding:7px 12px;border:2px solid #000;border-radius:7px;background:#fff;font-weight:900;cursor:pointer}.pro-pills button[aria-pressed=true]{background:var(--yellow);box-shadow:2px 2px 0 #000}.pro-note{font-size:.85rem;margin:0;color:#3e3b32}.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}.step{background:var(--white);border:2px solid #000;border-radius:11px;padding:23px;box-shadow:5px 5px 0 #000;transition:transform .18s ease,box-shadow .18s ease}.step:hover{transform:translate(-2px,-3px);box-shadow:7px 8px 0 #000}.step-num{display:grid;place-items:center;width:42px;height:42px;background:var(--pink);border:2px solid #000;border-radius:9px;font-weight:950;font-size:1.15rem;box-shadow:3px 3px 0 #000}.step:nth-child(2) .step-num{background:var(--yellow)}.step:nth-child(3) .step-num{background:var(--teal)}.step h3{font-size:1.35rem;margin:20px 0 9px}.step p{margin:0;color:#393731}.media-slot{margin-top:34px;border:2px solid #000;border-radius:12px;background:var(--yellow);padding:14px;box-shadow:5px 5px 0 #000}.media-slot img{display:block;width:100%;height:auto;border:2px solid #000;border-radius:7px;background:#fff}.media-caption{font-size:.78rem;font-weight:800;margin:10px 2px 0}.compare{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.compare article{padding:21px;border:2px solid #000;border-radius:10px;background:#fff;box-shadow:4px 4px 0 #000}.compare h3{font-size:1.15rem;margin:0 0 10px}.compare p{margin:0;color:#393731}.coming{display:inline-block;background:var(--yellow);border:1.5px solid #000;border-radius:5px;padding:3px 6px;font-size:.65rem;font-weight:900;transform:rotate(-3deg);margin-left:6px}.platform-list{display:grid;grid-template-columns:repeat(6,1fr);gap:12px}.platform{display:flex;align-items:center;justify-content:center;gap:8px;min-height:74px;padding:10px;border:2px solid #000;border-radius:9px;background:#fff;box-shadow:3px 3px 0 #000;font-weight:900}.platform svg{width:22px;height:22px;flex:none}.platform small{display:block;font-size:.62rem;color:#49463e}.platform.pro{background:#fff9d9}.testimonials{display:none}.testimonials.has-quotes{display:block}.quote-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.quote{border:2px solid #000;background:#fff;padding:20px;border-radius:9px;box-shadow:4px 4px 0 #000}.quote blockquote{margin:0 0 12px;font-weight:800}.quote cite{font-style:normal;font-size:.8rem}.pricing{background:var(--teal);border-block:2px solid #000}.pricing-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;max-width:900px}.price-card{position:relative;background:#fff;border:2px solid #000;border-radius:11px;padding:27px;box-shadow:6px 6px 0 #000}.price-card.pro{background:#fff9d9}.price-card h3{font-size:1.4rem;margin:0}.price{font-size:clamp(2.4rem,5vw,3.6rem);font-weight:950;letter-spacing:-.07em;margin:15px 0 2px}.price small{font-size:.9rem;letter-spacing:0}.price-card>p{color:#393731}.price-card ul{padding-left:21px;display:grid;gap:9px;margin:22px 0 25px}.price-card li::marker{color:#126e66}.price-card .button{width:100%}.popular{position:absolute;right:15px;top:-16px;background:var(--yellow);border:2px solid #000;border-radius:5px;padding:6px 9px;font-size:.72rem;font-weight:900;transform:rotate(3deg);box-shadow:3px 3px 0 #000}.final-band{padding:42px 0;background:var(--yellow);border-bottom:2px solid #000}.final-inner{display:flex;align-items:center;justify-content:space-between;gap:24px}.final-inner h2{font-size:clamp(1.7rem,3.4vw,2.6rem);margin:0;max-width:730px}.faq-list{max-width:850px}.faq-list details{border:2px solid #000;border-radius:8px;background:#fff;margin:0 0 11px;padding:0 17px;box-shadow:3px 3px 0 #000}.faq-list summary{cursor:pointer;list-style:none;min-height:58px;display:flex;align-items:center;justify-content:space-between;gap:16px;font-weight:900}.faq-list summary::-webkit-details-marker{display:none}.faq-list summary:after{content:"+";font-size:1.4rem}.faq-list details[open] summary:after{content:"−"}.faq-list details p{margin:0 0 17px;color:#393731}.faq-list details a{text-decoration:underline;font-weight:800}.footer{padding:30px 0;display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap}.footlinks{display:flex;gap:18px;flex-wrap:wrap;font-size:.9rem;font-weight:800}.footlinks a{text-decoration:underline;text-underline-offset:3px}.footnote{font-size:.8rem;color:#514f49;margin:0}
+@media(max-width:850px){.hero{grid-template-columns:1fr;gap:30px;padding:60px 0}.hero-art{max-width:650px;width:100%;margin:auto}.platform-list{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:620px){.wrap{width:calc(100% - 30px)}.nav{height:66px}.navlinks{display:none}.navcta{padding:8px 11px;font-size:.86rem}.brand{font-size:1.08rem}.mark{width:34px;height:34px}.hero{padding:47px 0 46px}h1{font-size:clamp(2.45rem,12vw,3.8rem)}.hero-copy{font-size:1rem}.hero-actions{gap:9px}.hero-actions .button{width:100%}.hero-actions .text-link{justify-content:center;width:100%}.section{padding:65px 0}.steps,.compare,.pricing-grid,.quote-grid{grid-template-columns:1fr}.platform-list{grid-template-columns:repeat(2,1fr)}.final-inner{align-items:flex-start;flex-direction:column}.final-inner .button{width:100%}.demo-chrome small{display:none}.demo-inner{padding:16px}.draft-text{font-size:.94rem}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation:none!important;transition:none!important}.step:hover,.button:hover,.copy-btn:hover{transform:none}}
+</style>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"SoftwareApplication","name":"HookEngine","applicationCategory":"BrowserApplication","operatingSystem":"Chrome 116+","description":"Turn articles, selected text and YouTube videos into editable social drafts for X, LinkedIn and TikTok, with additional Pro platforms.","offers":[{"@type":"Offer","name":"Free","price":"0","priceCurrency":"EUR"},{"@type":"Offer","name":"Pro","price":"4.99","priceCurrency":"EUR","priceSpecification":{"@type":"UnitPriceSpecification","price":"4.99","priceCurrency":"EUR","unitCode":"MON"}}]}
+</script>
 </head>
 <body>
-  <svg xmlns="http://www.w3.org/2000/svg" style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true">
-<symbol id="i-arrow-up-right" viewBox="0 0 24 24"><path d="M7 17 17 7M7 7h10v10"/></symbol>
-<symbol id="i-arrow-right" viewBox="0 0 24 24"><path d="M4 12h15m-6-6 6 6-6 6"/></symbol>
-<symbol id="i-file-text" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 13h8M8 17h8"/></symbol>
-<symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 2 9 5-9 5-9-5 9-5ZM3 12l9 5 9-5M3 17l9 5 9-5"/></symbol>
-<symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 21v-7m0-4V3m8 18v-9m0-4V3m8 18v-5m0-4V3M1 14h6m2-6h6m2 8h6"/></symbol>
-<symbol id="i-book-open" viewBox="0 0 24 24"><path d="M2 4.5A2.5 2.5 0 0 1 4.5 2H12v19H5a3 3 0 0 0-3 3V4.5ZM22 4.5A2.5 2.5 0 0 0 19.5 2H12v19h7a3 3 0 0 1 3 3V4.5Z"/></symbol>
-<symbol id="i-sparkles" viewBox="0 0 24 24"><path d="m12 3 1.9 5.8L20 11l-6.1 2.2L12 19l-1.9-5.8L4 11l6.1-2.2L12 3ZM19 14l1.2 3.2L23 18l-2.8 1L19 22l-1.2-3-2.8-1 2.8-.8L19 14ZM5 2l1 2.5L8 5l-2 .8L5 8l-.9-2.2L2 5l2.1-.5L5 2Z"/></symbol>
-<symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
-<symbol id="i-youtube" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="4"/><path d="m10 9 5 3-5 3z"/></symbol>
-<symbol id="i-instagram" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><path d="M17.5 6.5h.01"/></symbol>
-<symbol id="i-linkedin" viewBox="0 0 24 24"><path d="M4 9v11M4 4h.01M9 20v-6a4 4 0 0 1 8 0v6M9 10v10"/></symbol>
-<symbol id="i-facebook" viewBox="0 0 24 24"><path d="M15 21v-8h3l.5-4H15V7c0-1.2.4-2 2-2h2V1.5c-.8-.1-1.8-.2-3-.2-3 0-5 1.8-5 5.2V9H8v4h3v8z"/></symbol>
-<symbol id="i-instagram" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><path d="M17.5 6.5h.01"/></symbol>
-<symbol id="i-threads" viewBox="0 0 24 24"><path d="M19.5 10.2c-.4-4.6-3.2-7.2-7.6-7.2-5 0-8 3.5-8 9s3 9 8 9c4.3 0 7.2-2.5 7.6-6.3.3-2.6-1.1-4.4-3.8-4.4-2.2 0-3.5 1.2-3.5 3 0 1.4.9 2.3 2.3 2.3 1.6 0 2.7-1.2 2.7-3.2 0-3.2-2-5.3-5.2-5.3"/></symbol>
-<symbol id="i-x" viewBox="0 0 24 24"><path d="m4 3 16 18M20 3 4 21M4 3h4l12 18h-4z"/></symbol>
-<symbol id="i-tiktok" viewBox="0 0 24 24"><path d="M14 3v11.5a4 4 0 1 1-4-4c.4 0 .8 0 1.1.1M14 3c.6 3.3 2.6 5.2 6 5.5"/></symbol>
-</svg>
-  <div class="announcement"><span>NEW</span> · Three variations per platform with HookEngine Pro</div>
-  <div class="wrap">
-    <header>
-      <a class="brand" href="#" aria-label="HookEngine home"><span class="brand-mark">H</span>HookEngine</a>
-      <nav aria-label="Main navigation"><a href="#how">How it works</a><a href="#features">Features</a><a href="#pricing">Pricing</a></nav>
-      <div class="nav-actions"><a class="button button-plain button-small" href="https://yazoniplay.github.io/HookEngine/account/">Sign in</a><a class="button button-pink button-small" href="https://chromewebstore.google.com/detail/hookengine-%E2%80%94-content-repu/ikalaemjdindfenbbaecekkocbbocjma">Add to Chrome <svg class="inline-icon"><use href="#i-arrow-up-right"/></svg></a></div>
-    </header>
-    <main>
-      <section class="hero">
-        <div class="reveal visible">
-          <span class="eyebrow"><svg class="inline-icon"><use href="#i-sparkles"/></svg> YOUR CONTENT, REIMAGINED</span>
-          <h1>One good idea.<br><span class="highlight">A whole lot</span><br>more content.</h1>
-          <p class="hero-copy">Turn articles and YouTube videos into ready-to-edit social drafts. Less rewriting from scratch. More time making things worth sharing.</p>
-          <div class="hero-actions"><a class="button button-pink" href="https://chromewebstore.google.com/detail/hookengine-%E2%80%94-content-repu/ikalaemjdindfenbbaecekkocbbocjma">Get HookEngine <svg class="inline-icon"><use href="#i-arrow-up-right"/></svg></a><a class="button button-plain" href="#how">See how it works <svg class="inline-icon"><use href="#i-arrow-right"/></svg></a></div>
-          <div class="micro-proof"><b>Free to start</b><span class="dot"></span>5 generations every day<span class="dot"></span>No card required to try</div>
-        </div>
-        <div class="preview-wrap reveal delay-1" aria-label="Illustrative HookEngine product preview">
-          <div class="sticker"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v20M2 12h20M4.9 4.9l14.2 14.2m0-14.2L4.9 19.1"/></svg>ONE SOURCE<br>MORE CONTENT</div>
-          <div class="preview">
-            <div class="preview-top"><div class="preview-brand"><i>H</i> HookEngine</div><span class="live">DRAFTS READY</span></div>
-            <span class="source-chip"><svg class="inline-icon"><use href="#i-file-text"/></svg> ARTICLE · 6 MIN READ</span>
-            <h3>Your idea, across the feed.</h3>
-            <p class="preview-sub">Choose a platform. Get a draft that fits.</p>
-            <div class="preview-tabs"><span class="active">X thread</span><span>LinkedIn</span><span>TikTok</span></div>
-            <div class="draft"><div class="draft-label">X THREAD DRAFT</div><p>Most people don't need more ideas. They need a better way to get more out of the ideas they already have.<br><br>Here's how to turn one useful insight into content people actually want to read. 🧵</p><div class="draft-actions"><span>Editable draft</span><span class="copy"><svg class="inline-icon"><use href="#i-layers"/></svg> Copy text</span></div></div>
-            <div class="variation-row"><i></i><i></i><i></i></div>
-          </div>
-        </div>
-      </section>
-    </main>
-  </div>
-  <div class="marquee"><div class="wrap"><div class="marquee-track"><span><b>ONE SOURCE</b> <em>✳</em></span><span>MORE WAYS TO SHARE</span><span><b>LESS REPETITIVE WORK</b> <em>✳</em></span><span>YOUR VOICE, YOUR SETTINGS</span><span><b>ONE SOURCE</b> <em>✳</em></span></div></div></div>
-  <section id="features" class="content">
-    <div class="wrap">
-      <div class="section-head reveal"><span class="eyebrow">A BETTER CONTENT WORKFLOW</span><h2>Keep the idea.<br>Change the format.</h2><p>HookEngine gives your source material a useful second life—without making you start with a blank page every time.</p></div>
-      <div class="feature-grid">
-        <article class="feature reveal"><div class="feature-icon"><svg><use href="#i-file-text"/></svg></div><h3>Start with what you have</h3><p>Pull from the article in your current tab, analyze a public YouTube video, or paste text directly.</p></article>
-        <article class="feature reveal delay-1"><div class="feature-icon"><svg><use href="#i-layers"/></svg></div><h3>Write for each platform</h3><p>Generate drafts for X, LinkedIn, TikTok, Instagram, Threads and Facebook—with platform-specific formats.</p></article>
-        <article class="feature reveal delay-2"><div class="feature-icon"><svg><use href="#i-sliders"/></svg></div><h3>Make it sound like you</h3><p>Set your preferred tone, writing style, length and target audience in the extension settings.</p></article>
-      </div>
-    </div>
-  </section>
-  <section id="how" class="content workflow">
-    <div class="wrap">
-      <div class="section-head reveal"><span class="eyebrow">THREE STEPS. THAT'S IT.</span><h2>From source to social-ready.</h2><p>A small workflow that gets out of your way.</p></div>
-      <div class="steps">
-        <article class="step reveal"><div class="step-icon"><svg><use href="#i-file-text"/></svg></div><h3>Bring a source</h3><p>Read the page you're on, analyze a YouTube video, or paste in your own text.</p></article>
-        <article class="step reveal delay-1"><div class="step-icon"><svg><use href="#i-layers"/></svg></div><h3>Choose your platforms</h3><p>Select where you want to publish. Set your writing preferences once, then reuse them.</p></article>
-        <article class="step reveal delay-2"><div class="step-icon"><svg><use href="#i-sliders"/></svg></div><h3>Edit and make it yours</h3><p>Review your drafts, switch between Pro variations, and copy the version you want.</p></article>
-      </div>
-      <div class="platforms reveal"><span><img class="brand-icon" src="https://cdn.simpleicons.org/x" alt="" loading="lazy">X</span><span><img class="brand-icon" src="https://cdn.simpleicons.org/linkedin" alt="" loading="lazy">LinkedIn</span><span><img class="brand-icon" src="https://cdn.simpleicons.org/tiktok" alt="" loading="lazy">TikTok</span><span><img class="brand-icon" src="https://cdn.simpleicons.org/instagram" alt="" loading="lazy">Instagram</span><span><img class="brand-icon" src="https://cdn.simpleicons.org/threads" alt="" loading="lazy">Threads</span><span><img class="brand-icon" src="https://cdn.simpleicons.org/facebook" alt="" loading="lazy">Facebook</span></div>
-    </div>
-  </section>
-  <section id="pricing" class="content pricing">
-    <div class="wrap">
-      <div class="section-head reveal"><span class="eyebrow">STRAIGHTFORWARD PLANS</span><h2>Start small. Go further.</h2><p>Try the workflow for free. Upgrade when you want more room and more options.</p></div>
-      <div class="pricing-grid">
-        <article class="price-card reveal"><span class="plan-name">Free</span><div class="price">€0 <small>/ month</small></div><p>Everything you need to try a better way to repurpose content.</p><ul><li>5 generations per day</li><li>X threads</li><li>LinkedIn posts</li><li>TikTok hooks</li><li>Editable drafts</li></ul><a class="button" href="https://yazoniplay.github.io/HookEngine/account/">Create free account <svg class="inline-icon"><use href="#i-arrow-up-right"/></svg></a></article>
-        <article class="price-card pro reveal delay-1"><span class="plan-name">HookEngine Pro</span><div class="price">€4.99 <small>/ month</small></div><p>For creators who want more platforms, more options and more daily capacity.</p><ul><li>100 generations per day</li><li>Everything in Free</li><li>Instagram, Threads and Facebook</li><li>3 variations per platform</li><li>Tone, style, length and audience controls</li></ul><a class="button" href="https://yazoniplay.github.io/HookEngine/account/">Explore Pro <svg class="inline-icon"><use href="#i-arrow-up-right"/></svg></a></article>
-      </div>
-    </div>
-  </section>
-  <section class="final-cta">
-    <div class="wrap reveal"><span class="eyebrow">YOUR NEXT POST STARTS HERE</span><h2>Stop staring at the blank page.</h2><p>Keep your best ideas moving. HookEngine is free to get started.</p><a class="button button-pink" href="https://chromewebstore.google.com/detail/hookengine-%E2%80%94-content-repu/ikalaemjdindfenbbaecekkocbbocjma">Add HookEngine to Chrome <svg class="inline-icon"><use href="#i-arrow-up-right"/></svg></a></div>
-  </section>
-  <div class="wrap"><footer><a class="brand" href="#"><span class="brand-mark">H</span>HookEngine</a><div class="links"><a href="https://yazoniplay.github.io/HookEngine/account/">Account</a><a href="https://chromewebstore.google.com/detail/hookengine-%E2%80%94-content-repu/ikalaemjdindfenbbaecekkocbbocjma">Chrome Web Store</a></div><span>© <span id="year"></span> HookEngine</span></footer></div>
-  <script>
-    document.getElementById("year").textContent=new Date().getFullYear();
-    const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{if(entry.isIntersecting){entry.target.classList.add("visible");observer.unobserve(entry.target)}}),{threshold:.12});
-    document.querySelectorAll(".reveal:not(.visible)").forEach(el=>observer.observe(el));
-    document.querySelectorAll(".feature,.step,.price-card,.platforms span").forEach((el,i)=>el.style.setProperty("--stagger",Math.min(i%6,5)*65+"ms"));
-    const cardObserver=new IntersectionObserver(entries=>entries.forEach(entry=>{if(entry.isIntersecting){entry.target.classList.add("visible");cardObserver.unobserve(entry.target)}}),{threshold:.1});
-    document.querySelectorAll(".feature,.step,.price-card,.platforms span").forEach(el=>{el.classList.add("reveal");cardObserver.observe(el)});
-  </script>
-</body>
-</html>
+<a class="skip" href="#main">Skip to content</a>
+<svg aria-hidden="true" width="0" height="0" style="position:absolute"><use href="assets/platforms.svg#x"/></svg>
+<header class="top"><div class="wrap nav">
+<a class="brand" href="/HookEngine/" aria-label="HookEngine home"><span class="mark">H</span>HookEngine</a>
+<nav class="navlinks" aria-label="Main navigation"><a href="#how">How it works</a><a href="#examples">Examples</a><a href="#pricing">Pricing</a><a href="#faq">FAQ</a></nav>
+<a class="button pink navcta" href="https://chromewebstore.google.com/detail/hookengine-%E2%80%94-content-repu/ikalaemjdindfenbbaecekkocbbocjma">Add to Chrome <span aria-hidden="true">↗</span></a>
+</div></header>
+<main id="main">
+<div class="wrap hero">
+<div>
+<span class="sticker">FREE TO START</span>
+<p class="eyebrow" style="margin:18px 0 0">A browser extension for creators</p>
+<h1>Turn any YouTube video or article into an <span class="under">X thread</span>, LinkedIn post and TikTok hooks in 10 seconds.</h1>
+<!-- Alternate headline 1: Turn one article or YouTube video into drafts for X, LinkedIn and TikTok. -->
+<!-- Alternate headline 2: Your source goes in. Platform-ready social drafts come out. -->
+<p class="hero-copy">HookEngine reads the page you’re on and drafts for each platform. You edit, copy and post.</p>
+<div class="hero-actions"><a class="button pink" href="https://chromewebstore.google.com/detail/hookengine-%E2%80%94-content-repu/ikalaemjdindfenbbaecekkocbbocjma">Add to Chrome — it’s free <span aria-hidden="true">↗</span></a><a class="text-link" href="#examples">See a real example ↓</a></div>
+<p class="trust">5 free generations a day · no card</p>
+</div>
+<div class="hero-art" aria-label="Preview of the HookEngine example below">
+<span class="sticker hero-sticker">NEW: 3 variations in Pro</span>
+<div class="mini-window"><div class="windowbar"><i></i><i></i><i></i><span class="window-label">HOOKENGINE · DRAFT PREVIEW</span></div><p class="demo-kicker">SOURCE → SOCIAL</p><h2>One article. Three formats.</h2><div class="mini-tabs"><span>X thread</span><span>LinkedIn</span><span>TikTok hooks</span></div><div class="mini-draft"><p>Webb can study a planet’s atmosphere by reading the starlight that passes through it. Here’s the clever part: the missing colors reveal which molecules are present.</p></div></div>
+</div>
+</div>
+<section class="section demo-section" id="examples"><div class="wrap">
+<div class="section-title"><span class="eyebrow">REAL OUTPUT, REAL ARTICLE</span><h2>One source. Three different drafts.</h2><p>Written from the facts in this NASA article. These are hand-written examples, not generated live by the extension.</p></div>
+<div class="demo-window"><div class="demo-chrome"><span class="dots"><i></i><i></i><i></i></span><strong>HookEngine · Example output</strong><small>NASA Science source</small></div>
+<div class="demo-inner">
+<div class="source"><small>Source article · NASA Science</small><a href="https://science.nasa.gov/mission/Webb/science-overview/science-explainers/how-will-Webb-study-exoplanets/" target="_blank" rel="noopener">How Will Webb Study Exoplanets?</a><p>NASA explains how Webb can analyze distant planetary atmospheres using infrared observations and transmission spectroscopy.</p></div>
+<div class="tabs" role="tablist" aria-label="Example output formats">
+<button class="tab" id="tab-x" role="tab" aria-selected="true" aria-controls="panel-x" tabindex="0">X thread</button>
+<button class="tab" id="tab-linkedin" role="tab" aria-selected="false" aria-controls="panel-linkedin" tabindex="-1">LinkedIn</button>
+<button class="tab" id="tab-tiktok" role="tab" aria-selected="false" aria-controls="panel-tiktok" tabindex="-1">TikTok hooks</button>
+</div>
+<div class="panel" id="panel-x" role="tabpanel" aria-labelledby="tab-x">
+<div class="draft-label">X THREAD · 5 POSTS</div><div class="draft-text" data-draft="x">1/ A planet’s atmosphere can leave clues in the light of its star. NASA’s James Webb Space Telescope is built to read those clues in infrared.
+
+2/ Here’s the method: Webb first measures the star’s spectrum, then measures it again when a planet passes in front.
+
+3/ During that transit, some starlight travels through the planet’s atmosphere before reaching the telescope.
+
+4/ Molecules in the atmosphere absorb specific wavelengths. Those missing parts show up as dips in the spectrum.
+
+5/ Researchers compare those dips with known molecular signatures to work out which molecules are present. It’s chemistry, read through starlight.</div>
+<div class="copy-row"><button class="copy-btn" data-copy="x">Copy X thread</button><span class="copy-status" aria-live="polite"></span></div>
+</div>
+<div class="panel" id="panel-linkedin" role="tabpanel" aria-labelledby="tab-linkedin" hidden>
+<div class="draft-label">LINKEDIN POST</div><div class="draft-text" data-draft="linkedin">A distant planet can leave a chemical fingerprint in starlight.
+
+NASA’s James Webb Space Telescope can study an exoplanet’s atmosphere using a technique called transmission spectroscopy.
+
+First, Webb observes the star. Then it observes the system again as the planet passes in front of it. Some of the star’s light filters through the planet’s atmosphere on its way to the telescope.
+
+Atmospheric molecules absorb particular wavelengths. Those appear as dips in the spectrum.
+
+By comparing the dips with reference measurements, researchers can identify molecules in the atmosphere.
+
+The useful idea: even when a planet is too far away to study directly, its effect on light can still tell us what it is made of.</div>
+<div class="copy-row"><button class="copy-btn" data-copy="linkedin">Copy LinkedIn post</button><span class="copy-status" aria-live="polite"></span></div>
+</div>
+<div class="panel" id="panel-tiktok" role="tabpanel" aria-labelledby="tab-tiktok" hidden>
+<div class="draft-label">TIKTOK · 5 OPENING HOOKS</div><div class="draft-text" data-draft="tiktok">1. Curiosity gap: What if a planet’s atmosphere could be identified by the colors missing from a beam of starlight?
+
+2. Myth-bust: You don’t always need a close-up image to learn what a distant planet is made of.
+
+3. Unexpected comparison: Think of an exoplanet’s atmosphere as a filter that leaves a chemical barcode in starlight.
+
+4. Question hook: How can a telescope detect molecules on a planet hundreds of light-years away?
+
+5. Step-by-step: Webb measures a star, waits for a planet to pass in front, then reads the changes in the light.</div>
+<div class="copy-row"><button class="copy-btn" data-copy="tiktok">Copy TikTok hooks</button><span class="copy-status" aria-live="polite"></span></div>
+</div>
+<div class="pro-preview"><div class="pro-head">Pro preview <span class="sticker">3 variations</span></div><div class="pro-pills" role="group" aria-label="Pro variation preview"><button type="button" aria-pressed="true">Version 1</button><button type="button" aria-pressed="false">Version 2</button><button type="button" aria-pressed="false">Version 3</button></div><p class="pro-note">Pro gives you three alternative drafts for each selected platform. These pills preview the feature; they do not switch this hand-written example.</p></div>
+</div></div></div></section>
+<section class="section" id="how"><div class="wrap">
+<div class="section-title"><span class="eyebrow">HOW IT WORKS</span><h2>Three moves. Then it’s yours.</h2><p>Keep the useful idea. Change the format. Your drafts stay editable so you can make the final call.</p></div>
+<div class="steps">
+<article class="step"><span class="step-num">1</span><h3>Open any article or YouTube video.</h3><p>Use the page you’re already reading, select text, or open a public YouTube video.</p></article>
+<article class="step"><span class="step-num">2</span><h3>Pick your platforms.</h3><p>Choose X, LinkedIn and TikTok on Free. Pro adds Instagram, Threads and Facebook.</p></article>
+<article class="step"><span class="step-num">3</span><h3>Edit, copy, post.</h3><p>Adjust the draft in your own words, copy the version you want, and publish when it’s ready.</p></article>
+</div>
+<div class="media-slot"><!-- TODO: Record the actual extension popup and replace the poster with assets/demo.gif (keep GIF under 1.5 MB). Do not present this placeholder as product footage. --><img src="assets/demo-placeholder.svg" alt="Placeholder for a real HookEngine extension recording. Replace with the actual demo GIF." loading="lazy" width="1200" height="640"><p class="media-caption">DEMO SLOT · PLACEHOLDER ARTWORK — replace with a real extension recording.</p></div>
+</div></section>
+<section class="section"><div class="wrap"><div class="section-title"><span class="eyebrow">WHY NOT JUST ASK CHATGPT?</span><h2>Because the busywork is the point.</h2><p>A general chat can write. HookEngine handles the repeatable steps around your source.</p></div>
+<div class="compare">
+<article><h3>It reads the page for you.</h3><p>Use the article in your tab or selected text instead of copying chunks into a separate prompt.</p></article>
+<article><h3>Platform rules are built in.</h3><p>Choose X, LinkedIn, TikTok and Pro formats. Each gets a format-specific draft prompt.</p></article>
+<article><h3>Copy, regenerate, adjust.</h3><p>Copy drafts, generate again, and set tone, style, length and audience preferences. Voice samples are <span class="coming">COMING SOON</span>.</p></article>
+</div></div></section>
+<section class="section"><div class="wrap"><div class="section-title"><span class="eyebrow">SIX PLATFORMS</span><h2>Pick where the idea goes.</h2></div>
+<div class="platform-list">
+<div class="platform"><svg aria-hidden="true"><use href="assets/platforms.svg#x"/></svg>X</div>
+<div class="platform"><svg aria-hidden="true"><use href="assets/platforms.svg#linkedin"/></svg>LinkedIn</div>
+<div class="platform"><svg aria-hidden="true"><use href="assets/platforms.svg#tiktok"/></svg>TikTok</div>
+<div class="platform pro"><svg aria-hidden="true"><use href="assets/platforms.svg#instagram"/></svg><span>Instagram<small>PRO</small></span></div>
+<div class="platform pro"><svg aria-hidden="true"><use href="assets/platforms.svg#threads"/></svg><span>Threads<small>PRO</small></span></div>
+<div class="platform pro"><svg aria-hidden="true"><use href="assets/platforms.svg#facebook"/></svg><span>Facebook<small>PRO</small></span></div>
+</div></div></section>
+<section class="section testimonials" id="testimonials" aria-labelledby="testimonials-title"><div class="wrap"><div class="section-title"><span class="eyebrow">REAL WORDS</span><h2 id="testimonials-title">What creators say</h2></div><div class="quote-grid" id="quote-grid"></div></div></section>
+<section class="section pricing" id="pricing"><div class="wrap">
+<div class="section-title"><span class="eyebrow">SIMPLE PRICING</span><h2>Start free. Upgrade if you need more.</h2><p>No made-up tiers. The limits and platforms are listed plainly.</p></div>
+<div class="pricing-grid">
+<article class="price-card"><h3>Free</h3><div class="price">€0 <small>/ month</small></div><p>Try the full basic workflow.</p><ul><li>5 generations per day</li><li>X threads</li><li>LinkedIn posts</li><li>TikTok hooks</li><li>Editable drafts</li></ul><a class="button" href="https://chromewebstore.google.com/detail/hookengine-%E2%80%94-content-repu/ikalaemjdindfenbbaecekkocbbocjma">Add to Chrome</a></article>
+<article class="price-card pro"><span class="popular">MOST POPULAR</span><h3>HookEngine Pro</h3><div class="price">€4.99 <small>/ month</small></div><p>More platforms and more room to work.</p><ul><li>100 generations per day</li><li>Everything in Free</li><li>Instagram, Threads and Facebook</li><li>3 variations per platform</li><li>Tone, style, length and audience controls</li></ul><a class="button pink" href="/HookEngine/account/">Get Pro</a></article>
+</div>
+<!-- TODO: Add a monthly/annual toggle only after annual pricing is decided. -->
+<!-- <div class="billing-toggle" hidden>Monthly / Annual</div> -->
+</div></section>
+<section class="section" id="faq"><div class="wrap"><div class="section-title"><span class="eyebrow">FAQ</span><h2>Fair questions.</h2></div>
+<div class="faq-list">
+<details><summary>Where does my data go?</summary><p>Text from the page or selected text is sent to HookEngine’s server and processed by AI providers to create drafts. Account and usage data are handled by the service infrastructure. Read the <a href="/HookEngine/account/privacy.html">privacy policy</a>. The current policy does not clearly explain how long source text or generated drafts are retained. <!-- TODO: Clarify source-text and generated-output retention in the privacy policy before making a stronger promise. --></p></details>
+<details><summary>Does it work on paywalled or logged-in pages?</summary><p>HookEngine reads the content visible in your tab; it cannot promise access to content hidden behind a paywall or login. The page text you submit is sent for processing. The privacy policy does not clearly state a retention period for submitted source text. <!-- TODO: Confirm retention and update privacy policy. --></p></details>
+<details><summary>What happens when I hit the daily limit?</summary><p>Free includes 5 generations per day. Pro includes 100. When your plan’s allowance is used, the server rejects further generations until the daily allowance resets. You can review your plan in the <a href="/HookEngine/account/">account portal</a>.</p></details>
+<details><summary>Does it work for YouTube videos without captions?</summary><p>YouTube video analysis is handled by Gemini, but the current product documentation does not establish whether every video without captions can be processed. <!-- TODO: Test videos with disabled or missing captions and state the supported behavior. --></p></details>
+<details><summary>Can I cancel Pro?</summary><p>Pro billing is connected to PayPal. The current public account page does not clearly document the cancellation steps. <!-- TODO: Confirm cancellation flow and add exact instructions here. Do not promise cancellation terms until verified. --></p></details>
+<details><summary>Which browsers?</summary><p>The extension manifest requires Chrome 116 or later. Other browsers are not currently verified. <!-- TODO: Test Chromium-based browsers before claiming support. --></p></details>
+<details><summary>Who makes HookEngine?</summary><p>HookEngine is an independent project. For support, use the email address configured in the page source: <a id="support-link" href="mailto:support@example.com">support@example.com</a>. <!-- TODO: Replace the support email constant before launch. --></p></details>
+</div></div></section>
+<section class="final-band"><div class="wrap final-inner"><h2>Got an article? You’ve got your next draft.</h2><a class="button pink" href="https://chromewebstore.google.com/detail/hookengine-%E2%80%94-content-repu/ikalaemjdindfenbbaecekkocbbocjma">Add to Chrome — it’s free ↗</a></div></section>
+</main>
+<footer class="wrap footer">
+<a class="brand" href="/HookEngine/"><span class="mark">H</span>HookEngine</a>
+<nav class="footlinks" aria-label="Footer"><a href="/HookEngine/account/privacy.html">Privacy</a><!-- TODO: Create a terms page before adding a link. --><a href="/HookEngine/account/">Account</a><a href="https://chromewebstore.google.com/detail/hookengine-%E2%80%94-content-repu/ikalaemjdindfenbbaecekkocbbocjma">Chrome Web Store</a><a id="support-footer" href="mailto:support@example.com">Support</a></nav>
+<p class="footnote">© <span id="year"></span> HookEngine</p>
+</footer>
+<script>
+const SUPPORT_EMAIL = "support@example.com"; // TODO: Replace with a monitored support address.
+const testimonials = []; // Add only real, permission-approved creator testimonials.
+const quoteGrid=document.getElementById("quote-grid");
+if(testimonials.length){document.querySelector(".testimonials").classList.add("has-quotes");for(const item of testimonials){const card=document.createElement("article");card.className="quote";const quote=document.createElement("blockquote");quote.textContent=item.quote;const cite=document.createElement("cite");cite.textContent=item.name+(item.role?" · "+item.role:"");card.append(quote,cite);quoteGrid.append(card);}}
+document.getElementById("year").textContent=new Date().getFullYear();
+for(const el of [document.getElementById("support-link"),document.getElementById("support-footer")]){el.href="mailto:"+SUPPORT_EMAIL;el.textContent=SUPPORT_EMAIL;}
+const tabs=[...document.querySelectorAll('[role="tab"]')];
+function activateTab(tab,focus=true){tabs.forEach(t=>{const active=t===tab;t.setAttribute("aria-selected",String(active));t.tabIndex=active?0:-1;document.getElementById(t.getAttribute("aria-controls")).hidden=!active;});if(focus)tab.focus();}
+tabs.forEach((tab,index)=>{tab.addEventListener("click",()=>activateTab(tab,false));tab.addEventListener("keydown",event=>{if(!["ArrowRight","ArrowLeft","Home","End"].includes(event.key))return;event.preventDefault();let next=index;if(event.key==="ArrowRight")next=(index+1)%tabs.length;if(event.key==="ArrowLeft")next=(index-1+tabs.length)%tabs.length;if(event.key==="Home")next=0;if(event.key==="End")next=tabs.length-1;activateTab(tabs[next]);});});
+document.querySelectorAll("[data-copy]").forEach(button=>button.addEventListener("click",async()=>{const panel=button.closest(".panel");const text=panel.querySelector("[data-draft]").textContent.trim();const status=button.parentElement.querySelector(".copy-status");try{await navigator.clipboard.writeText(text);status.textContent="Copied.";button.textContent="Copied";}catch{status.textContent="Copy failed. Select the draft and copy it manually.";button.textContent="Try again";}setTimeout(()=>{button.textContent=button.dataset.copy==="x"?"Copy X thread":button.dataset.copy==="linkedin"?"Copy LinkedIn post":"Copy TikTok hooks";},1800);}));
+document.querySelectorAll(".pro-pills button").forEach(button=>button.addEventListener("click",()=>{document.querySelectorAll(".pro-pills button").forEach(b=>b.setAttribute("aria-pressed",String(b===button)));}));
+if(!matchMedia("(prefers-reduced-motion: reduce)").matches){const target=document.querySelector("#panel-x .draft-text");const full=target.textContent;target.textContent="";let i=0;const reveal=()=>{if(i>=full.length)return;target.textContent+=full.charAt(i++);setTimeout(reveal,7);};setTimeout(reveal,180);}
+</script>
+</body></html>
