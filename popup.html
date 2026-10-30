@@ -8,7 +8,20 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<main class="app">
+<main class="app auth-required">
+  <section id="authGate" class="auth-gate" aria-labelledby="authTitle">
+    <div class="auth-brand"><span class="brand-mark">h</span><span>HookEngine</span></div>
+    <p class="auth-eyebrow">CONTENT REPURPOSING</p>
+    <h1 id="authTitle">Your ideas, ready for every platform.</h1>
+    <p class="auth-copy">Sign in to turn articles, selected text and YouTube videos into social drafts.</p>
+    <label for="gateEmail">Email</label><input id="gateEmail" type="email" autocomplete="email" placeholder="you@example.com">
+    <label for="gatePassword">Password</label><input id="gatePassword" type="password" autocomplete="current-password" placeholder="Your password">
+    <button id="gateSignIn" class="small-primary auth-submit" type="button">Sign in <span aria-hidden="true">→</span></button>
+    <p id="gateMessage" class="inline-message" role="status"></p>
+    <div class="auth-divider"><span>NEW TO HOOKENGINE?</span></div>
+    <a class="auth-create" href="https://yazoniplay.github.io/HookEngine/account/" target="_blank" rel="noopener">Create an account <span aria-hidden="true">↗</span></a>
+    <p class="auth-footnote">Free to start · 5 generations per day</p>
+  </section>
   <header class="topbar">
     <a class="brand" href="#" aria-label="HookEngine home"><span class="brand-mark">h</span><span>HookEngine</span></a>
     <div class="top-actions">
@@ -22,7 +35,7 @@
 
   <section class="account-strip" id="accountStrip">
     <div class="account-state"><span class="account-indicator"></span><span id="accountSummary">Sign in to use HookEngine</span></div>
-    <button id="accountToggle" class="text-button" type="button">Sign in</button>
+    <div class="account-actions"><a id="upgradeButton" class="upgrade-button" href="https://yazoniplay.github.io/HookEngine/account/" target="_blank" rel="noopener">Upgrade to Pro <span aria-hidden="true">↗</span></a><button id="accountToggle" class="text-button" type="button">Sign in</button></div>
   </section>
   <section id="accountPanel" class="account-panel" hidden>
     <div id="signedOutPanel">
