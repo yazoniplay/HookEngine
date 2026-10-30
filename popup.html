@@ -55,9 +55,17 @@
   <section class="source-section">
     <div class="section-head"><h1>Repurpose content</h1><span id="sourceLabel" class="source-label">No source</span></div>
     <div class="source-actions">
-      <button id="extractBtn" class="secondary-button" type="button"><span class="button-icon"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h8"/></svg></span> Read page</button>
-      <button id="selectionBtn" class="secondary-button" type="button"><span class="button-icon"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 5h16M4 9h10M4 13h16M4 17h10"/><path d="M18 16v5m-2.5-2.5h5"/></svg></span> Use selection</button>
-      <button id="analyzeVideoBtn" class="secondary-button video-action" type="button"><span class="button-icon youtube-icon"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" stroke="none" d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2 31 31 0 0 0 0 12a31 31 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1A31 31 0 0 0 24 12a31 31 0 0 0-.5-5.8Z"/><path fill="var(--bg)" stroke="none" d="m9.6 15.5 6.2-3.5-6.2-3.5z"/></svg></span> YouTube</button>
+      <button id="extractBtn" class="source-action source-action-primary" type="button">
+        <span class="source-action-icon"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h8"/></svg></span>
+        <span class="source-action-copy"><strong>Read current page</strong><small>Extract the article from this tab</small></span>
+        <span class="source-action-arrow" aria-hidden="true">→</span>
+      </button>
+      <button id="analyzeVideoBtn" class="source-action source-action-video" type="button">
+        <span class="source-action-icon youtube-icon"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" stroke="none" d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2 31 31 0 0 0 0 12a31 31 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1A31 31 0 0 0 24 12a31 31 0 0 0-.5-5.8Z"/><path fill="var(--bg)" stroke="none" d="m9.6 15.5 6.2-3.5-6.2-3.5z"/></svg></span>
+        <span class="source-action-copy"><strong>Analyze YouTube video</strong><small>Turn a video's content into drafts</small></span>
+        <span class="source-action-arrow" aria-hidden="true">→</span>
+      </button>
+      <button id="selectionBtn" class="selection-action" type="button"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 5h16M4 9h10M4 13h16M4 17h10"/><path d="M18 16v5m-2.5-2.5h5"/></svg> Use selected text instead</button>
     </div>
     <textarea id="sourceText" rows="5" placeholder="Paste an article or transcript, or read the current page…"></textarea>
     <div class="source-meta"><span id="charCount">0 characters</span><button id="clearSourceBtn" class="text-button" type="button">Clear</button></div>
