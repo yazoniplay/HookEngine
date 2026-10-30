@@ -47,6 +47,7 @@ $("themeToggle").addEventListener("click", async () => {
 
 function renderAccount() {
   const signedIn = !!accountUser;
+  $("authGate").hidden = signedIn;
   document.querySelector(".app").classList.toggle("auth-required", !signedIn);
   $("upgradeButton").hidden = accountUsage.plan === "pro";
   $("planSummary").textContent = accountUsage.plan.toUpperCase();
