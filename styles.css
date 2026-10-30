@@ -118,3 +118,27 @@ body{overflow-y:auto}
 .generate-button{background:linear-gradient(105deg,#d2e4ae 0%,#a9c781 55%,#8fae68 100%);box-shadow:0 2px 9px #8fae6820}
 .brand-mark{background:linear-gradient(145deg,#d6e6b5,#809c5d);color:#202719;border-color:#b4c98f}
 :root[data-theme="light"] .auth-gate{background:radial-gradient(ellipse at 12% 0%,#e9f0dd,transparent 48%),linear-gradient(155deg,#f7f7f2,#f0f2e9)}
+
+/* Consistent, recognizable inline icon system */
+.button-icon{display:inline-grid;place-items:center;width:14px;height:14px;flex:none}
+.button-icon svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.youtube-icon svg{fill:currentColor;stroke:none}
+.platform-option{gap:7px;padding:7px 7px;min-height:43px}
+.platform-icon{display:grid;place-items:center;flex:0 0 22px;width:22px;height:22px;color:var(--text)}
+.platform-icon svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.65;stroke-linecap:round;stroke-linejoin:round}
+.platform-icon svg path[fill="currentColor"]{fill:currentColor;stroke:none}
+.platform-copy{display:flex;flex-direction:column;gap:1px;min-width:0}
+.platform-name{display:block;width:auto;height:auto;flex:none;background:none;border-radius:0;font-size:9px;font-weight:720;line-height:1.2}
+.platform-detail{font-size:8px;color:var(--muted);font-weight:500;line-height:1.2}
+.platform-detail em{font-size:7px}
+.icon-button{overflow:hidden}
+.icon-button svg{transition:transform .28s cubic-bezier(.2,.8,.2,1),opacity .2s}
+.icon-button:active svg{transform:rotate(-18deg) scale(.88)}
+/* Telegram-like circular theme reveal */
+:root{view-transition-name:root}
+::view-transition-old(root),::view-transition-new(root){animation:none;mix-blend-mode:normal}
+::view-transition-new(root){animation:theme-reveal .52s cubic-bezier(.2,.75,.2,1)}
+@keyframes theme-reveal{from{clip-path:circle(0 at var(--theme-x, calc(100% - 28px)) var(--theme-y, 26px))}to{clip-path:circle(150vmax at var(--theme-x, calc(100% - 28px)) var(--theme-y, 26px))}}
+@media(prefers-reduced-motion:reduce){::view-transition-new(root){animation:none}}
+
+:root.theme-switching, :root.theme-switching body, :root.theme-switching .app, :root.theme-switching .account-panel, :root.theme-switching .platform-option, :root.theme-switching .output-card, :root.theme-switching .secondary-button{transition:background-color .38s ease,color .38s ease,border-color .38s ease}
