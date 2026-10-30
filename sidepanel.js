@@ -29,7 +29,19 @@ async function initTheme() {
 }
 $("themeToggle").addEventListener("click", async () => {
   const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
-  applyTheme(next);
+  const button = $("themeToggle");
+  const rect = button.getBoundingClientRect();
+  const root = document.documentElement;
+  root.style.setProperty("--theme-x", (rect.left + rect.width / 2) + "px");
+  root.style.setProperty("--theme-y", (rect.top + rect.height / 2) + "px");
+  if (document.startViewTransition && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    const transition = document.startViewTransition(() => applyTheme(next));
+    try { await transition.finished; } catch {}
+  } else {
+    root.classList.add("theme-switching");
+    applyTheme(next);
+    requestAnimationFrame(() => root.classList.remove("theme-switching"));
+  }
   try { await chrome.storage.local.set({[THEME_KEY]:next}); } catch {}
 });
 
