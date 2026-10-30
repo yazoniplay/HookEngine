@@ -57,7 +57,7 @@ Deno.serve(async (req: Request) => {
       user_id: user.id,
       plan: isPro ? "pro" : "free",
       status: isPro ? "active" : "inactive",
-      provider: "admin",
+      provider: "paypal",
       provider_subscription_id: null,
       current_period_end: null,
       updated_at: new Date().toISOString(),
