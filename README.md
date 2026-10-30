@@ -1,9 +1,37 @@
-# HookEngine\n\nChrome Manifest V3 side-panel extension that turns article text and public YouTube videos into an X thread, LinkedIn post, and TikTok hooks.\n\n## Architecture\n- Chrome extension UI and page extraction\n- No user accounts or sign-in required; the extension calls the Edge Function with a public key\n- Supabase Edge Function: `hookengine-generate` calls Gemini server-side\n- Gemini API key is stored as a Supabase Edge Function secret and is never shipped in the extension\n\n## Supabase setup\nThe extension is configured for the **Yazoniplay Next** Supabase project.\n- Project URL: `https://ppaknwuwiublxogclqdw.supabase.co`\n- Edge Function: `https://ppaknwuwiublxogclqdw.supabase.co/functions/v1/hookengine-generate`\n\nBefore generation can work, open Supabase Dashboard → Edge Functions → Secrets and add:\n- `GEMINI_API_KEY`: your Google AI Studio API key\n- `GEMINI_MODEL`: `gemini-3.5-flash-lite` (optional; this is the default)\n\nNever commit the Gemini API key or put it in extension files. The extension does not require Supabase Auth accounts. The public publishable key is used only to call the Edge Function; keep the Gemini API key in Edge Function secrets.\n\n## Load the extension\n1. Open `chrome://extensions` in Chrome.\n2. Enable Developer mode and choose **Load unpacked**.\n3. Select the HookEngine repository folder.\n4. Open HookEngine, then paste source text or extract a page.\n5. Click **Generate content**.\n\n## YouTube transcript limitations\nYouTube changes its DOM often. Open the video's own **Show transcript** panel before clicking **Read current tab**. The extension extracts captions already rendered in the page; it does not bypass access controls or fetch private captions.\n\n## API\n- `POST /functions/v1/hookengine-generate`\n- Uses the Supabase publishable key in the `apikey` and `Authorization` headers; no user session required\n- Request: `{ "text": "...", "title": "...", "sourceUrl": "..." }`\n- Response: `{ "x_thread": "...", "linkedin_post": "...", "tiktok_hooks": "..." }`\n\nThe Edge Function is deployed with JWT verification enabled. Add rate limiting and usage/credit accounting before exposing the app publicly at scale.\n
+# HookEngine
 
-## Account, limits, and Pro
-- Account portal: `https://yazoniplay.github.io/HookEngine/account/`
-- Free plan: 5 successful generations per day.
-- Pro plan: 100 generations per day at €4.99/month.
-- Usage is enforced by the `hookengine-generate` Edge Function and stored in `hookengine_generations`.
-- PayPal subscriptions require `PAYPAL_PRO_PLAN_ID` and a verified webhook configured as described in `supabase/functions/hookengine-create-subscription` and `supabase/functions/hookengine-paypal-webhook`.
-- The account site is served from the `account/` folder by GitHub Pages. Set the Pages source to the main branch root if it is not already enabled.
+Chrome Manifest V3 extension that turns articles, selected page text and public YouTube videos into editable social drafts.
+
+## Plans
+- Free: X threads, LinkedIn posts and TikTok hooks; 5 generations per day.
+- Pro: everything in Free plus Instagram captions, Threads sequences and Facebook posts; 100 generations per day.
+
+## Managed AI providers
+All provider calls run inside the Supabase Edge Function. Provider keys are never included in extension code.
+
+Required Edge Function secrets:
+- `GEMINI_API_KEY`
+- `GEMINI_MODEL` (optional; defaults to `gemini-3.5-flash-lite`)
+
+Optional text-generation fallback secrets:
+- `GROQ_API_KEY`
+- `GROQ_MODEL` (optional; defaults to `llama-3.3-70b-versatile`)
+- `OLLAMA_API_KEY` (Ollama Cloud API key)
+- `OLLAMA_MODEL` (optional; defaults to `gpt-oss:20b`)
+
+Text generation order: Gemini, then Groq, then Ollama Cloud. Fallback is attempted for transient provider/network failures, not invalid requests or quota errors. Public YouTube video analysis uses Gemini only because the fallback providers are configured for text input. Fallback providers require working credentials and available capacity; they are not guaranteed to be free or unlimited.
+
+## Supabase database
+Apply the new migration under `supabase/migrations` before deploying the updated Edge Function. It adds JSON output, selected-platform metadata and provider attribution to generation history, and updates the server-only finalize RPC.
+
+## Extension
+1. Open `chrome://extensions`.
+2. Enable Developer mode and choose **Load unpacked**.
+3. Select this repository folder.
+4. Sign in, read a page or paste source text, choose platforms and generate.
+
+## Account and limits
+- Account portal: https://yazoniplay.github.io/HookEngine/account/
+- Free: 5 generations per UTC day.
+- Pro: 100 generations per UTC day.
+- PayPal checkout still depends on the existing merchant configuration.
