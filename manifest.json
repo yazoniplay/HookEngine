@@ -15,6 +15,7 @@
     "https://youtu.be/*",
     "https://ppaknwuwiublxogclqdw.supabase.co/*"
   ],
+  "options_page": "settings.html",
   "action": {
     "default_title": "Open HookEngine",
     "default_popup": "popup.html"
