@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#10110f">
+  <meta name="theme-color" content="#fff8ef">
   <meta name="description" content="Turn articles and YouTube videos into platform-ready social drafts. One source, more ways to show up.">
   <title>HookEngine — Make one idea go further</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -90,6 +90,76 @@
     @media(max-width:850px){.hero{grid-template-columns:1fr;gap:28px;padding:64px 0}.hero-copy{max-width:580px}.preview-wrap{max-width:560px;margin:0 auto;width:100%}.feature-grid{grid-template-columns:1fr 1fr}.feature:last-child{grid-column:1/-1}.hero h1{max-width:650px}}
     @media(max-width:620px){.wrap{width:min(100% - 34px,500px)}header{height:66px}nav{display:none}.nav-actions{gap:5px}.nav-actions .button-plain{display:none}.hero{padding:54px 0 58px}.hero h1{font-size:clamp(47px,13vw,66px)}.hero-copy{font-size:15px}.hero-actions{gap:13px}.preview-wrap{padding:15px 7px}.preview{padding:14px}.sticker{width:69px;height:69px;font-size:11px;right:-9px;top:-19px}.marquee-track{justify-content:flex-start;width:max-content;animation:marquee 24s linear infinite}.marquee-track span{padding-right:20px}@keyframes marquee{to{transform:translateX(-30%)}}section.content{padding:70px 0}.section-head{margin-bottom:32px}.feature-grid,.steps,.pricing-grid{grid-template-columns:1fr}.feature{min-height:0}.feature:last-child{grid-column:auto}.steps{gap:24px}.price-card.pro{transform:none}.price-card>p{min-height:0}.final-cta{padding:72px 0}footer{align-items:flex-start;gap:18px;flex-direction:column}footer .links{gap:15px}}
     @media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}.reveal{opacity:1;transform:none}}
+
+    /* Light, playful Gumroad-inspired visual system */
+    :root{color-scheme:light;--paper:#fff8ef;--bg:#fff8ef;--ink:#201b18;--text:#201b18;--muted:#766d65;--line:#201b18;--accent:#ff6b45;--lime:#ff6b45;--accent-ink:#201b18;--surface:#fffdf9;--surface-2:#ffe9dc;--card:#fffdf9;--shadow:5px 6px 0 #201b18}
+    body{background:var(--paper);color:var(--ink)}
+    .announcement{background:#ff6b45;color:#201b18;border:0;font-weight:800}
+    .announcement span{color:#fff8ef}
+    header{border-bottom:2px solid var(--ink)}
+    .brand-mark{background:#ff6b45;color:#201b18;border:2px solid var(--ink);border-radius:9px;box-shadow:3px 3px 0 var(--ink)}
+    nav{color:#514840}nav a:hover,footer a:hover{color:#e64d2c}
+    .button{background:#fffdf9;color:var(--ink);border:2px solid var(--ink);border-radius:999px;box-shadow:4px 4px 0 var(--ink);font-weight:800;transition:transform .28s cubic-bezier(.2,1.6,.4,1),box-shadow .28s,background .2s}
+    .button:hover{transform:translate(3px,3px) rotate(-1deg);box-shadow:1px 1px 0 var(--ink);border-color:var(--ink)}
+    .button:active{transform:translate(4px,4px) scale(.96);box-shadow:0 0 0 var(--ink)}
+    .button-pink{background:#ff6b45;color:#201b18;border-color:var(--ink)}
+    .button-pink:hover{background:#ff8a68;color:#201b18}
+    .button-plain{background:transparent;color:var(--ink);border-color:transparent;box-shadow:none}
+    .button-plain:hover{background:#ffe9dc;box-shadow:none}
+    .hero{padding-top:96px;padding-bottom:96px}
+    .hero h1,.section-head h2,.final-cta h2{font-family:"Space Grotesk",sans-serif;font-weight:700;letter-spacing:-.075em}
+    .hero h1 .highlight:after{background:#ffb89f;height:23px;bottom:2px;transform:rotate(-2.5deg)}
+    .eyebrow{color:#e64d2c;font-weight:800}.eyebrow:before{background:#ff6b45}
+    .hero-copy,.section-head p,.feature p,.step p,.final-cta p{color:#766d65}
+    .micro-proof b{color:#201b18}
+    .preview-wrap:before{background:#ffb89f;border:2px solid var(--ink);border-radius:24px;transform:rotate(5deg)}
+    .preview{background:#fffdf9;border:2px solid var(--ink);border-radius:20px;box-shadow:7px 8px 0 var(--ink);transform:rotate(-2deg)}
+    .preview-brand i{background:#ff6b45;color:#201b18}
+    .live{color:#39834d}.live:before{background:#39834d}
+    .source-chip{background:#ffe9dc;color:#514840}
+    .preview-tabs span{border:1.5px solid #d7c9bd;color:#766d65}
+    .preview-tabs span.active{background:#201b18;border-color:#201b18;color:#fff8ef}
+    .draft{background:#fff8ef;border:1.5px solid #d7c9bd}.draft p{color:#302822}
+    .copy{border:1.5px solid #d7c9bd;color:#201b18}
+    .sticker{background:#c7e8a1;color:#201b18;border:2px solid #201b18;box-shadow:4px 4px 0 #201b18;transform:rotate(10deg);font-size:12px}
+    .sticker svg{width:19px;height:19px;stroke:currentColor;stroke-width:2;fill:none;margin-bottom:3px}
+    .marquee{background:#201b18;border:0}.marquee-track{color:#fff8ef}.marquee b{color:#fff8ef}.marquee em{color:#ff8a68}
+    section.content{padding-top:108px;padding-bottom:108px}
+    .section-head h2{color:#201b18}
+    .feature{background:#fffdf9;border:2px solid #201b18;border-radius:16px;box-shadow:5px 6px 0 #201b18;transition:transform .35s cubic-bezier(.2,1.5,.4,1),box-shadow .3s,background .25s}
+    .feature:hover{transform:translate(-2px,-5px) rotate(-.6deg);box-shadow:8px 11px 0 #201b18;border-color:#201b18;background:#fff}
+    .feature-icon{background:#ffe9dc!important;border:1.5px solid #201b18;color:#201b18;border-radius:12px}
+    .feature:nth-child(2) .feature-icon{background:#dff0c8!important}.feature:nth-child(3) .feature-icon{background:#fce0d5!important}
+    .workflow{background:#fff0e5;border-top:2px solid #201b18;border-bottom:2px solid #201b18}
+    .step{border-top:2px solid #201b18;transition:transform .35s cubic-bezier(.2,1.5,.4,1)}
+    .step:before{content:none}
+    .step-icon{display:grid;place-items:center;width:44px;height:44px;border:2px solid #201b18;border-radius:13px;background:#ffb89f;color:#201b18;box-shadow:3px 3px 0 #201b18;transition:transform .3s cubic-bezier(.2,1.5,.4,1)}
+    .step:nth-child(2) .step-icon{background:#dff0c8}.step:nth-child(3) .step-icon{background:#cfe8f2}
+    .step-icon svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+    .step:hover{transform:translateY(-6px)}.step:hover .step-icon{transform:rotate(-8deg) scale(1.08)}
+    .platforms span{background:#fffdf9;border:1.5px solid #201b18;color:#201b18;border-radius:999px;box-shadow:2px 3px 0 #201b18;transition:transform .3s cubic-bezier(.2,1.5,.4,1),box-shadow .2s}
+    .platforms span:hover{transform:translateY(-4px) rotate(-2deg);box-shadow:4px 6px 0 #201b18;background:#fff}
+    .brand-icon{width:17px;height:17px;object-fit:contain}
+    .pricing{background:#ffe9dc;border-top:2px solid #201b18;border-bottom:2px solid #201b18;color:#201b18}
+    .pricing .section-head p{color:#766d65}.pricing .eyebrow{color:#e64d2c}
+    .price-card{background:#fffdf9;border:2px solid #201b18;border-radius:17px;box-shadow:5px 6px 0 #201b18;transition:transform .35s cubic-bezier(.2,1.5,.4,1),box-shadow .3s}
+    .price-card:hover{transform:translate(-2px,-5px);box-shadow:8px 11px 0 #201b18;border-color:#201b18}
+    .price-card.pro{background:#dff0c8;color:#201b18;border:2px solid #201b18;box-shadow:7px 8px 0 #201b18}
+    .price-card.pro:hover{transform:translate(-2px,-9px);box-shadow:9px 13px 0 #201b18}
+    .plan-name,.price small,.price-card>p,.pro .plan-name,.pro .price small,.price-card.pro>p{color:#766d65}
+    .price-card li:before,.price-card.pro li:before{background:#ffb89f;color:#201b18;border:1px solid #201b18}
+    .price-card .button,.price-card.pro .button{background:#ff6b45;color:#201b18;border:2px solid #201b18;box-shadow:3px 4px 0 #201b18}
+    .price-card .button:hover,.price-card.pro .button:hover{box-shadow:1px 1px 0 #201b18}
+    .final-cta{background:#fff8ef}
+    footer{border-top:2px solid #201b18;color:#766d65}footer .brand{color:#201b18}
+    .inline-icon{width:16px;height:16px}
+    .reveal{transform:translateY(30px) rotate(1deg);transition:opacity .65s ease,transform .7s cubic-bezier(.2,1.4,.4,1)}
+    .reveal.visible{transform:translateY(0) rotate(0)}
+    .feature,.step,.price-card,.platforms span{transition-delay:var(--stagger,0ms)}
+    .feature:hover,.step:hover,.price-card:hover,.platforms span:hover{transition-delay:0ms}
+    @media(max-width:620px){.hero{padding-top:58px;padding-bottom:66px}section.content{padding-top:72px;padding-bottom:72px}}
+    @media(prefers-reduced-motion:reduce){.feature,.step,.price-card,.platforms span,.button,.preview,.step-icon{transition:none!important;transform:none!important}}
+
   </style>
 </head>
 <body>
@@ -121,21 +191,21 @@
     <main>
       <section class="hero">
         <div class="reveal visible">
-          <span class="eyebrow">YOUR CONTENT, REIMAGINED</span>
+          <span class="eyebrow"><svg class="inline-icon"><use href="#i-sparkles"/></svg> YOUR CONTENT, REIMAGINED</span>
           <h1>One good idea.<br><span class="highlight">A whole lot</span><br>more content.</h1>
           <p class="hero-copy">Turn articles and YouTube videos into ready-to-edit social drafts. Less rewriting from scratch. More time making things worth sharing.</p>
           <div class="hero-actions"><a class="button button-pink" href="https://chromewebstore.google.com/detail/hookengine-%E2%80%94-content-repu/ikalaemjdindfenbbaecekkocbbocjma">Get HookEngine <svg class="inline-icon"><use href="#i-arrow-up-right"/></svg></a><a class="button button-plain" href="#how">See how it works <svg class="inline-icon"><use href="#i-arrow-right"/></svg></a></div>
           <div class="micro-proof"><b>Free to start</b><span class="dot"></span>5 generations every day<span class="dot"></span>No card required to try</div>
         </div>
         <div class="preview-wrap reveal delay-1" aria-label="Illustrative HookEngine product preview">
-          <div class="sticker">ONE SOURCE<br>3 VERSIONS<br>✳</div>
+          <div class="sticker"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v20M2 12h20M4.9 4.9l14.2 14.2m0-14.2L4.9 19.1"/></svg>ONE SOURCE<br>MORE CONTENT</div>
           <div class="preview">
             <div class="preview-top"><div class="preview-brand"><i>H</i> HookEngine</div><span class="live">DRAFTS READY</span></div>
-            <span class="source-chip">↗ ARTICLE · 6 MIN READ</span>
+            <span class="source-chip"><svg class="inline-icon"><use href="#i-file-text"/></svg> ARTICLE · 6 MIN READ</span>
             <h3>Your idea, across the feed.</h3>
             <p class="preview-sub">Choose a platform. Get a draft that fits.</p>
             <div class="preview-tabs"><span class="active">X thread</span><span>LinkedIn</span><span>TikTok</span></div>
-            <div class="draft"><div class="draft-label">VERSION 01 · X THREAD</div><p>Most people don't need more ideas. They need a better way to get more out of the ideas they already have.<br><br>Here's how to turn one useful insight into content people actually want to read. 🧵</p><div class="draft-actions"><span>Editable draft</span><span class="copy">Copy text ↗</span></div></div>
+            <div class="draft"><div class="draft-label">X THREAD DRAFT</div><p>Most people don't need more ideas. They need a better way to get more out of the ideas they already have.<br><br>Here's how to turn one useful insight into content people actually want to read. 🧵</p><div class="draft-actions"><span>Editable draft</span><span class="copy"><svg class="inline-icon"><use href="#i-layers"/></svg> Copy text</span></div></div>
             <div class="variation-row"><i></i><i></i><i></i></div>
           </div>
         </div>
@@ -157,11 +227,11 @@
     <div class="wrap">
       <div class="section-head reveal"><span class="eyebrow">THREE STEPS. THAT'S IT.</span><h2>From source to social-ready.</h2><p>A small workflow that gets out of your way.</p></div>
       <div class="steps">
-        <article class="step reveal"><h3>Bring a source</h3><p>Read the page you're on, analyze a YouTube video, or paste in your own text.</p></article>
-        <article class="step reveal delay-1"><h3>Choose your platforms</h3><p>Select where you want to publish. Set your writing preferences once, then reuse them.</p></article>
-        <article class="step reveal delay-2"><h3>Edit and make it yours</h3><p>Review your drafts, switch between Pro variations, and copy the version you want.</p></article>
+        <article class="step reveal"><div class="step-icon"><svg><use href="#i-file-text"/></svg></div><h3>Bring a source</h3><p>Read the page you're on, analyze a YouTube video, or paste in your own text.</p></article>
+        <article class="step reveal delay-1"><div class="step-icon"><svg><use href="#i-layers"/></svg></div><h3>Choose your platforms</h3><p>Select where you want to publish. Set your writing preferences once, then reuse them.</p></article>
+        <article class="step reveal delay-2"><div class="step-icon"><svg><use href="#i-sliders"/></svg></div><h3>Edit and make it yours</h3><p>Review your drafts, switch between Pro variations, and copy the version you want.</p></article>
       </div>
-      <div class="platforms reveal"><span><svg><use href="#i-x"/></svg>X</span><span><svg><use href="#i-linkedin"/></svg>LinkedIn</span><span><svg><use href="#i-tiktok"/></svg>TikTok</span><span><svg><use href="#i-instagram"/></svg>Instagram</span><span><svg><use href="#i-threads"/></svg>Threads</span><span><svg><use href="#i-facebook"/></svg>Facebook</span></div>
+      <div class="platforms reveal"><span><img class="brand-icon" src="https://cdn.simpleicons.org/x" alt="" loading="lazy">X</span><span><img class="brand-icon" src="https://cdn.simpleicons.org/linkedin" alt="" loading="lazy">LinkedIn</span><span><img class="brand-icon" src="https://cdn.simpleicons.org/tiktok" alt="" loading="lazy">TikTok</span><span><img class="brand-icon" src="https://cdn.simpleicons.org/instagram" alt="" loading="lazy">Instagram</span><span><img class="brand-icon" src="https://cdn.simpleicons.org/threads" alt="" loading="lazy">Threads</span><span><img class="brand-icon" src="https://cdn.simpleicons.org/facebook" alt="" loading="lazy">Facebook</span></div>
     </div>
   </section>
   <section id="pricing" class="content pricing">
