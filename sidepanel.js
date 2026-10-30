@@ -49,10 +49,12 @@ function renderAccount() {
   const signedIn = !!accountUser;
   document.querySelector(".app").classList.toggle("auth-required", !signedIn);
   $("upgradeButton").hidden = accountUsage.plan === "pro";
+  $("planSummary").textContent = accountUsage.plan.toUpperCase();
   $("accountPanel").hidden = true;
   $("accountToggle").textContent = signedIn ? "Account" : "Sign in";
+  $("accountStrip").classList.toggle("is-signed-in", signedIn);
   $("accountSummary").textContent = signedIn
-    ? (accountUser.email || "Signed in") + " · " + accountUsage.remaining + " left today"
+    ? accountUsage.used + " of " + accountUsage.limit + " generations used today · " + accountUsage.remaining + " remaining"
     : "Sign in to use HookEngine";
   document.querySelector(".account-indicator").classList.toggle("active", signedIn);
   $("signedOutPanel").hidden = signedIn;
