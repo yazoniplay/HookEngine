@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<main class="app auth-required">
+<main class="app">
   <section id="authGate" class="auth-gate" aria-labelledby="authTitle">
     <div class="auth-brand"><span class="brand-mark">h</span><span>HookEngine</span></div>
     <p class="auth-eyebrow">CONTENT REPURPOSING</p>
@@ -34,7 +34,7 @@
 
   <section class="account-strip" id="accountStrip">
     <div class="account-state"><span class="account-indicator"></span><span id="accountSummary">Sign in to use HookEngine</span></div>
-    <div class="account-actions"><a id="upgradeButton" class="upgrade-button" href="https://yazoniplay.github.io/HookEngine/account/" target="_blank" rel="noopener">Upgrade to Pro <span aria-hidden="true">↗</span></a><button id="accountToggle" class="text-button" type="button">Sign in</button></div>
+    <div class="account-actions"><span id="planSummary" class="plan-tag">FREE</span><button id="accountToggle" class="text-button" type="button">Sign in</button></div>
   </section>
   <section id="accountPanel" class="account-panel" hidden>
     <div id="signedOutPanel">
@@ -96,6 +96,7 @@
     <div class="results-head"><h2>Drafts</h2><span id="resultCount" class="source-label"></span></div>
     <div id="outputList" class="output-list"></div>
   </section>
+  <a id="upgradeButton" class="upgrade-button" href="https://yazoniplay.github.io/HookEngine/account/" target="_blank" rel="noopener"><span><strong>Upgrade to Pro</strong><small>Unlock Instagram, Threads, Facebook & 100 daily generations</small></span><span aria-hidden="true">↗</span></a>
   <footer><span>HookEngine</span><a href="https://yazoniplay.github.io/HookEngine/account/" target="_blank" rel="noopener">Manage account ↗</a></footer>
 </main>
 <script src="sidepanel.js"></script>
