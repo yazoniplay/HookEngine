@@ -10,90 +10,73 @@
 <body>
 <main class="app">
   <header class="topbar">
-    <div class="brand-mark" aria-hidden="true">h.</div>
-    <div class="brand-copy"><h1>HookEngine</h1><p>Source to social drafts</p></div>
-    <span class="status-label"><span class="status-dot"></span> Ready</span>
-    <button id="themeToggle" class="icon-button theme-toggle" type="button" aria-label="Switch to light mode" title="Switch theme">
-      <svg class="sun-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"></path></svg>
-      <svg class="moon-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.2 15.3A8.5 8.5 0 0 1 8.7 3.8 8.6 8.6 0 1 0 20.2 15.3Z"></path></svg>
-    </button>
+    <a class="brand" href="#" aria-label="HookEngine home"><span class="brand-mark">h</span><span>HookEngine</span></a>
+    <div class="top-actions">
+      <span id="statusLabel" class="status-label"><i></i> Ready</span>
+      <button id="themeToggle" class="icon-button" type="button" aria-label="Switch theme" title="Switch theme">
+        <svg class="sun-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg>
+        <svg class="moon-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 15.2A8.5 8.5 0 0 1 8.8 4 8.5 8.5 0 1 0 20 15.2Z"></path></svg>
+      </button>
+    </div>
   </header>
 
-  <section class="intro compact-intro">
-    <h2>Repurpose content</h2>
-    <p>Turn an article or YouTube video into three editable drafts.</p>
+  <section class="account-strip" id="accountStrip">
+    <div class="account-state"><span class="account-indicator"></span><span id="accountSummary">Sign in to use HookEngine</span></div>
+    <button id="accountToggle" class="text-button" type="button">Sign in</button>
   </section>
-
-  <section id="accountPanel" class="account-panel">
+  <section id="accountPanel" class="account-panel" hidden>
     <div id="signedOutPanel">
-      <div class="account-panel-head"><div><strong>Sign in to HookEngine</strong><p>Track your daily usage and save your history.</p></div><span class="account-mini-icon">↗</span></div>
-      <label for="accountEmail">Email</label><input id="accountEmail" type="email" placeholder="you@example.com" autocomplete="email">
-      <label for="accountPassword">Password</label><input id="accountPassword" type="password" placeholder="Your password" autocomplete="current-password">
-      <button id="accountSignIn" class="account-signin" type="button">Sign in</button>
-      <p id="accountMessage" class="account-message" role="status"></p>
-      <a class="account-link" href="https://yazoniplay.github.io/HookEngine/account/" target="_blank" rel="noopener">Create an account · View plans</a>
+      <label for="accountEmail">Email</label><input id="accountEmail" type="email" autocomplete="email" placeholder="you@example.com">
+      <label for="accountPassword">Password</label><input id="accountPassword" type="password" autocomplete="current-password" placeholder="Password">
+      <button id="accountSignIn" class="small-primary" type="button">Sign in</button>
+      <p id="accountMessage" class="inline-message" role="status"></p>
+      <a class="subtle-link" href="https://yazoniplay.github.io/HookEngine/account/" target="_blank" rel="noopener">Create account · Plans</a>
     </div>
     <div id="signedInPanel" hidden>
-      <div class="account-panel-head"><div><strong id="signedInEmail">Signed in</strong><p id="dailyUsage">Daily allowance loading…</p></div><span id="extensionPlan" class="extension-plan">FREE</span></div>
-      <div class="mini-progress"><span id="extensionProgress"></span></div>
-      <div class="account-panel-foot"><a class="account-link" href="https://yazoniplay.github.io/HookEngine/account/" target="_blank" rel="noopener">Account & history ↗</a><button id="accountSignOut" class="account-link-button" type="button">Sign out</button></div>
+      <div class="account-user"><strong id="signedInEmail"></strong><span id="extensionPlan" class="plan-tag">FREE</span></div>
+      <p id="dailyUsage" class="muted"></p>
+      <div class="usage-track"><span id="extensionProgress"></span></div>
+      <div class="account-foot"><a class="subtle-link" href="https://yazoniplay.github.io/HookEngine/account/" target="_blank" rel="noopener">Account & history</a><button id="accountSignOut" class="text-button" type="button">Sign out</button></div>
     </div>
   </section>
 
-  <section class="source-card">
-    <div class="section-heading">
-      <h2><svg class="heading-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L8 18l-4 1 1-4Z"></path></svg>Your source</h2>
-      <div class="source-actions"><button id="selectionBtn" class="text-button" type="button" title="Use text you highlighted on the page">Use selection</button><button id="extractBtn" class="text-button" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M10 14 21 3"></path><path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"></path></svg>Read current tab</button></div>
+  <section class="source-section">
+    <div class="section-head"><h1>Repurpose content</h1><span id="sourceLabel" class="source-label">No source</span></div>
+    <div class="source-actions">
+      <button id="extractBtn" class="secondary-button" type="button"><span aria-hidden="true">↧</span> Read page</button>
+      <button id="selectionBtn" class="secondary-button" type="button">Use selection</button>
+      <button id="analyzeVideoBtn" class="secondary-button video-action" type="button">▶ YouTube</button>
     </div>
-    <label for="sourceText">Paste text or pull it from a page</label>
-    <textarea id="sourceText" placeholder="Paste a transcript or article here — or open a page and choose “Read current tab”…" rows="7"></textarea>
-    <div class="source-meta"><span id="charCount">0 characters</span><span id="sourceLabel">Nothing added yet</span></div>
-    <div class="source-tools"><button id="clearSourceBtn" class="quiet-button" type="button">Clear source</button><span id="sourceWords">0 words</span></div>
-    <label for="sourceTitle" class="title-label">Title <span>· optional</span></label>
-    <input id="sourceTitle" type="text" placeholder="What is this piece about?">
-    <input id="sourceUrl" type="hidden" value="">
+    <textarea id="sourceText" rows="5" placeholder="Paste an article or transcript, or read the current page…"></textarea>
+    <div class="source-meta"><span id="charCount">0 characters</span><button id="clearSourceBtn" class="text-button" type="button">Clear</button></div>
+    <label class="field-label" for="sourceTitle">Title <span>Optional</span></label>
+    <input id="sourceTitle" type="text" placeholder="Source title">
+    <input id="sourceUrl" type="hidden">
   </section>
 
-  <button id="analyzeVideoBtn" class="video-button" type="button"><span aria-hidden="true">▶</span><span id="analyzeVideoLabel">Analyze YouTube video with AI</span><span class="video-button-note">No transcript needed</span></button>
-  <button id="generateBtn" class="generate-button" type="button">
-    <span id="generateIcon" class="sparkle-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m12 3 1.9 5.8L20 11l-6.1 2.2L12 19l-1.9-5.8L4 11l6.1-2.2L12 3Z"></path><path d="m19 14 1.1 2.9L23 18l-2.9 1.1L19 22l-1.1-2.9L15 18l2.9-1.1L19 14Z"></path></svg></span>
-    <span id="generateLabel">Make my content</span><span class="button-arrow" aria-hidden="true">→</span>
-  </button>
+  <section class="platform-section">
+    <div class="section-head"><h2>Make drafts for</h2><span id="platformCount" class="source-label">3 selected</span></div>
+    <div id="platformPicker" class="platform-picker">
+      <label class="platform-option"><input type="checkbox" value="x_thread" checked><span class="platform-name">X</span><span class="platform-detail">Thread</span></label>
+      <label class="platform-option"><input type="checkbox" value="linkedin_post" checked><span class="platform-name">in</span><span class="platform-detail">LinkedIn</span></label>
+      <label class="platform-option"><input type="checkbox" value="tiktok_hooks" checked><span class="platform-name">♪</span><span class="platform-detail">TikTok</span></label>
+      <label class="platform-option pro-option"><input type="checkbox" value="instagram_caption" disabled><span class="platform-name">◎</span><span class="platform-detail">Instagram <em>Pro</em></span></label>
+      <label class="platform-option pro-option"><input type="checkbox" value="threads_posts" disabled><span class="platform-name">@</span><span class="platform-detail">Threads <em>Pro</em></span></label>
+      <label class="platform-option pro-option"><input type="checkbox" value="facebook_post" disabled><span class="platform-name">f</span><span class="platform-detail">Facebook <em>Pro</em></span></label>
+    </div>
+    <p id="proHint" class="pro-hint">Pro unlocks Instagram, Threads and Facebook. <a href="https://yazoniplay.github.io/HookEngine/account/" target="_blank" rel="noopener">View plans</a></p>
+  </section>
+
+  <button id="generateBtn" class="generate-button" type="button"><span id="generateLabel">Generate drafts</span><span aria-hidden="true">→</span></button>
+  <div id="loading" class="loading" hidden><span class="spinner"></span><span id="loadingText">Generating drafts…</span></div>
   <p id="errorMessage" class="error" role="alert" hidden></p>
-  <div id="loading" class="loading" hidden><span class="spinner"></span><span id="loadingText">Finding the best angles…</span></div>
+  <p id="providerNote" class="provider-note" role="status" hidden></p>
 
   <section id="results" class="results" hidden>
-    <div class="results-intro"><div><span class="eyebrow">FRESH FROM YOUR SOURCE</span><h2>Your drafts</h2></div><span class="result-tag"><span class="result-dot"></span>Ready to edit</span></div>
-
-    <article class="output-card">
-      <div class="output-heading">
-        <div class="platform-icon x-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M18.9 2H22l-6.8 7.8L23.2 22h-6.3L12 14.6 5.5 22H2.3l7.3-8.4L1.8 2h6.5l4.5 6.8L18.9 2Zm-1.1 18h1.7L7.2 3.9H5.4L17.8 20Z"></path></svg></div>
-        <div class="output-copy"><h3>X thread</h3><p>Clear points, built to be shared.</p></div>
-        <button class="copy-btn" type="button" data-copy="x_thread"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="13" height="13" rx="2"></rect><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"></path></svg><span>Copy</span></button>
-      </div>
-      <textarea id="x_thread" class="output-text" rows="7" aria-label="X thread output" placeholder="Your X thread will show up here…"></textarea>
-    </article>
-
-    <article class="output-card">
-      <div class="output-heading">
-        <div class="platform-icon in-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 8.5A2.5 2.5 0 1 0 5 3.5a2.5 2.5 0 0 0 0 5ZM3 10h4v11H3zM11 10h3.8v1.5h.1a4.2 4.2 0 0 1 3.8-2.1c4 0 4.8 2.5 4.8 5.7V21h-4v-5.2c0-1.3 0-3-1.9-3s-2.2 1.4-2.2 2.9V21h-4Z"></path></svg></div>
-        <div class="output-copy"><h3>LinkedIn post</h3><p>Professional, without the corporate speak.</p></div>
-        <button class="copy-btn" type="button" data-copy="linkedin_post"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="13" height="13" rx="2"></rect><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"></path></svg><span>Copy</span></button>
-      </div>
-      <textarea id="linkedin_post" class="output-text" rows="7" aria-label="LinkedIn post output" placeholder="Your LinkedIn post will show up here…"></textarea>
-    </article>
-
-    <article class="output-card">
-      <div class="output-heading">
-        <div class="platform-icon tt-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M16.6 3c.3 2.4 1.7 3.8 4.1 4v4a9.5 9.5 0 0 1-4.1-1.2v6.1a6.5 6.5 0 1 1-6.5-6.5c.5 0 1 0 1.5.2v4.2a2.5 2.5 0 1 0 1 2V3h4Z"></path></svg></div>
-        <div class="output-copy"><h3>TikTok hooks</h3><p>Opening lines that earn a second look.</p></div>
-        <button class="copy-btn" type="button" data-copy="tiktok_hooks"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="13" height="13" rx="2"></rect><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"></path></svg><span>Copy</span></button>
-      </div>
-      <textarea id="tiktok_hooks" class="output-text" rows="6" aria-label="TikTok hooks output" placeholder="Your TikTok hooks will show up here…"></textarea>
-    </article>
+    <div class="results-head"><h2>Drafts</h2><span id="resultCount" class="source-label"></span></div>
+    <div id="outputList" class="output-list"></div>
   </section>
-
-  <footer><span>Made for creators.</span><span>HookEngine · Beta</span></footer>
+  <footer><span>HookEngine</span><a href="https://yazoniplay.github.io/HookEngine/account/" target="_blank" rel="noopener">Manage account ↗</a></footer>
 </main>
 <script src="sidepanel.js"></script>
 </body>
