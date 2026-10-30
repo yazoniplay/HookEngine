@@ -216,13 +216,18 @@ function renderOutputs(outputs) {
     const top=document.createElement("div");top.className="output-top";
     const title=document.createElement("strong");title.className="output-title";title.textContent=PLATFORM_LABELS[key];
     const copy=document.createElement("button");copy.className="copy-btn";copy.type="button";copy.textContent="Copy";
-    copy.addEventListener("click",async()=>{
-      try {await navigator.clipboard.writeText(area.value);copy.textContent="Copied";setTimeout(()=>copy.textContent="Copy",1200);}
-      catch {showError("Clipboard access failed. Select the draft and copy it manually.");}
-    });
-    top.append(title,copy);
     const versions=value.split(VARIATION_SEPARATOR).map(v=>v.trim()).filter(Boolean);
-    if(versions.length>1){const tabs=document.createElement("div");tabs.className="variation-tabs";const editor=document.createElement("textarea");editor.className="output-text";editor.value=versions[0];editor.rows=Math.min(12,Math.max(5,Math.ceil(editor.value.length/75)));editor.setAttribute("aria-label",PLATFORM_LABELS[key]+" variation");const buttons=versions.map((version,index)=>{const button=document.createElement("button");button.type="button";button.className="variation-tab"+(index===0?" active":"");button.textContent="Version "+(index+1);button.addEventListener("click",()=>{editor.value=version;editor.rows=Math.min(12,Math.max(5,Math.ceil(version.length/75)));tabs.querySelectorAll("button").forEach((b,i)=>b.classList.toggle("active",i===index));});tabs.append(button);return button;});card.append(top,tabs,editor);}else{const area=document.createElement("textarea");area.className="output-text";area.value=versions[0]||value;area.rows=Math.min(12,Math.max(5,Math.ceil(area.value.length/75)));area.setAttribute("aria-label",PLATFORM_LABELS[key]+" draft");card.append(top,area);}root.append(card);
+    const editor=document.createElement("textarea");editor.className="output-text";
+    editor.value=versions[0]||value;editor.rows=Math.min(12,Math.max(5,Math.ceil(editor.value.length/75)));
+    editor.setAttribute("aria-label",PLATFORM_LABELS[key]+" draft");
+    copy.addEventListener("click",async()=>{try{await navigator.clipboard.writeText(editor.value);copy.textContent="Copied";setTimeout(()=>copy.textContent="Copy",1200);}catch{showError("Clipboard access failed. Select the draft and copy it manually.");}});
+    top.append(title,copy);card.append(top);
+    if(versions.length>1){
+      const tabs=document.createElement("div");tabs.className="variation-tabs";
+      versions.forEach((version,index)=>{const button=document.createElement("button");button.type="button";button.className="variation-tab"+(index===0?" active":"");button.textContent="Version "+(index+1);button.addEventListener("click",()=>{editor.value=version;editor.rows=Math.min(12,Math.max(5,Math.ceil(version.length/75)));tabs.querySelectorAll("button").forEach((b,i)=>b.classList.toggle("active",i===index));});tabs.append(button);});
+      card.append(tabs);
+    }
+    card.append(editor);root.append(card);
   }
   $("results").hidden=entries.length===0;
 }
