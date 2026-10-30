@@ -26,7 +26,7 @@ a{color:inherit}
 .shell{max-width:1120px;margin:0 auto;padding:0 34px}
 .topbar{height:76px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);gap:20px}
 .brand{display:flex;align-items:center;gap:11px;color:var(--text);font:700 15px 'Space Grotesk',sans-serif;letter-spacing:-.045em;text-decoration:none}
-.mark{display:grid;place-items:center;width:32px;height:32px;border:1px solid var(--line-strong);border-radius:10px;background:var(--accent);color:var(--accent-ink);font:700 17px 'Space Grotesk',sans-serif;letter-spacing:-.08em;box-shadow:inset 0 1px rgba(255,255,255,.45)}
+.mark{display:grid;place-items:center;flex:none;width:32px;height:32px;border:1px solid var(--line-strong);border-radius:9px;background:var(--panel-raised);color:var(--text);font:700 17px/1 'Space Grotesk',sans-serif;letter-spacing:0;text-align:center;box-shadow:none}
 .top-actions{display:flex;align-items:center;gap:10px}
 .secure-label{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:11px;padding-right:8px}
 .secure-label i{width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 3px var(--glow)}
@@ -46,7 +46,7 @@ a{color:inherit}
 .button span{margin-left:auto;font-size:16px;line-height:1}
 .theme-toggle{gap:8px;white-space:nowrap}
 .theme-toggle span:first-child{font-size:14px;line-height:1}
-.auth-layout{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(310px,.72fr);align-items:center;gap:clamp(48px,9vw,112px);min-height:560px;padding:74px 0 84px}
+.auth-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(320px,390px);align-items:center;gap:clamp(36px,6vw,72px);width:100%;max-width:920px;margin:0 auto;min-height:560px;padding:74px 0 84px}
 .eyebrow{display:inline-flex;align-items:center;gap:9px;font:700 10px/1.2 'DM Sans',sans-serif;letter-spacing:.15em;text-transform:uppercase;color:var(--muted)}
 .eyebrow:before{content:"";width:18px;height:1px;background:var(--accent)}
 .auth-copy h1,.welcome-row h1{font:600 clamp(44px,6.3vw,76px)/.99 'Space Grotesk',sans-serif;letter-spacing:-.065em;margin:22px 0 24px;max-width:650px}
@@ -57,7 +57,7 @@ a{color:inherit}
 .mini-features span:before{content:"✓";display:grid;place-items:center;width:19px;height:19px;border:1px solid var(--line-strong);border-radius:50%;color:var(--accent);font-size:10px}
 .auth-card,.panel,.pricing-card,.history-item{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
 .auth-card:before,.panel:before,.pricing-card:before{content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;background:linear-gradient(130deg,rgba(255,255,255,.035),transparent 38%);opacity:.8}
-.auth-card{padding:25px}
+.auth-card{width:100%;min-width:0;padding:25px}
 .auth-tabs{position:relative;display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;background:var(--field);border:1px solid var(--line);border-radius:10px;margin-bottom:25px}
 .tab{justify-content:center;border-color:transparent;background:transparent;color:var(--muted);padding:10px 8px;box-shadow:none}
 .tab:hover{color:var(--text);background:var(--glow)}
