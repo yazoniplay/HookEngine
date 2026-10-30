@@ -125,7 +125,7 @@ async function showDashboard() {
     const today=utcStart();
     const [subs,history,todayRows]=await Promise.all([
       api("/rest/v1/hookengine_subscriptions?select=plan,status,current_period_end&limit=1"),
-      api("/rest/v1/hookengine_generations?select=id,source_type,source_title,source_url,status,x_thread,linkedin_post,tiktok_hooks,error_message,created_at,completed_at&order=created_at.desc&limit=50"),
+      api("/rest/v1/hookengine_generations?select=id,source_type,source_title,source_url,status,x_thread,linkedin_post,tiktok_hooks,outputs,selected_platforms,provider,error_message,created_at,completed_at&order=created_at.desc&limit=50"),
       api("/rest/v1/hookengine_generations?select=id,status,created_at&created_at=gte."+encodeURIComponent(today)+"&status=in.%28reserved%2Ccompleted%29&order=created_at.desc&limit=100")
     ]);
     const sub=subs[0]||{plan:"free",status:"inactive"};
@@ -154,7 +154,7 @@ function renderHistory(rows) {
     const title=row.source_title||"Untitled source";
     const type=row.source_type==="youtube_video"?"YouTube video":"Article / text";
     const completed=row.status==="completed";
-    const draft=[["X THREAD",row.x_thread],["LINKEDIN",row.linkedin_post],["TIKTOK HOOKS",row.tiktok_hooks]].filter(x=>x[1]).map(x=>x[0]+"\n"+x[1]).join("\n\n────────────────────\n\n");
+    const labels={x_thread:"X THREAD",linkedin_post:"LINKEDIN",tiktok_hooks:"TIKTOK HOOKS",instagram_caption:"INSTAGRAM",threads_posts:"THREADS",facebook_post:"FACEBOOK"};const saved=row.outputs&&typeof row.outputs==="object"?row.outputs:{x_thread:row.x_thread,linkedin_post:row.linkedin_post,tiktok_hooks:row.tiktok_hooks};const draft=Object.entries(saved).filter(([key,value])=>labels[key]&&value).map(([key,value])=>labels[key]+"\n"+value).join("\n\n────────────────────\n\n");
     return '<article class="history-item"><div class="history-top"><div><div class="history-title">'+safe(title)+'</div><div class="history-meta"><span>'+safe(timeLabel(row.created_at))+'</span><span>·</span><span>'+safe(type)+'</span></div></div><span class="type-pill">'+(completed?"Completed":safe(row.status))+'</span></div>'+
       (row.status==="failed"?'<div class="history-status" style="color:var(--danger)">Generation failed</div>':'')+
       (completed?'<div class="history-actions"><button class="small-button" data-preview="'+safe(row.id)+'">View drafts</button>'+(row.source_url?'<a class="small-button" href="'+safe(row.source_url)+'" target="_blank" rel="noopener">Open source ↗</a>':'')+'</div><pre id="preview-'+safe(row.id)+'" class="draft-preview">'+safe(draft)+'</pre>':'')+
