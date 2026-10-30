@@ -35,6 +35,9 @@ $("themeToggle").addEventListener("click", async () => {
 
 function renderAccount() {
   const signedIn = !!accountUser;
+  $("appShell");
+  document.querySelector(".app").classList.toggle("auth-required", !signedIn);
+  $("upgradeButton").hidden = accountUsage.plan === "pro";
   $("accountPanel").hidden = true;
   $("accountToggle").textContent = signedIn ? "Account" : "Sign in";
   $("accountSummary").textContent = signedIn
@@ -105,8 +108,11 @@ async function refreshUsage() {
   renderAccount();
 }
 async function signIn() {
-  const email=$("accountEmail").value.trim(),password=$("accountPassword").value;
-  $("accountSignIn").disabled=true;$("accountMessage").textContent="Signing in…";
+  const gateMode = !accountUser && $("appShell") === null;
+  const email=($("gateEmail")?.value || $("accountEmail").value).trim(),password=$("gatePassword")?.value || $("accountPassword").value;
+  const message=$("gateMessage") || $("accountMessage");
+  const signInButton=$("gateSignIn") || $("accountSignIn");
+  signInButton.disabled=true;message.textContent="Signing in…";
   try {
     const response=await fetch(SUPABASE_URL+"/auth/v1/token?grant_type=password",{
       method:"POST",headers:{apikey:SUPABASE_KEY,"Content-Type":"application/json"},
@@ -117,12 +123,12 @@ async function signIn() {
     data.expires_at=Math.floor(Date.now()/1000)+(data.expires_in||3600);
     accountSession=data;accountUser=data.user;
     await chrome.storage.local.set({[SESSION_KEY]:data});
-    $("accountPassword").value="";$("accountMessage").textContent="";
+    $("accountPassword").value="";if($("gatePassword"))$("gatePassword").value="";message.textContent="";
     await refreshUsage();renderAccount();
   } catch(error) {$("accountMessage").textContent=error.message||"Could not sign in.";}
   finally {$("accountSignIn").disabled=false;}
 }
-$("accountSignIn").addEventListener("click",signIn);
+$("accountSignIn").addEventListener("click",signIn);\n$("gateSignIn").addEventListener("click",signIn);\n$("gatePassword").addEventListener("keydown",e=>{if(e.key==="Enter")signIn();});
 $("accountPassword").addEventListener("keydown",e=>{if(e.key==="Enter")signIn();});
 $("accountSignOut").addEventListener("click",async()=>{
   if(accountSession?.access_token) fetch(SUPABASE_URL+"/auth/v1/logout",{method:"POST",headers:{apikey:SUPABASE_KEY,Authorization:"Bearer "+accountSession.access_token}}).catch(()=>{});
