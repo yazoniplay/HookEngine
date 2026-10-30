@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark"><title>HookEngine Settings</title><link rel="stylesheet" href="settings.css"></head>
+<body><main class="settings-shell">
+<header><a class="brand" href="popup.html"><span class="mark">H</span>HookEngine</a><span class="eyebrow">PREFERENCES</span></header>
+<section class="intro"><p class="eyebrow">PERSONALIZE YOUR OUTPUT</p><h1>Writing settings</h1><p>Set a default voice for every generation. You can change these preferences at any time.</p></section>
+<form id="settingsForm">
+<section class="setting-group"><label for="tone">Tone</label><p>How should your content sound?</p><select id="tone"><option value="balanced">Balanced</option><option value="professional">Professional</option><option value="conversational">Conversational</option><option value="confident">Confident</option><option value="witty">Witty</option><option value="educational">Educational</option><option value="inspiring">Inspiring</option></select></section>
+<section class="setting-group"><label for="style">Writing style</label><p>Choose the structure and delivery.</p><select id="style"><option value="platform_native">Platform-native (recommended)</option><option value="storytelling">Storytelling</option><option value="direct">Direct and concise</option><option value="analytical">Analytical and insight-led</option><option value="personal">Personal and first-person</option><option value="bold">Bold opening, tight delivery</option></select></section>
+<section class="setting-group"><label for="length">Length</label><p>Preferred level of detail.</p><select id="length"><option value="platform_default">Platform default</option><option value="short">Short</option><option value="medium">Medium</option><option value="detailed">Detailed</option></select></section>
+<section class="setting-group"><label for="audience">Target audience <span>Optional</span></label><p>Who should the content speak to?</p><input id="audience" type="text" maxlength="160" placeholder="e.g. founders, students, designers"></section>
+<div class="actions"><button class="save" type="submit">Save preferences</button><span id="saveStatus" role="status"></span></div>
+<p class="note">Preferences are saved in this browser and included with future generations. Pro users get three variations per platform.</p>
+</form></main><script src="settings.js"></script></body></html>
