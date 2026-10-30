@@ -175,3 +175,6 @@ body{overflow-y:auto}
 .upgrade-button strong{font-size:12px;font-weight:760;letter-spacing:-.15px}
 .upgrade-button small{font-size:9px;color:var(--muted);font-weight:450;line-height:1.3}
 .upgrade-button>span:last-child{font-size:18px;color:var(--accent);flex:none}
+
+/* The first-run gate must disappear once a valid session is loaded. */
+.auth-gate[hidden]{display:none!important}
