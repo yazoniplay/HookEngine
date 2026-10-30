@@ -4,6 +4,8 @@ const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const FUNCTION_URL = SUPABASE_URL + "/functions/v1/hookengine-generate";
 const SESSION_KEY = "hookengine-account-session";
 const THEME_KEY = "hookengine-theme";
+const WRITING_PREFS_KEY = "hookengine-writing-preferences";
+const VARIATION_SEPARATOR = "\\n\\n---HOOKENGINE-VARIATION---\\n\\n";
 const PLATFORM_LABELS = {
   x_thread: "X thread",
   linkedin_post: "LinkedIn post",
@@ -27,6 +29,7 @@ async function initTheme() {
     applyTheme(saved[THEME_KEY] || (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark"));
   } catch { applyTheme("dark"); }
 }
+$("settingsButton").addEventListener("click",()=>chrome.runtime.openOptionsPage());
 $("themeToggle").addEventListener("click", async () => {
   const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
   const button = $("themeToggle");
@@ -218,8 +221,8 @@ function renderOutputs(outputs) {
       catch {showError("Clipboard access failed. Select the draft and copy it manually.");}
     });
     top.append(title,copy);
-    const area=document.createElement("textarea");area.className="output-text";area.value=value;area.rows=Math.min(12,Math.max(5,Math.ceil(value.length/75)));area.setAttribute("aria-label",PLATFORM_LABELS[key]+" draft");
-    card.append(top,area);root.append(card);
+    const versions=value.split(VARIATION_SEPARATOR).map(v=>v.trim()).filter(Boolean);
+    if(versions.length>1){const tabs=document.createElement("div");tabs.className="variation-tabs";const editor=document.createElement("textarea");editor.className="output-text";editor.value=versions[0];editor.rows=Math.min(12,Math.max(5,Math.ceil(editor.value.length/75)));editor.setAttribute("aria-label",PLATFORM_LABELS[key]+" variation");const buttons=versions.map((version,index)=>{const button=document.createElement("button");button.type="button";button.className="variation-tab"+(index===0?" active":"");button.textContent="Version "+(index+1);button.addEventListener("click",()=>{editor.value=version;editor.rows=Math.min(12,Math.max(5,Math.ceil(version.length/75)));tabs.querySelectorAll("button").forEach((b,i)=>b.classList.toggle("active",i===index));});tabs.append(button);return button;});card.append(top,tabs,editor);}else{const area=document.createElement("textarea");area.className="output-text";area.value=versions[0]||value;area.rows=Math.min(12,Math.max(5,Math.ceil(area.value.length/75)));area.setAttribute("aria-label",PLATFORM_LABELS[key]+" draft");card.append(top,area);}root.append(card);
   }
   $("results").hidden=entries.length===0;
 }
@@ -254,7 +257,8 @@ async function generateForSource(sourceMode="text",sourceUrl="") {
       title:$("sourceTitle").value.trim(),
       sourceUrl:sourceUrl||$("sourceUrl").value||"",
       sourceMode,
-      platforms
+      platforms,
+      preferences:(await chrome.storage.sync.get(WRITING_PREFS_KEY))[WRITING_PREFS_KEY]||{}
     });
   } catch(error) {showError(error.message||"Could not generate drafts.");}
   finally {setLoading(false);}
