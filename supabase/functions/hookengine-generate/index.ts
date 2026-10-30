@@ -96,7 +96,7 @@ function schemaFor(platforms:string[]){
 }
 function transient(status:number){return status===408||status===409||status===425||status===429||status>=500;}
 async function geminiText(prompt:string,platforms:string[]){
-  if(!GEMINI_API_KEY)throw new Error("Gemini is not configured.");
+  if(!GEMINI_API_KEY){const e=new Error("Gemini is not configured.");(e as any).status=503;throw e;}
   const response=await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+encodeURIComponent(GEMINI_MODEL)+":generateContent?key="+encodeURIComponent(GEMINI_API_KEY),{
     method:"POST",headers:{"Content-Type":"application/json"},signal:AbortSignal.timeout(22000),
     body:JSON.stringify({contents:[{role:"user",parts:[{text:prompt}]}],generationConfig:{responseMimeType:"application/json",responseSchema:schemaFor(platforms),maxOutputTokens:6000}})
