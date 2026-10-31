@@ -191,7 +191,6 @@ as $$
 declare
   v_sub public.hookengine_subscriptions%rowtype;
   v_plan public.hookengine_plans%rowtype;
-  v_now_utc timestamptz := timezone('UTC', now()) at time zone 'UTC';
   v_start timestamptz;
   v_end timestamptz;
   v_old_balance integer;
@@ -208,7 +207,7 @@ begin
     select * into v_sub from public.hookengine_subscriptions where user_id=p_user_id for update;
   end if;
 
-  if (v_sub.plan = 'pro' and v_sub.status <> 'active')
+  if (v_sub.plan = 'pro' and (v_sub.status <> 'active' or (v_sub.current_period_end is not null and v_sub.current_period_end <= now())))
      or (v_sub.plan = 'lifetime' and v_sub.status <> 'active') then
     update public.hookengine_subscriptions
     set plan='free',status='inactive',credits_balance=0,
@@ -404,6 +403,12 @@ begin
   if p_action_type='regeneration' then
     if p_parent_generation_id is null then
       return jsonb_build_object('allowed',false,'reason','missing_parent_generation','message','A source generation is required to regenerate.');
+    end if;
+    if not exists (
+      select 1 from public.hookengine_generations
+      where id=p_parent_generation_id and user_id=p_user_id and status='completed'
+    ) then
+      return jsonb_build_object('allowed',false,'reason','parent_generation_not_found','message','The source draft could not be found.');
     end if;
     select count(*)::integer into v_regenerations
     from public.hookengine_generations g
