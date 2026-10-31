@@ -3,6 +3,8 @@ import {
   SUPABASE_KEY,
   FUNCTION_URL,
   STORAGE_KEYS,
+  MAX_SOURCE_CHARS,
+  MIN_SOURCE_CHARS,
   VARIATION_SEPARATOR,
   PLATFORM_LABELS
 } from "./extension/config.js";
@@ -162,8 +164,9 @@ $("accountSignOut").addEventListener("click", async () => {
 });
 
 function updateSourceMeta() {
-  $("charCount").textContent=($("sourceText").value.length).toLocaleString()+" characters";
-  $("sourceLabel").textContent=$("sourceText").value.trim()?"Source added":"No source";
+  const length = $("sourceText").value.length;
+  $("charCount").textContent = length.toLocaleString() + " / " + MAX_SOURCE_CHARS.toLocaleString() + " characters";
+  $("sourceLabel").textContent = length > MAX_SOURCE_CHARS ? "Source too long" : ($("sourceText").value.trim() ? "Source added" : "No source");
 }
 $("sourceText").addEventListener("input",updateSourceMeta);
 $("clearSourceBtn").addEventListener("click",()=>{
@@ -261,8 +264,10 @@ async function generateForSource(sourceMode="text",sourceUrl="") {
   clearError();$("providerNote").hidden=true;
   const platforms=selectedPlatforms();
   if(!platforms.length)return showError("Choose at least one platform.");
-  if(sourceMode==="text"&&$("sourceText").value.trim().length<80)
-    return showError("Add at least 80 characters of source text first.");
+  if (sourceMode === "text" && $("sourceText").value.trim().length < MIN_SOURCE_CHARS)
+    return showError("Add at least " + MIN_SOURCE_CHARS + " characters of source text first.");
+  if (sourceMode === "text" && $("sourceText").value.length > MAX_SOURCE_CHARS)
+    return showError("Source text must be " + MAX_SOURCE_CHARS.toLocaleString() + " characters or fewer.");
   setLoading(true,sourceMode==="youtube_video"?"Analyzing the YouTube video…":"Generating drafts…");
   try {
     await requestGeneration({
