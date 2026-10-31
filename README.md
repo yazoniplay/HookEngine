@@ -25,12 +25,21 @@ Text generation order: Gemini, then Groq, then Ollama Cloud. Fallback is attempt
 Apply the new migration under `supabase/migrations` before deploying the updated Edge Function. It adds JSON output, selected-platform metadata and provider attribution to generation history, and updates the server-only finalize RPC.
 
 ## Extension popup
+
+Current extension manifest version: `1.7.0`.
 HookEngine opens as a toolbar popup, not a Chrome side panel.
 
 1. Open `chrome://extensions`.
 2. Enable Developer mode and choose **Load unpacked**.
 3. Select this repository folder.
 4. Sign in, read a page or paste source text, choose platforms and generate.
+
+## Development checks
+Run the extension regression suite with Node.js 22 or newer:
+
+```bash
+node --test tests/*.test.mjs
+```
 
 ## Account and limits
 - Account portal: https://yazoniplay.github.io/HookEngine/account/
