@@ -13,6 +13,11 @@ import {
   signIn as authenticate,
   signOut as terminateSession
 } from "./extension/auth.js";
+import {
+  planLabel,
+  usageMainLine,
+  dailyLimitLine
+} from "./extension/usage-display.mjs";
 
 const $ = id => document.getElementById(id);
 const SESSION_KEY = STORAGE_KEYS.session;
@@ -53,9 +58,6 @@ $("themeToggle").addEventListener("click", async () => {
   try { await chrome.storage.local.set({[THEME_KEY]:next}); } catch {}
 });
 
-function planLabel(plan) {
-  return ({free:"FREE",pro:"PRO",trial:"PRO TRIAL",lifetime:"LIFETIME"})[plan] || "FREE";
-}
 function renderAccount() {
   const signedIn = !!accountUser;
   const usage = accountUsage;
@@ -64,6 +66,7 @@ function renderAccount() {
   document.querySelector(".app").classList.toggle("auth-required", !signedIn);
   $("upgradeButton").hidden = !signedIn || hasProFeatures;
   $("planSummary").textContent = usage ? planLabel(usage.plan) : "—";
+  $("planSummary").hidden = !signedIn || !usage;
   $("accountPanel").hidden = true;
   $("accountToggle").setAttribute("aria-expanded", "false");
   $("accountToggle").textContent = signedIn ? "Account" : "Sign in";

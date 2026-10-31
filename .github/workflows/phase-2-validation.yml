@@ -25,10 +25,12 @@ jobs:
         run: deno test tests/reservation-status.test.ts
       - name: Type-check admin plan Edge Function
         run: deno check supabase/functions/hookengine-admin-plan/index.ts
+      - name: Test admin endpoint denial and audit behavior
+        run: deno test supabase/functions/hookengine-admin-plan/handler.test.ts
       - name: Type-check PayPal webhook Edge Function
         run: deno check supabase/functions/hookengine-paypal-webhook/index.ts
-      - name: Test PayPal Pro plan ID validation
-        run: deno test supabase/functions/hookengine-paypal-webhook/plan-validation.test.ts
+      - name: Test PayPal plan ID and signature verification
+        run: deno test supabase/functions/hookengine-paypal-webhook/plan-validation.test.ts supabase/functions/hookengine-paypal-webhook/signature.test.ts
       - name: Check account JavaScript syntax
         run: node --check account/account.js
       - name: Check extension popup JavaScript syntax

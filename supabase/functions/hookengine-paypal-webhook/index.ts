@@ -1,4 +1,5 @@
 import { validatePayPalProPlanId } from "./plan-validation.ts";
+import { verifyPayPalWebhookSignature } from "./signature.ts";
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
@@ -45,23 +46,14 @@ Deno.serve(async (req: Request) => {
     if (!event || typeof event !== "object") return reply(400, { error: "Invalid webhook payload." });
 
     const { base, token } = await paypalToken();
-    const verifyResponse = await fetch(base + "/v1/notifications/verify-webhook-signature", {
-      method: "POST",
-      headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        auth_algo: req.headers.get("paypal-auth-algo"),
-        cert_url: req.headers.get("paypal-cert-url"),
-        transmission_id: req.headers.get("paypal-transmission-id"),
-        transmission_sig: req.headers.get("paypal-transmission-sig"),
-        transmission_time: req.headers.get("paypal-transmission-time"),
-        webhook_id: WEBHOOK_ID,
-        webhook_event: event,
-      }),
+    const signatureValid = await verifyPayPalWebhookSignature({
+      base,
+      accessToken: token,
+      webhookId: WEBHOOK_ID,
+      headers: req.headers,
+      event,
     });
-    const verification = await verifyResponse.json().catch(() => ({}));
-    if (!verifyResponse.ok || verification.verification_status !== "SUCCESS") {
-      return reply(400, { error: "Invalid PayPal webhook signature." });
-    }
+    if (!signatureValid) return reply(400, { error: "Invalid PayPal webhook signature." });
 
     const type = String(event.event_type || "");
     const resource = event.resource || {};
@@ -72,6 +64,8 @@ Deno.serve(async (req: Request) => {
       "BILLING.SUBSCRIPTION.EXPIRED",
       "BILLING.SUBSCRIPTION.SUSPENDED",
       "BILLING.SUBSCRIPTION.PAYMENT.FAILED",
+      "PAYMENT.SALE.REFUNDED",
+      "PAYMENT.SALE.REVERSED",
     ];
     if (!supported.includes(type)) return reply(200, { received: true, ignored: true });
 
@@ -86,7 +80,10 @@ Deno.serve(async (req: Request) => {
     }
 
     const eventId = String(event.id || "");
-    const subscriptionId = String(resource.id || resource.billing_agreement_id || "");
+    const subscriptionId = type.startsWith("PAYMENT.SALE.")
+      ? String(resource.billing_agreement_id || resource.subscription_id ||
+          resource.supplementary_data?.related_ids?.subscription_id || "")
+      : String(resource.id || resource.billing_agreement_id || "");
     const eventTime = new Date(String(event.create_time || ""));
     if (!eventId || !subscriptionId || !Number.isFinite(eventTime.getTime())) {
       return reply(400, { error: "Webhook event is missing its ID, subscription ID or timestamp." });
