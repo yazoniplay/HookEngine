@@ -466,6 +466,9 @@ begin
 
   return jsonb_build_object(
     'plan',v_plan.plan_key,
+    'period',v_plan.period,
+    'price_minor',v_plan.price_minor,
+    'price_currency',v_plan.price_currency,
     'window_start',v_window_start,
     'reset_at',v_reset_at,
     'credits_used',greatest(0,v_plan.credits_per_period-v_balance),
