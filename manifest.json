@@ -16,9 +16,19 @@
     "https://ppaknwuwiublxogclqdw.supabase.co/*"
   ],
   "options_page": "settings.html",
+  "icons": {
+    "16": "icons/icon128.png",
+    "32": "icons/icon128.png",
+    "48": "icons/icon128.png",
+    "128": "icons/icon128.png"
+  },
   "action": {
     "default_title": "Open HookEngine",
-    "default_popup": "popup.html"
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon128.png",
+      "32": "icons/icon128.png"
+    }
   },
   "background": {
     "service_worker": "background.js",
