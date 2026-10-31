@@ -30,6 +30,15 @@ begin
     (v_video_user,'CI test fixture'),
     (v_transcript_user,'CI test fixture');
 
+  if not (select relrowsecurity from pg_class where oid='public.hookengine_admin_audit'::regclass) then
+    raise exception 'Admin audit table must have RLS enabled';
+  end if;
+  if has_table_privilege('anon','public.hookengine_admin_audit','INSERT')
+     or has_table_privilege('authenticated','public.hookengine_admin_audit','INSERT')
+     or not has_table_privilege('service_role','public.hookengine_admin_audit','INSERT') then
+    raise exception 'Admin audit table grants are not service-role-only';
+  end if;
+
   if not exists (
     select 1 from public.hookengine_subscriptions
     where user_id=v_free_user and plan='trial' and status='trialing' and credits_balance=40
