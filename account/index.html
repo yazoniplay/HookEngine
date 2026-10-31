@@ -76,13 +76,26 @@
               <div class="eyebrow" style="margin-bottom:10px">ADMIN CONTROLS</div>
               <p class="fine-print" style="margin:0 0 12px">Switch your account between Free and Pro. No checkout required.</p>
               <div style="display:flex;gap:10px;flex-wrap:wrap">
-                <button id="adminFreeBtn" class="button quiet" type="button">Switch to Free</button>
-                <button id="adminProBtn" class="button primary" type="button">Switch to Pro</button>
+                <button id="adminFreeBtn" class="button quiet" type="button">Free</button>
+                <button id="adminTrialBtn" class="button quiet" type="button">Grant 7-day Trial</button>
+                <button id="adminProBtn" class="button primary" type="button">Pro</button>
+                <button id="adminLifetimeBtn" class="button quiet" type="button">Lifetime</button>
               </div>
+              <p id="lifetimeSpots" class="fine-print">Loading Lifetime availability…</p>
               <p id="adminPlanMessage" class="fine-print" role="status"></p>
             </div><ul id="dashboardPerks" class="perk-list dashboard-perks"><li><span class="perk-check">✓</span>5 credits each week</li><li><span class="perk-check">✓</span>Up to 3 generations per day</li><li><span class="perk-check">✓</span>X, LinkedIn and TikTok drafts</li><li><span class="perk-check">✓</span>7-day generation history</li></ul>
           </article>
         </div>
+
+        <section class="metrics-section" aria-labelledby="metricsTitle">
+          <div class="section-heading"><div><span class="eyebrow">ACCOUNTING</span><h2 id="metricsTitle">Usage & provider cost</h2><p class="muted">Recorded from completed generations. Provider cost is an estimate, not an invoice.</p></div></div>
+          <div class="metrics-grid">
+            <article class="panel metric-card"><span class="eyebrow">TOTAL TOKENS</span><strong id="totalTokens">—</strong><span id="tokenBreakdown" class="muted">Input and output</span></article>
+            <article class="panel metric-card"><span class="eyebrow">CREDITS CONSUMED</span><strong id="creditsConsumed">—</strong><span class="muted">Successful generations only</span></article>
+            <article class="panel metric-card"><span class="eyebrow">ESTIMATED AI COST</span><strong id="providerCost">—</strong><span class="muted">USD · based on configured model rates</span></article>
+            <article class="panel metric-card"><span class="eyebrow">COMPLETED GENERATIONS</span><strong id="completedGenerations">—</strong><span id="averageLatency" class="muted">Average latency unavailable</span></article>
+          </div>
+        </section>
 
         <section class="history-section">
           <div class="section-heading"><div><span class="eyebrow">YOUR WORK</span><h2>Generation history</h2><p class="muted">Your recent articles and videos, with drafts saved automatically.</p></div><button id="refreshBtn" class="button quiet">↻ Refresh</button></div>
