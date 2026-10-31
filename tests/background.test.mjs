@@ -413,8 +413,10 @@ test("writing preferences are saved in sync storage and sent with generation req
 test("account toggle remains a real button and switches the account panel", async () => {
   const html = await readFile(new URL("../popup.html", import.meta.url), "utf8");
   const popup = await readFile(new URL("../sidepanel.js", import.meta.url), "utf8");
-  assert.match(html, /<button id="accountToggle"[^>]*type="button"/);
-  assert.match(popup, /accountPanel"\)\.hidden = !\$\("accountPanel"\)\.hidden/);
+  assert.match(html, /<button id="accountToggle"[^>]*aria-controls="accountPanel"[^>]*aria-expanded="false"/);
+  assert.match(popup, /panel\.hidden = !panel\.hidden/);
+  assert.match(popup, /setAttribute\("aria-expanded", String\(!panel\.hidden\)\)/);
+  assert.doesNotMatch(popup, /accountToggle"\)\.addEventListener\("keydown"/);
 });
 
 test("the popup includes an account history link and the last generation is restored", async () => {
