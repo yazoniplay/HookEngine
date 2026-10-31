@@ -221,8 +221,8 @@ begin
   for update;
 
   if not found then
-    insert into public.hookengine_paypal_webhook_events(event_id,event_type,subscription_id,event_time,outcome)
-    values (p_event_id,p_event_type,p_subscription_id,p_event_time,'unknown_subscription');
+    -- Do not claim the event yet: checkout may still be saving the pending subscription row.
+    -- Returning unknown_subscription lets PayPal retry safely.
     return jsonb_build_object('applied',false,'reason','unknown_subscription');
   end if;
 
