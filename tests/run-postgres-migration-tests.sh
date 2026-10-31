@@ -40,6 +40,7 @@ migrations=(
   supabase/migrations/20261031120000_hookengine_phase2_spec_alignment.sql
   supabase/migrations/20261031123000_hookengine_regeneration_cost_one_credit.sql
   supabase/migrations/20261031130000_hookengine_internal_accounts_admin_audit.sql
+  supabase/migrations/20261031130500_hookengine_unpriced_generation_metric.sql
 )
 
 for migration in "${migrations[@]}"; do
