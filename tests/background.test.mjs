@@ -159,3 +159,20 @@ test("manual source fields enforce the shared maximum length", async () => {
   assert.match(script, /length > MAX_SOURCE_CHARS/);
   assert.match(script, /length < MIN_SOURCE_CHARS/);
 });
+
+test("fallback page cleanup preserves the letter t and normalizes whitespace", async () => {
+  const background = await readFile(new URL("../background.js", import.meta.url), "utf8");
+  assert.ok(background.includes(String.raw`.replace(/\u200b/g, "")`));
+  assert.ok(background.includes(String.raw`.replace(/[ \t]+/g, " ")`));
+  assert.ok(background.includes(String.raw`.replace(/\n{3,}/g, "\n\n")`));
+
+  const normalize = new Function("value", String.raw`return (value || "")
+    .replace(/\u200b/g, "")
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();`);
+  assert.equal(normalize("content text"), "content text");
+  assert.equal(normalize("con\tent"), "con ent");
+  assert.equal(normalize("a\u200bb"), "ab");
+  assert.equal(normalize("first\n\n\nsecond"), "first\n\nsecond");
+});
