@@ -121,7 +121,7 @@ async function loadAccountSession() {
 async function refreshUsage() {
   if (!accountUser || !accountSession?.access_token) return;
   try {
-    const response = await fetch(SUPABASE_URL + "/rest/v1/rpc/hookengine_get_usage", {
+    const response = await fetch(SUPABASE_URL + "/rest/v1/rpc/hookengine_my_usage", {
       method: "POST",
       headers: {
         apikey: SUPABASE_KEY,
