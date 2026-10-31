@@ -186,3 +186,15 @@ body{overflow-y:auto}
 .variation-tabs{display:flex;gap:5px;padding:0 0 8px}
 .variation-tab{padding:5px 9px;border:1px solid var(--line);border-radius:5px;background:var(--surface-2);color:var(--muted);font-size:9px;font-weight:650}
 .variation-tab.active{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 13%,var(--surface));color:var(--text)}
+
+
+/* Phase 4: non-modal plan prompts and locked variation previews */
+.upgrade-moment{display:grid;gap:8px;margin:9px 0;padding:11px 12px;border:1px solid color-mix(in srgb,var(--accent) 48%,var(--line));border-radius:8px;background:color-mix(in srgb,var(--accent) 8%,var(--surface));}
+.upgrade-moment-copy strong{display:block;font-size:10px;font-weight:760;}
+.upgrade-moment-copy p{margin:4px 0 0;color:var(--muted);font-size:9px;line-height:1.45;}
+.upgrade-moment-actions{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.upgrade-moment-actions a{color:var(--accent);font-size:9px;font-weight:750;text-decoration:none;}
+.upgrade-moment-actions a:hover{text-decoration:underline;}
+.pro-option.locked{cursor:pointer;}
+.variation-tab.locked{border-style:dashed;color:var(--subtle);background:transparent;}
+.variation-tab.locked:hover{border-color:var(--accent);color:var(--accent);}
