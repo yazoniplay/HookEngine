@@ -5,6 +5,8 @@
 create schema if not exists extensions;
 create extension if not exists pgcrypto with schema extensions;
 
+update public.hookengine_plans set price_minor=null where plan_key in ('pro','lifetime');
+
 -- Keep the existing column names used by billing code, but expose the requested
 -- normalized period value for clients and diagnostics.
 alter table public.hookengine_plans
