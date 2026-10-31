@@ -62,7 +62,7 @@ export function createAdminPlanHandler(config: AdminPlanConfig, fetchImpl: typeo
       return json({ error: "Method not allowed." }, 405);
     }
 
-    const token = (req.headers.get("authorization") || "").match(/^Bearer\\s+(.+)$/i)?.[1];
+    const token = (req.headers.get("authorization") || "").match(/^Bearer\s+(.+)$/i)?.[1];
     if (!token || !config.supabaseUrl || !config.anonKey || !config.serviceRoleKey) {
       await writeAudit({ outcome: "rejected_missing_token_or_config", httpStatus: 401 });
       return json({ error: "Sign in with the admin account to continue." }, 401);
