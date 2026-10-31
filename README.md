@@ -27,7 +27,7 @@ Apply the new migration under `supabase/migrations` before deploying the updated
 
 ## Extension popup
 
-Current extension manifest version: `1.7.0`.
+Current extension manifest version: `1.8.0`.
 HookEngine opens as a toolbar popup, not a Chrome side panel.
 
 1. Open `chrome://extensions`.
@@ -42,7 +42,13 @@ Run the extension regression suite with Node.js 22 or newer:
 node --test tests/*.test.mjs
 ```
 
-## Account and limits
+## Account, credits and billing
 - Account portal: https://yazoniplay.github.io/HookEngine/account/
-- Usage limits are plan-managed and displayed in the account portal.
-- PayPal checkout still depends on the existing merchant configuration.
+- The extension reads the signed-in account's authoritative credit balance and daily limit from Supabase.
+- Free: 5 credits per UTC week and 3 generations per UTC day.
+- Trial: 40 credits for 7 days, with Pro features.
+- Pro: 300 credits per UTC month and 30 generations per UTC day.
+- Lifetime: 150 credits per UTC month and Pro features; 50 Lifetime allocations total.
+- Article/text generation and regeneration reserve 1 credit; YouTube video analysis and regeneration reserve 5 credits.
+- Failed generations refund their reserved credits. Successful generations record token usage, latency and estimated provider cost where model pricing is configured.
+- PayPal checkout still depends on the existing merchant credentials and configured PayPal billing plan.
