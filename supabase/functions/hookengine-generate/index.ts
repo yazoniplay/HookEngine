@@ -23,7 +23,7 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") || Deno.env.get("SUPABASE_PUBLISHABLE_KEY") || "";
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 
-const MAX_REQUEST_BYTES = 256 * 1024;
+const MAX_REQUEST_BYTES = 512 * 1024;
 
 const PLATFORM_GUIDANCE: Record<string, string> = {
   x_thread: "Create a 5–8 post numbered X thread. Each post concise, source-grounded and under 260 characters where possible. No hashtags.",
