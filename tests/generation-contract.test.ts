@@ -1,6 +1,7 @@
 import { assertEquals } from "jsr:@std/assert@1";
 import {
   GENERATION_SYSTEM_INSTRUCTION,
+  interactionsSchemaFor,
   parseOutputs,
   runWithProviderFallback,
   schemaFor,
@@ -133,4 +134,16 @@ Deno.test("provider fallback reports unavailable when every provider fails", asy
     message = error instanceof Error ? error.message : "";
   }
   assertEquals(message, "AI providers are temporarily unavailable. Please try again shortly.");
+});
+
+
+Deno.test("Interactions API schema uses standard lower-case JSON Schema types and exact variation counts", () => {
+  const schema = interactionsSchemaFor(["x_thread"], 3);
+  assertEquals(schema.type, "object");
+  const property = (schema.properties as Record<string, {type:string;items:{type:string};minItems:number;maxItems:number}>).x_thread;
+  assertEquals(property.type, "array");
+  assertEquals(property.items.type, "string");
+  assertEquals(property.minItems, 3);
+  assertEquals(property.maxItems, 3);
+  assertEquals(schema.additionalProperties, false);
 });
