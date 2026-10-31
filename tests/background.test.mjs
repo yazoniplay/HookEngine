@@ -307,3 +307,76 @@ test("service-worker generation persists the last result without storing source 
   assert.equal("sourceText" in saved, false);
   assert.equal("text" in saved, false);
 });
+
+
+test("the popup can restore a persisted result after reopening", async () => {
+  const saved = {
+    outputs: { x_thread: ["Version one", "Version two"] },
+    usage: { plan: "free", remaining: 2 },
+    provider: "Gemini"
+  };
+  storage.set("hookengine-last-generation", saved);
+  const response = await new Promise(resolve => {
+    context.messageListener(
+      { type: "HOOKENGINE_GET_LAST_GENERATION" },
+      { id: "hookengine-test" },
+      resolve
+    );
+  });
+  assert.equal(response.ok, true);
+  assert.equal(response.lastGeneration.outputs.x_thread.length, 2);
+  assert.equal(response.lastGeneration.usage.remaining, 2);
+});
+
+test("the popup can clear its persisted result", async () => {
+  storage.set("hookengine-last-generation", { outputs: { x_thread: "draft" } });
+  const response = await new Promise(resolve => {
+    context.messageListener(
+      { type: "HOOKENGINE_CLEAR_LAST_GENERATION" },
+      { id: "hookengine-test" },
+      resolve
+    );
+  });
+  assert.equal(response.ok, true);
+  assert.equal(storage.has("hookengine-last-generation"), false);
+});
+
+test("a second generation 401 does not trigger another refresh attempt", async () => {
+  storage.set("hookengine-account-session", {
+    access_token: "expired-access",
+    refresh_token: "refresh-token"
+  });
+  let generationCalls = 0;
+  let refreshCalls = 0;
+  context.fetch = async url => {
+    if (url === context.FUNCTION_URL) {
+      generationCalls++;
+      return { ok: false, status: 401, async json() { return { error: "unauthorized" }; } };
+    }
+    if (String(url).includes("grant_type=refresh_token")) {
+      refreshCalls++;
+      return {
+        ok: true, status: 200,
+        async json() { return { access_token: "fresh-access", refresh_token: "fresh-refresh", expires_in: 3600 }; }
+      };
+    }
+    throw new Error("Unexpected URL " + url);
+  };
+  await assert.rejects(
+    context.generateWithStoredSession({ text: "source" }),
+    /Generation failed \(401\)/
+  );
+  assert.equal(generationCalls, 2);
+  assert.equal(refreshCalls, 1);
+});
+
+test("draft output renderer accepts array versions and exposes result actions", async () => {
+  const popup = await readFile(new URL("../sidepanel.js", import.meta.url), "utf8");
+  const html = await readFile(new URL("../popup.html", import.meta.url), "utf8");
+  assert.match(popup, /Array\.isArray\(value\)/);
+  assert.match(popup, /threadParts/);
+  assert.match(popup, /copyAllBtn/);
+  assert.match(popup, /clearResultsBtn/);
+  assert.match(html, /id="copyAllBtn"/);
+  assert.match(html, /id="clearResultsBtn"/);
+});
