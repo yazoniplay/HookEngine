@@ -36,13 +36,19 @@ alter table public.hookengine_generations
   add column if not exists output_tokens integer,
   add column if not exists latency_ms integer,
   add column if not exists model text,
-  add column if not exists estimated_provider_cost_usd numeric(12,8);
+  add column if not exists estimated_provider_cost_usd numeric(12,8),
+  add column if not exists credit_period_started_at timestamptz,
+  add column if not exists credit_period_ends_at timestamptz;
 
 alter table public.hookengine_generations
   drop constraint if exists hookengine_generations_action_type_check;
 alter table public.hookengine_generations
   add constraint hookengine_generations_action_type_check
   check (action_type in ('generation','regeneration'));
+
+update public.hookengine_generations
+set reservation_expires_at=created_at + interval '5 minutes'
+where status='reserved' and reservation_expires_at is null;
 
 create index if not exists hookengine_generations_pending_idx
   on public.hookengine_generations(user_id, reservation_expires_at)
@@ -344,10 +350,10 @@ begin
   if p_user_id is null then
     return jsonb_build_object('allowed',false,'reason','missing_user','message','Sign in to continue.');
   end if;
-  if p_source_type not in ('article','youtube_video') then
+  if p_source_type is null or p_source_type not in ('article','youtube_video') then
     return jsonb_build_object('allowed',false,'reason','invalid_source_type','message','Unsupported source type.');
   end if;
-  if p_action_type not in ('generation','regeneration') then
+  if p_action_type is null or p_action_type not in ('generation','regeneration') then
     return jsonb_build_object('allowed',false,'reason','invalid_action','message','Unsupported generation action.');
   end if;
   if cardinality(v_selected)=0 then
@@ -431,12 +437,12 @@ begin
 
   insert into public.hookengine_generations(
     user_id,source_type,source_title,source_url,source_text,status,action_type,parent_generation_id,
-    credits_reserved,reservation_expires_at,selected_platforms
+    credits_reserved,reservation_expires_at,selected_platforms,credit_period_started_at,credit_period_ends_at
   )
   values (
     p_user_id,p_source_type,left(coalesce(p_source_title,''),300),left(coalesce(p_source_url,''),2000),
     left(coalesce(p_source_text,''),60000),'reserved',p_action_type,p_parent_generation_id,
-    v_cost,v_now + interval '5 minutes',v_selected
+    v_cost,v_now + interval '5 minutes',v_selected,v_sub.credit_period_started_at,v_sub.credit_period_ends_at
   )
   returning id into v_generation_id;
 
@@ -491,7 +497,9 @@ set search_path = ''
 as $$
 declare
   v_generation public.hookengine_generations%rowtype;
+  v_sub public.hookengine_subscriptions%rowtype;
   v_balance integer;
+  v_refunded boolean := false;
   v_rate public.hookengine_model_rates%rowtype;
   v_cost numeric(12,8);
 begin
@@ -506,19 +514,23 @@ begin
   if not found then return false; end if;
 
   if p_status='failed' then
-    update public.hookengine_subscriptions
-    set credits_balance=credits_balance+v_generation.credits_reserved,updated_at=now()
-    where user_id=p_user_id
-    returning credits_balance into v_balance;
+    select * into v_sub from public.hookengine_subscriptions where user_id=p_user_id for update;
+    if found
+      and v_sub.credit_period_started_at is not distinct from v_generation.credit_period_started_at
+      and v_sub.credit_period_ends_at is not distinct from v_generation.credit_period_ends_at
+      and v_generation.credits_reserved > 0 then
+      update public.hookengine_subscriptions
+      set credits_balance=credits_balance+v_generation.credits_reserved,updated_at=now()
+      where user_id=p_user_id
+      returning credits_balance into v_balance;
+      v_refunded := true;
 
-    if v_generation.credits_reserved > 0 then
       insert into public.hookengine_credit_ledger(
         user_id,generation_id,entry_type,amount,balance_after,period_started_at,period_ends_at,idempotency_key,metadata
       )
       values (
         p_user_id,p_generation_id,'refund',v_generation.credits_reserved,v_balance,
-        (select credit_period_started_at from public.hookengine_subscriptions where user_id=p_user_id),
-        (select credit_period_ends_at from public.hookengine_subscriptions where user_id=p_user_id),
+        v_sub.credit_period_started_at,v_sub.credit_period_ends_at,
         'refund:'||p_generation_id::text,jsonb_build_object('reason',left(coalesce(p_error_message,'Generation failed.'),300))
       )
       on conflict (idempotency_key) do nothing;
@@ -549,7 +561,7 @@ begin
       latency_ms=case when p_status='completed' then greatest(p_latency_ms,0) else null end,
       estimated_provider_cost_usd=case when p_status='completed' then v_cost else null end,
       error_message=case when p_status='failed' then left(coalesce(p_error_message,'Generation failed.'),500) else null end,
-      refunded_at=case when p_status='failed' then now() else null end,
+      refunded_at=case when p_status='failed' and v_refunded then now() else null end,
       reservation_expires_at=null,
       completed_at=now()
   where id=p_generation_id and user_id=p_user_id and status='reserved';
@@ -615,8 +627,10 @@ as $$
 declare
   v_user record;
   v_row record;
+  v_sub public.hookengine_subscriptions%rowtype;
   v_count integer := 0;
   v_balance integer;
+  v_refunded boolean;
 begin
   -- Always acquire the per-user advisory lock before locking generation rows.
   for v_user in
@@ -635,22 +649,35 @@ begin
       for update skip locked
       limit 100
     loop
-      update public.hookengine_subscriptions
-      set credits_balance=credits_balance+v_row.credits_reserved,updated_at=now()
-      where user_id=v_row.user_id
-      returning credits_balance into v_balance;
+      v_refunded := false;
+      select * into v_sub from public.hookengine_subscriptions where user_id=v_row.user_id for update;
+      if found
+        and v_sub.credit_period_started_at is not distinct from (
+          select credit_period_started_at from public.hookengine_generations where id=v_row.id
+        )
+        and v_sub.credit_period_ends_at is not distinct from (
+          select credit_period_ends_at from public.hookengine_generations where id=v_row.id
+        )
+        and v_row.credits_reserved > 0 then
+        update public.hookengine_subscriptions
+        set credits_balance=credits_balance+v_row.credits_reserved,updated_at=now()
+        where user_id=v_row.user_id
+        returning credits_balance into v_balance;
+        v_refunded := true;
 
-      insert into public.hookengine_credit_ledger(
-        user_id,generation_id,entry_type,amount,balance_after,idempotency_key,metadata
-      )
-      values (
-        v_row.user_id,v_row.id,'refund',v_row.credits_reserved,v_balance,
-        'refund:'||v_row.id::text,jsonb_build_object('reason','reservation_timeout')
-      )
-      on conflict (idempotency_key) do nothing;
+        insert into public.hookengine_credit_ledger(
+          user_id,generation_id,entry_type,amount,balance_after,idempotency_key,metadata
+        )
+        values (
+          v_row.user_id,v_row.id,'refund',v_row.credits_reserved,v_balance,
+          'refund:'||v_row.id::text,jsonb_build_object('reason','reservation_timeout')
+        )
+        on conflict (idempotency_key) do nothing;
+      end if;
 
       update public.hookengine_generations
-      set status='failed',error_message='Generation timed out.',refunded_at=now(),
+      set status='failed',error_message='Generation timed out.',
+          refunded_at=case when v_refunded then now() else null end,
           reservation_expires_at=null,completed_at=now()
       where id=v_row.id and status='reserved';
       v_count := v_count + 1;
@@ -700,6 +727,7 @@ as $$
 declare
   v_limit integer;
   v_claimed integer;
+  v_old_balance integer := 0;
   v_start timestamptz := date_trunc('month', timezone('UTC',now())) at time zone 'UTC';
   v_end timestamptz := (date_trunc('month', timezone('UTC',now())) + interval '1 month') at time zone 'UTC';
 begin
@@ -712,6 +740,24 @@ begin
   select count(*)::integer into v_claimed from public.hookengine_subscriptions where plan='lifetime';
   if v_claimed >= coalesce(v_limit,50) then
     return jsonb_build_object('assigned',false,'reason','sold_out','claimed',v_claimed,'limit',v_limit);
+  end if;
+
+  select credits_balance into v_old_balance
+  from public.hookengine_subscriptions where user_id=p_user_id for update;
+  if not found then
+    return jsonb_build_object('assigned',false,'reason','account_not_found');
+  end if;
+
+  if v_old_balance > 0 then
+    insert into public.hookengine_credit_ledger(
+      user_id,entry_type,amount,balance_after,period_started_at,period_ends_at,idempotency_key,metadata
+    )
+    values (
+      p_user_id,'period_expire',-v_old_balance,0,v_start,v_end,
+      'lifetime-conversion-expire:'||p_user_id::text,
+      jsonb_build_object('reason','plan_conversion','target_plan','lifetime')
+    )
+    on conflict (idempotency_key) do nothing;
   end if;
 
   update public.hookengine_subscriptions
