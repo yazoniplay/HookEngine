@@ -369,6 +369,7 @@ test("a second generation 401 does not trigger another refresh attempt", async (
   );
   assert.equal(generationCalls, 2);
   assert.equal(refreshCalls, 1);
+  assert.equal(storage.has("hookengine-account-session"), false);
 });
 
 test("draft output renderer accepts array versions and exposes result actions", async () => {
