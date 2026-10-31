@@ -184,6 +184,10 @@ async function showDashboard() {
     $("averageLatency").textContent=latency ? "Average "+(latency/1000).toFixed(1)+"s per generation" : "No latency data yet";
     $("lifetimeSpots").textContent="Lifetime allocations are limited to "+(Number(usage.lifetime_limit)||50)+" total.";
     $("upgradeBtn").hidden=currentPlan==="pro"||currentPlan==="lifetime";
+    // The old PayPal €4.99 checkout is retired; Phase 5 will add the new merchant-of-record flow.
+    $("upgradeBtn").disabled=true;
+    $("upgradeBtn").textContent="Billing setup in progress";
+    $("upgradeBtn").title="Checkout is temporarily unavailable while billing is rebuilt.";
     $("billingMessage").textContent={
       free:`Free: ${Number(usage.credits_total)||0} weekly credits · ${Number(usage.daily_limit)||0} daily generations · ${Number(usage.history_days)||7}-day history.`,
       pro:`Pro: ${Number(usage.credits_total)||0} monthly credits · ${Number(usage.daily_limit)||0} daily generations.`,
