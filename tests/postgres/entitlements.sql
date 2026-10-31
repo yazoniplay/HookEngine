@@ -1,6 +1,6 @@
 \set ON_ERROR_STOP on
 
-do $$
+do $hookengine_test$
 declare
   v_free_user uuid := '10000000-0000-4000-8000-000000000001';
   v_video_user uuid := '20000000-0000-4000-8000-000000000002';
@@ -254,6 +254,6 @@ begin
   update public.hookengine_plans set lifetime_spot_limit=50 where plan_key='lifetime';
 
 end;
-$;
+$hookengine_test$;
 
 select 'HookEngine PostgreSQL migration and entitlement tests passed' as result;
