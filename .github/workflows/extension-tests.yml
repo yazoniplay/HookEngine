@@ -1,0 +1,34 @@
+name: Extension tests
+
+on:
+  pull_request:
+    paths:
+      - "background.js"
+      - "content.js"
+      - "tests/**"
+      - ".github/workflows/extension-tests.yml"
+  push:
+    branches:
+      - "phase-1-*"
+    paths:
+      - "background.js"
+      - "content.js"
+      - "tests/**"
+      - ".github/workflows/extension-tests.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  extension-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+      - name: Run extension regression tests
+        run: node --test tests/*.test.mjs
