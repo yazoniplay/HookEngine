@@ -93,7 +93,7 @@ declare
   v_balance integer := 0;
   v_old public.hookengine_subscriptions%rowtype;
 begin
-  if p_user_id is null or p_plan not in ('free','pro','trial','lifetime') then
+  if p_user_id is null or p_plan is null or p_plan not in ('free','pro','trial','lifetime') then
     return jsonb_build_object('ok',false,'reason','invalid_plan');
   end if;
 
