@@ -1,4 +1,4 @@
-name: Phase 3 Edge reliability validation
+name: HookEngine backend validation
 
 on:
   pull_request:
