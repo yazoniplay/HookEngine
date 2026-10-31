@@ -308,7 +308,7 @@ begin
   return jsonb_build_object('plan',v_plan.plan_key,'credits_balance',v_sub.credits_balance,
     'period_started_at',v_sub.credit_period_started_at,'period_ends_at',v_sub.credit_period_ends_at);
 end;
-$;
+$$;
 
 create or replace function public.hookengine_history_visible(p_created_at timestamptz)
 returns boolean
@@ -316,7 +316,7 @@ language plpgsql
 stable
 security definer
 set search_path = ''
-as $
+as $$
 declare
   v_user_id uuid := auth.uid();
   v_history_days integer;
@@ -329,7 +329,7 @@ begin
   if not found then v_history_days := 7; end if;
   return v_history_days is null or p_created_at >= now() - make_interval(days => v_history_days);
 end;
-$;
+$$;
 revoke all on function public.hookengine_history_visible(timestamptz) from public, anon;
 grant execute on function public.hookengine_history_visible(timestamptz) to authenticated;
 
