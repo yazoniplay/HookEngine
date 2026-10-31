@@ -16,7 +16,9 @@ import {
 import {
   planLabel,
   usageMainLine,
-  dailyLimitLine
+  dailyLimitLine,
+  creditUsageLabel,
+  creditUsagePercent
 } from "./extension/usage-display.mjs";
 
 const $ = id => document.getElementById(id);
@@ -27,6 +29,8 @@ const WRITING_PREFS_KEY = STORAGE_KEYS.writingPreferences;
 let accountSession = null;
 let accountUser = null;
 let accountUsage = null;
+let lastGeneration = null;
+const FIRST_FREE_DRAFT_NUDGE_KEY = "hookengine-first-free-draft-upgrade-seen";
 
 function applyTheme(theme) {
   const selected = theme === "light" ? "light" : "dark";
@@ -75,7 +79,7 @@ function renderAccount() {
     ? "Sign in to use HookEngine"
     : !usage
       ? "Loading your plan and credits…"
-      : usage.credits + " credits · " + usage.used + "/" + usage.limit + " daily generations used";
+      : usageMainLine(usage);
   document.querySelector(".account-indicator").classList.toggle("active", signedIn);
   $("signedOutPanel").hidden = signedIn;
   $("signedInPanel").hidden = !signedIn;
@@ -83,13 +87,15 @@ function renderAccount() {
     $("signedInEmail").textContent = accountUser.email || "Signed in";
     $("extensionPlan").textContent = usage ? planLabel(usage.plan) : "LOADING";
     if (usage) {
-      const trialNote = usage.plan === "trial" && usage.trialEndsAt
-        ? " · Trial ends " + new Date(usage.trialEndsAt).toLocaleDateString()
-        : "";
-      $("dailyUsage").textContent = usage.credits + " credits left · " +
-        usage.remaining + "/" + usage.limit + " daily generations remaining" + trialNote;
+      $("creditUsage").textContent = creditUsageLabel(usage);
+      $("creditProgress").style.width = creditUsagePercent(usage) + "%";
+      const dailyNote = dailyLimitLine(usage);
+      $("dailyUsage").textContent = usage.remaining + "/" + usage.limit +
+        " daily generations remaining" + (dailyNote ? " · " + dailyNote : "");
       $("extensionProgress").style.width = Math.min(100, usage.used / Math.max(1,usage.limit) * 100) + "%";
     } else {
+      $("creditUsage").textContent = "Credit balance unavailable";
+      $("creditProgress").style.width = "0%";
       $("dailyUsage").textContent = "Usage unavailable";
       $("extensionProgress").style.width = "0%";
     }
@@ -98,7 +104,8 @@ function renderAccount() {
     const input = label.querySelector("input");
     const unlocked = hasProFeatures;
     label.classList.toggle("unlocked", unlocked);
-    input.disabled = !unlocked;
+    input.disabled = !signedIn || !usage;
+    label.classList.toggle("locked", !unlocked);
   });
   $("proHint").hidden = hasProFeatures;
 }
@@ -139,11 +146,24 @@ async function refreshUsage() {
     accountUsage = {
       plan: data.plan || "free",
       credits: Number(data.credits_balance) || 0,
+      creditsTotal: Number(data.credits_total ?? data.credits_per_period) || 0,
       creditsPerPeriod: Number(data.credits_per_period) || 0,
+      period: data.period || "",
+      resetAt: data.reset_at || null,
       used: Number(data.daily_used) || 0,
+      dailyUsed: Number(data.daily_used) || 0,
       limit: Number(data.daily_limit) || 0,
+      dailyLimit: Number(data.daily_limit) || 0,
       remaining: Number(data.remaining_daily) || 0,
+      remainingDaily: Number(data.remaining_daily) || 0,
+      resetAtDay: data.daily_reset_at || null,
       trialEndsAt: data.trial_ends_at || null,
+      voiceEnabled: data.voice_enabled === true,
+      videoEnabled: data.video_enabled === true,
+      versionsPerGeneration: Number(data.versions_per_generation) || 1,
+      regenerationsPerGeneration: data.regenerations_per_generation == null ? null : Number(data.regenerations_per_generation),
+      historyDays: data.history_days == null ? null : Number(data.history_days),
+      totalGenerations: Number(data.total_generations) || 0,
       platforms: Array.isArray(data.platforms) ? data.platforms : []
     };
   } catch (error) {
@@ -212,6 +232,24 @@ $("clearSourceBtn").addEventListener("click",()=>{
 });
 function showError(message){$("errorMessage").textContent=message;$("errorMessage").hidden=false;}
 function clearError(){$("errorMessage").hidden=true;}
+function showUpgradeMoment(title, message) {
+  $("upgradeMomentTitle").textContent = title;
+  $("upgradeMomentText").textContent = message;
+  $("upgradeMoment").hidden = false;
+}
+$("upgradeMomentDismiss").addEventListener("click", () => { $("upgradeMoment").hidden = true; });
+async function maybeShowFirstFreeDraftNudge() {
+  if (accountUsage?.plan !== "free") return;
+  try {
+    const nudgeKey = FIRST_FREE_DRAFT_NUDGE_KEY + ":" + (accountUser?.id || "account");
+    const saved = await chrome.storage.local.get(nudgeKey);
+    if (saved[nudgeKey]) return;
+    showUpgradeMoment("Your first drafts are ready.", "Free gives you one version per platform. Pro adds three variations, all six platforms and unlimited history.");
+    await chrome.storage.local.set({ [nudgeKey]: true });
+  } catch {
+    showUpgradeMoment("Your first drafts are ready.", "Pro adds three variations, all six platforms and unlimited history.");
+  }
+}
 function setLoading(loading,message="Generating drafts…") {
   $("generateBtn").disabled=loading;$("extractBtn").disabled=loading;
   $("selectionBtn").disabled=loading;$("analyzeVideoBtn").disabled=loading;
@@ -225,7 +263,13 @@ function updatePlatformCount() {
   const count=selectedPlatforms().length;
   $("platformCount").textContent=count+" selected";
 }
-document.querySelectorAll("#platformPicker input").forEach(input=>input.addEventListener("change",updatePlatformCount));
+document.querySelectorAll("#platformPicker input").forEach(input=>input.addEventListener("change",()=>{
+  if (input.checked && input.closest(".pro-option") && accountUsage?.plan === "free") {
+    input.checked = false;
+    showUpgradeMoment("Unlock every platform", "Instagram, Threads and Facebook drafts are included with Pro.");
+  }
+  updatePlatformCount();
+}));
 
 function applyExtractResponse(response) {
   if(!response?.ok) return showError(response?.error||"Could not read this page.");
@@ -233,6 +277,7 @@ function applyExtractResponse(response) {
     $("sourceTitle").value=response.title||"";
     $("sourceUrl").value=response.url||"";
     showError("No transcript was exposed by this video. Open its transcript panel, select the text and choose Use selection.");
+    if (accountUsage?.plan === "free") showUpgradeMoment("Need full video analysis?", "This video has no accessible transcript. Pro includes direct video analysis; you can also select the transcript manually on Free.");
     return;
   }
   $("sourceText").value=response.text||"";
@@ -315,15 +360,23 @@ function renderOutputs(outputs) {
     top.append(title, meta, actions);
     card.append(top);
 
-    if (versions.length > 1) {
+    if (versions.length > 1 || accountUsage?.plan === "free") {
       const tabs = document.createElement("div");
       tabs.className = "variation-tabs";
-      versions.forEach((version, index) => {
+      const tabCount = accountUsage?.plan === "free" ? 3 : versions.length;
+      for (let index = 0; index < tabCount; index++) {
         const button = document.createElement("button");
         button.type = "button";
-        button.className = "variation-tab" + (index === 0 ? " active" : "");
-        button.textContent = "Version " + (index + 1);
+        const locked = index >= versions.length;
+        button.className = "variation-tab" + (index === 0 ? " active" : "") + (locked ? " locked" : "");
+        button.textContent = "Version " + (index + 1) + (locked ? " · Pro" : "");
+        button.setAttribute("aria-label", locked ? "Unlock version " + (index + 1) + " with Pro" : "Show version " + (index + 1));
         button.addEventListener("click", () => {
+          if (locked) {
+            showUpgradeMoment("Unlock more variations", "Free includes Version 1. Pro generates three distinct versions for every selected platform.");
+            return;
+          }
+          const version = versions[index];
           editor.value = version;
           editor.rows = Math.min(12, Math.max(5, Math.ceil(version.length / 75)));
           const parts = key === "x_thread"
@@ -334,7 +387,7 @@ function renderOutputs(outputs) {
           tabs.querySelectorAll("button").forEach((tab, i) => tab.classList.toggle("active", i === index));
         });
         tabs.append(button);
-      });
+      }
       card.append(tabs);
     }
 
@@ -342,6 +395,10 @@ function renderOutputs(outputs) {
     root.append(card);
   }
   $("results").hidden = entries.length === 0;
+  const canRegenerate = !!lastGeneration?.generationId && !!accountUsage &&
+    (lastGeneration.sourceMode === "youtube_video" ? !!lastGeneration.sourceUrl : $("sourceText").value.trim().length >= MIN_SOURCE_CHARS);
+  $("regenerateBtn").hidden = !canRegenerate;
+  $("regenerateBtn").textContent = accountUsage?.plan === "free" ? "Regenerate · 1 credit" : "Regenerate ↻";
 }
 
 $("copyAllBtn").addEventListener("click", async () => {
@@ -380,9 +437,11 @@ async function requestGeneration(payload) {
   if (!result?.ok) throw new Error(result?.error || "Generation failed.");
   const data = result.data || {};
 
+  lastGeneration = result.lastGeneration || lastGeneration;
   await refreshUsage();
   renderAccount();
-  renderOutputs(result.lastGeneration?.outputs || data.outputs || {});
+  renderOutputs(lastGeneration?.outputs || data.outputs || {});
+  if (payload.actionType !== "regeneration") await maybeShowFirstFreeDraftNudge();
   const notes = [];
   if (result.transcriptUsed) notes.push("Transcript-first");
   else if (payload.sourceMode === "youtube_video") notes.push("Gemini video analysis");
@@ -398,6 +457,7 @@ async function restoreLastGeneration() {
     const result = await chrome.runtime.sendMessage({ type: "HOOKENGINE_GET_LAST_GENERATION" });
     if (!result?.ok || !result.lastGeneration) return;
     const last = result.lastGeneration;
+    lastGeneration = last;
     renderOutputs(last.outputs || {});
     renderAccount();
 
@@ -412,15 +472,15 @@ async function restoreLastGeneration() {
     console.warn("HookEngine: could not restore the previous result", error);
   }
 }
-async function generateForSource(sourceMode="text",sourceUrl="") {
+async function generateForSource(sourceMode="text",sourceUrl="",actionType="generation",parentGenerationId=null,platformOverride=null) {
   clearError();$("providerNote").hidden=true;
-  const platforms=selectedPlatforms();
+  const platforms=Array.isArray(platformOverride) && platformOverride.length ? platformOverride : selectedPlatforms();
   if(!platforms.length)return showError("Choose at least one platform.");
   if (sourceMode === "text" && $("sourceText").value.trim().length < MIN_SOURCE_CHARS)
     return showError("Add at least " + MIN_SOURCE_CHARS + " characters of source text first.");
   if (sourceMode === "text" && $("sourceText").value.length > MAX_SOURCE_CHARS)
     return showError("Source text must be " + MAX_SOURCE_CHARS.toLocaleString() + " characters or fewer.");
-  setLoading(true,sourceMode === "youtube_video" ? "Checking for a transcript before video analysis…" : "Generating drafts…");
+  setLoading(true,actionType === "regeneration" ? "Regenerating drafts…" : sourceMode === "youtube_video" ? "Checking for a transcript before video analysis…" : "Generating drafts…");
   try {
     await requestGeneration({
       text:sourceMode==="text"?$("sourceText").value.trim():"",
@@ -428,14 +488,29 @@ async function generateForSource(sourceMode="text",sourceUrl="") {
       sourceUrl:sourceUrl||$("sourceUrl").value||"",
       sourceMode,
       platforms,
+      actionType,
+      parentGenerationId,
       preferences:(await chrome.storage.sync.get(WRITING_PREFS_KEY))[WRITING_PREFS_KEY]||{}
     });
   } catch(error) {
-    showError(error.message||"Could not generate drafts.");
+    const message = error.message || "Could not generate drafts.";
+    if (/Full video analysis is included with Pro features/i.test(message)) {
+      showUpgradeMoment("Unlock full video analysis", "No transcript was available for this video. Pro includes direct video analysis; Free can still use a transcript.");
+    } else if (/Weekly pool exhausted|Daily cap reached|Monthly credit pool exhausted|Credit pool exhausted|trial has ended|regeneration limit/i.test(message)) {
+      showUpgradeMoment("You've reached a usage limit", message + " Pro provides a larger monthly credit allowance and higher daily limits.");
+      showError(message);
+    } else {
+      showError(message);
+    }
     if (accountUser) await refreshUsage();
   }
   finally {setLoading(false);}
 }
+$("regenerateBtn").addEventListener("click", () => {
+  if (!lastGeneration?.generationId) return;
+  const parentId = lastGeneration.parentGenerationId || lastGeneration.generationId;
+  generateForSource(lastGeneration.sourceMode || "text", lastGeneration.sourceUrl || "", "regeneration", parentId, lastGeneration.platforms);
+});
 $("generateBtn").addEventListener("click",()=>generateForSource());
 $("analyzeVideoBtn").addEventListener("click",()=>{
   clearError();
@@ -450,4 +525,10 @@ $("analyzeVideoBtn").addEventListener("click",()=>{
     generateForSource("youtube_video",tab.url);
   });
 });
-initTheme();loadAccountSession();restoreLastGeneration();updateSourceMeta();updatePlatformCount();
+initTheme();
+(async () => {
+  await loadAccountSession();
+  await restoreLastGeneration();
+  updateSourceMeta();
+  updatePlatformCount();
+})();

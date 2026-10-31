@@ -1,12 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { dailyLimitLine, planLabel, usageMainLine } from "../extension/usage-display.mjs";
+import { creditUsageLabel, creditUsagePercent, dailyLimitLine, planLabel, usageMainLine } from "../extension/usage-display.mjs";
 
 test("Free plan shows remaining weekly sources and Monday reset", () => {
   assert.equal(usageMainLine({
     plan: "free", credits: 2, creditsTotal: 5,
     resetAt: "2026-11-02T00:00:00Z",
-  }), "2 of 5 sources left this week · resets Monday");
+  }), "2 of 5 credits left this week · resets Monday");
   assert.equal(planLabel("free"), "Free");
 });
 
@@ -43,4 +43,13 @@ test("Pro plan shows its monthly balance and reset date", () => {
     resetAt: "2026-11-01T00:00:00Z",
   }), "299 of 300 credits left this month · resets Nov 1");
   assert.equal(planLabel("pro"), "Pro");
+});
+
+test("credit meter reports used credits and clamps progress", () => {
+  const usage = { plan: "free", credits: 2, creditsTotal: 5 };
+  assert.equal(creditUsageLabel(usage), "3 of 5 credits used this week");
+  assert.equal(creditUsagePercent(usage), 60);
+  assert.equal(creditUsagePercent({ credits: 9, creditsTotal: 5 }), 0);
+  assert.equal(creditUsagePercent({ credits: -2, creditsTotal: 5 }), 100);
+  assert.equal(creditUsagePercent({ credits: 1, creditsTotal: 0 }), 0);
 });

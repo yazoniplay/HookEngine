@@ -9,6 +9,22 @@ const defaults = {
 const fields = ["tone", "style", "length", "audience"];
 const $ = id => document.getElementById(id);
 
+const labels = {
+  tone: { balanced: "Balanced", professional: "Professional", conversational: "Conversational", confident: "Confident", witty: "Witty", educational: "Educational", inspiring: "Inspiring" },
+  style: { platform_native: "Platform-native", storytelling: "Storytelling", direct: "Direct and concise", analytical: "Analytical", personal: "Personal and first-person", bold: "Bold opening" },
+  length: { platform_default: "Platform default length", short: "Short", medium: "Medium", detailed: "Detailed" }
+};
+function renderProfilePreview() {
+  const tone = labels.tone[$("tone").value] || labels.tone.balanced;
+  const style = labels.style[$("style").value] || labels.style.platform_native;
+  const length = labels.length[$("length").value] || labels.length.platform_default;
+  $("profileSummary").textContent = [tone, style, length].join(" · ");
+  const audience = $("audience").value.trim();
+  $("profileAudience").textContent = audience ? "Audience: " + audience : "Audience: not specified";
+}
+for (const key of fields) $(key).addEventListener("input", renderProfilePreview);
+for (const key of fields.slice(0, 3)) $(key).addEventListener("change", renderProfilePreview);
+
 async function init() {
   try {
     const saved = await chrome.storage.sync.get(STORAGE_KEYS.writingPreferences);
@@ -17,6 +33,7 @@ async function init() {
       ...(saved[STORAGE_KEYS.writingPreferences] || {})
     };
     for (const key of fields) $(key).value = preferences[key] || defaults[key];
+    renderProfilePreview();
 
     const theme = await chrome.storage.local.get(STORAGE_KEYS.theme);
     document.documentElement.dataset.theme = theme[STORAGE_KEYS.theme] || "dark";
