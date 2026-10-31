@@ -64,6 +64,7 @@ Deno.serve(async (req: Request) => {
     }
 
     const type = String(event.event_type || "");
+    const resource = event.resource || {};
     const supported = [
       "BILLING.SUBSCRIPTION.ACTIVATED",
       "BILLING.SUBSCRIPTION.RE-ACTIVATED",
@@ -85,7 +86,6 @@ Deno.serve(async (req: Request) => {
     }
 
     const eventId = String(event.id || "");
-    const resource = event.resource || {};
     const subscriptionId = String(resource.id || resource.billing_agreement_id || "");
     const eventTime = new Date(String(event.create_time || ""));
     if (!eventId || !subscriptionId || !Number.isFinite(eventTime.getTime())) {
