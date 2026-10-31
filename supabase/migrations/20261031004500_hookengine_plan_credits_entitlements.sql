@@ -324,7 +324,12 @@ begin
   if v_user_id is null then return false; end if;
   select p.history_days into v_history_days
   from public.hookengine_subscriptions s
-  join public.hookengine_plans p on p.plan_key=s.plan
+  join public.hookengine_plans p on p.plan_key = case
+    when s.plan = 'trial' and (s.trial_ends_at is null or s.trial_ends_at <= now() or s.credits_balance <= 0) then 'free'
+    when s.plan = 'pro' and (s.status <> 'active' or (s.current_period_end is not null and s.current_period_end <= now())) then 'free'
+    when s.plan = 'lifetime' and s.status <> 'active' then 'free'
+    else s.plan
+  end
   where s.user_id=v_user_id;
   if not found then v_history_days := 7; end if;
   return v_history_days is null or p_created_at >= now() - make_interval(days => v_history_days);
