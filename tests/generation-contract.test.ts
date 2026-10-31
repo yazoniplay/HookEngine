@@ -2,6 +2,7 @@ import { assertEquals } from "jsr:@std/assert@1";
 import {
   GENERATION_SYSTEM_INSTRUCTION,
   parseOutputs,
+  runWithProviderFallback,
   schemaFor,
   serializeOutput,
   shouldFallback,
@@ -96,4 +97,40 @@ Deno.test("provider failures can fall back, malformed request errors cannot", ()
 
 Deno.test("system instruction explicitly treats source content as untrusted", () => {
   assertEquals(GENERATION_SYSTEM_INSTRUCTION.includes("untrusted data"), true);
+});
+
+
+Deno.test("provider fallback runs Groq after Gemini failure and records the actual provider", async () => {
+  const result = await runWithProviderFallback(
+    async () => { throw new TypeError("Gemini network timeout"); },
+    [{ name: "Groq", run: async () => "fallback draft" }],
+  );
+  assertEquals(result, { value: "fallback draft", provider: "Groq", fallbackUsed: true });
+});
+
+Deno.test("provider fallback does not mask a non-retryable Gemini request error", async () => {
+  let fallbackCalled = false;
+  const error = Object.assign(new Error("invalid prompt"), { status: 400 });
+  try {
+    await runWithProviderFallback(
+      async () => { throw error; },
+      [{ name: "Groq", run: async () => { fallbackCalled = true; return "draft"; } }],
+    );
+  } catch (caught) {
+    assertEquals(caught, error);
+  }
+  assertEquals(fallbackCalled, false);
+});
+
+Deno.test("provider fallback reports unavailable when every provider fails", async () => {
+  let message = "";
+  try {
+    await runWithProviderFallback(
+      async () => { throw new TypeError("network"); },
+      [{ name: "Groq", run: async () => { throw new Error("down"); } }],
+    );
+  } catch (error) {
+    message = error instanceof Error ? error.message : "";
+  }
+  assertEquals(message, "AI providers are temporarily unavailable. Please try again shortly.");
 });
