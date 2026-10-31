@@ -21,6 +21,7 @@ declare
   v_output_tokens bigint := 0;
   v_credits_consumed bigint := 0;
   v_provider_cost numeric(14,8) := 0;
+  v_unpriced_generations integer := 0;
   v_avg_latency integer := 0;
   v_lifetime_claimed integer := 0;
   v_lifetime_limit integer := 50;
@@ -46,8 +47,10 @@ begin
     coalesce(sum(g.output_tokens) filter (where g.status='completed'),0)::bigint,
     coalesce(sum(g.credits_reserved) filter (where g.status='completed'),0)::bigint,
     coalesce(sum(g.estimated_provider_cost_usd) filter (where g.status='completed'),0)::numeric(14,8),
+    count(*) filter (where g.status='completed' and (g.input_tokens is not null or g.output_tokens is not null)
+      and g.estimated_provider_cost_usd is null)::integer,
     coalesce(round(avg(g.latency_ms) filter (where g.status='completed')),0)::integer
-  into v_completed,v_input_tokens,v_output_tokens,v_credits_consumed,v_provider_cost,v_avg_latency
+  into v_completed,v_input_tokens,v_output_tokens,v_credits_consumed,v_provider_cost,v_unpriced_generations,v_avg_latency
   from public.hookengine_generations g
   where g.user_id=v_user_id;
 
@@ -73,7 +76,7 @@ begin
     'total_generations',v_completed,'total_input_tokens',v_input_tokens,
     'total_output_tokens',v_output_tokens,'total_tokens',v_input_tokens+v_output_tokens,
     'credits_consumed',v_credits_consumed,'estimated_provider_cost_usd',v_provider_cost,
-    'average_latency_ms',v_avg_latency,'lifetime_claimed',v_lifetime_claimed,
+    'average_latency_ms',v_avg_latency,'unpriced_generations',v_unpriced_generations,'lifetime_claimed',v_lifetime_claimed,
     'lifetime_limit',v_lifetime_limit,'lifetime_remaining',greatest(0,v_lifetime_limit-v_lifetime_claimed)
   );
 end;
