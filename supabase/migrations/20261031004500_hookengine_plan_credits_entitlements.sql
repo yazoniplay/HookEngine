@@ -285,6 +285,34 @@ begin
 end;
 $$;
 
+create or replace function public.hookengine_history_visible(p_created_at timestamptz)
+returns boolean
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $
+declare
+  v_user_id uuid := auth.uid();
+  v_history_days integer;
+begin
+  if v_user_id is null then return false; end if;
+  select p.history_days into v_history_days
+  from public.hookengine_subscriptions s
+  join public.hookengine_plans p on p.plan_key=s.plan
+  where s.user_id=v_user_id;
+  if not found then v_history_days := 7; end if;
+  return v_history_days is null or p_created_at >= now() - make_interval(days => v_history_days);
+end;
+$;
+revoke all on function public.hookengine_history_visible(timestamptz) from public, anon;
+grant execute on function public.hookengine_history_visible(timestamptz) to authenticated;
+
+drop policy if exists "Users can read their own generation history" on public.hookengine_generations;
+create policy "Users can read their own generation history"
+on public.hookengine_generations for select to authenticated
+using ((select auth.uid()) = user_id and public.hookengine_history_visible(created_at));
+
 -- The only reservation entry point. User identity is supplied by the authenticated Edge Function.
 create or replace function public.hookengine_reserve_generation(
   p_user_id uuid,
@@ -725,19 +753,7 @@ grant execute on function public.hookengine_cleanup_reservations() to service_ro
 grant execute on function public.hookengine_expire_trials() to service_role;
 grant execute on function public.hookengine_assign_lifetime(uuid) to service_role;
 
--- Supabase Cron is optional at the project level. When enabled, install two bounded maintenance jobs.
-do $$
-begin
-  if exists (select 1 from pg_available_extensions where name='pg_cron') then
-    begin
-      execute 'create extension if not exists pg_cron';
-      if exists (select 1 from pg_namespace where nspname='cron') then
-        perform cron.schedule('hookengine-reservation-cleanup','* * * * *','select public.hookengine_cleanup_reservations();');
-        perform cron.schedule('hookengine-trial-expiry','5 * * * *','select public.hookengine_expire_trials();');
-      end if;
-    exception when others then
-      raise warning 'HookEngine maintenance functions were created, but pg_cron could not be enabled or scheduled: %', sqlerrm;
-    end;
-  end if;
-end;
-$$;
+-- Enable Supabase Cron and schedule bounded maintenance jobs.
+create extension if not exists pg_cron;
+select cron.schedule('hookengine-reservation-cleanup','* * * * *','select public.hookengine_cleanup_reservations();');
+select cron.schedule('hookengine-trial-expiry','5 * * * *','select public.hookengine_expire_trials();');
