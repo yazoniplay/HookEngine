@@ -157,12 +157,12 @@ begin
   if not coalesce((v_result->>'allowed')::boolean,false) then
     raise exception 'Pro video regeneration was denied: %',v_result;
   end if;
-  if (v_result->>'credits_reserved')::integer <> 5 then
-    raise exception 'Video regeneration must reserve 5 credits: %',v_result;
+  if (v_result->>'credits_reserved')::integer <> 1 then
+    raise exception 'Video regeneration must reserve 1 credit: %',v_result;
   end if;
   v_video_regeneration := (v_result->>'generation_id')::uuid;
-  if (select credits_balance from public.hookengine_subscriptions where user_id=v_video_user) <> 10 then
-    raise exception 'Video generation plus regeneration should consume exactly 10 credits';
+  if (select credits_balance from public.hookengine_subscriptions where user_id=v_video_user) <> 14 then
+    raise exception 'Video generation (5) plus regeneration (1) should consume exactly 6 credits';
   end if;
 
   update public.hookengine_subscriptions set credits_balance=4 where user_id=v_video_user;
