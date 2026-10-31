@@ -348,6 +348,7 @@ set role authenticated;
 do $hookengine_invoker_test$
 declare
   v_usage jsonb;
+  v_legacy jsonb;
 begin
   if (select prosecdef from pg_proc where oid='public.hookengine_my_usage()'::regprocedure) then
     raise exception 'hookengine_my_usage must be SECURITY INVOKER';
@@ -359,7 +360,17 @@ begin
   if has_table_privilege('authenticated','public.hookengine_subscriptions','UPDATE') then
     raise exception 'Authenticated users must not write subscriptions';
   end if;
+  if (select prosecdef from pg_proc where oid='public.hookengine_get_usage()'::regprocedure) then
+    raise exception 'Legacy usage RPC must also be SECURITY INVOKER';
+  end if;
+  if not has_function_privilege('authenticated','public.hookengine_get_usage()'::regprocedure,'EXECUTE') then
+    raise exception 'Published extension compatibility RPC is not executable by authenticated users';
+  end if;
   v_usage := public.hookengine_my_usage();
+  v_legacy := public.hookengine_get_usage();
+  if v_legacy->>'plan' is distinct from v_usage->>'plan' then
+    raise exception 'Legacy usage RPC wrapper does not match canonical usage RPC';
+  end if;
   if v_usage->>'plan' is distinct from 'free'
      or (v_usage->>'credits_total')::integer<>5
      or (v_usage->>'daily_limit')::integer<>3

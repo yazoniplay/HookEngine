@@ -570,10 +570,19 @@ end $$;
 grant execute on function public.hookengine_my_usage() to authenticated;
 grant execute on function public.hookengine_history_visible(timestamptz) to authenticated;
 
--- The legacy definer usage RPC remains for a short compatibility window only.
--- The extension and portal are moved to hookengine_my_usage in this phase.
+-- Preserve compatibility for the currently published Chrome Web Store build.
+-- The legacy RPC becomes a SECURITY INVOKER wrapper around the canonical function.
+create or replace function public.hookengine_get_usage()
+returns jsonb
+language sql
+security invoker
+set search_path = ''
+as $function$
+  select public.hookengine_my_usage();
+$function$;
+
 revoke all on function public.hookengine_get_usage() from public,anon,authenticated;
-grant execute on function public.hookengine_get_usage() to service_role;
+grant execute on function public.hookengine_get_usage() to authenticated,service_role;
 
 -- Source text is never retained. The scheduled job is a safety net for legacy
 -- or manually imported rows; generated outputs and plan-based history remain.
