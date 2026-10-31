@@ -132,7 +132,7 @@ async function showDashboard() {
     if (isAdmin) $("adminPlanMessage").textContent = "";
     const [usage,history]=await Promise.all([
       api("/rest/v1/rpc/hookengine_my_usage",{method:"POST",body:"{}"}),
-      api("/rest/v1/hookengine_generations?select=id,source_type,source_title,source_url,status,x_thread,linkedin_post,tiktok_hooks,outputs,selected_platforms,provider,error_message,created_at,completed_at,credits_reserved,input_tokens,output_tokens,latency_ms,estimated_provider_cost_usd,model,refunded_at&order=created_at.desc&limit=" + HISTORY_PAGE_SIZE + "&offset=0")
+      api("/rest/v1/hookengine_generations?select=id,source_type,source_title,source_url,status,x_thread,linkedin_post,tiktok_hooks,outputs,selected_platforms,provider,error_message,created_at,completed_at,credits_reserved,input_tokens,output_tokens,latency_ms,estimated_provider_cost_usd,model,refunded_at&order=created_at.desc,id.desc&limit=" + HISTORY_PAGE_SIZE + "&offset=0")
     ]);
     currentPlan=usage.plan||"free";
     const used=Number(usage.daily_used)||0;
@@ -238,7 +238,7 @@ async function loadMoreHistory() {
   button.disabled = true;
   button.textContent = "Loading…";
   try {
-    const rows = await api("/rest/v1/hookengine_generations?select=id,source_type,source_title,source_url,status,x_thread,linkedin_post,tiktok_hooks,outputs,selected_platforms,provider,error_message,created_at,completed_at,credits_reserved,input_tokens,output_tokens,latency_ms,estimated_provider_cost_usd,model,refunded_at&order=created_at.desc&limit=" + HISTORY_PAGE_SIZE + "&offset=" + historyOffset);
+    const rows = await api("/rest/v1/hookengine_generations?select=id,source_type,source_title,source_url,status,x_thread,linkedin_post,tiktok_hooks,outputs,selected_platforms,provider,error_message,created_at,completed_at,credits_reserved,input_tokens,output_tokens,latency_ms,estimated_provider_cost_usd,model,refunded_at&order=created_at.desc,id.desc&limit=" + HISTORY_PAGE_SIZE + "&offset=" + historyOffset);
     historyRows.push(...rows);
     historyOffset += rows.length;
     historyHasMore = rows.length === HISTORY_PAGE_SIZE;
