@@ -21,8 +21,12 @@ jobs:
           deno-version: v2.x
       - name: Type-check generation Edge Function
         run: deno check supabase/functions/hookengine-generate/index.ts
+      - name: Type-check admin plan Edge Function
+        run: deno check supabase/functions/hookengine-admin-plan/index.ts
       - name: Check account JavaScript syntax
         run: node --check account/account.js
+      - name: Check extension popup JavaScript syntax
+        run: node --check sidepanel.js
       - name: Check background worker JavaScript syntax
         run: node --check background.js
 
