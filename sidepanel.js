@@ -466,9 +466,9 @@ async function restoreLastGeneration() {
     console.warn("HookEngine: could not restore the previous result", error);
   }
 }
-async function generateForSource(sourceMode="text",sourceUrl="",actionType="generation",parentGenerationId=null) {
+async function generateForSource(sourceMode="text",sourceUrl="",actionType="generation",parentGenerationId=null,platformOverride=null) {
   clearError();$("providerNote").hidden=true;
-  const platforms=selectedPlatforms();
+  const platforms=Array.isArray(platformOverride) && platformOverride.length ? platformOverride : selectedPlatforms();
   if(!platforms.length)return showError("Choose at least one platform.");
   if (sourceMode === "text" && $("sourceText").value.trim().length < MIN_SOURCE_CHARS)
     return showError("Add at least " + MIN_SOURCE_CHARS + " characters of source text first.");
@@ -503,7 +503,7 @@ async function generateForSource(sourceMode="text",sourceUrl="",actionType="gene
 $("regenerateBtn").addEventListener("click", () => {
   if (!lastGeneration?.generationId) return;
   const parentId = lastGeneration.parentGenerationId || lastGeneration.generationId;
-  generateForSource(lastGeneration.sourceMode || "text", lastGeneration.sourceUrl || "", "regeneration", parentId);
+  generateForSource(lastGeneration.sourceMode || "text", lastGeneration.sourceUrl || "", "regeneration", parentId, lastGeneration.platforms);
 });
 $("generateBtn").addEventListener("click",()=>generateForSource());
 $("analyzeVideoBtn").addEventListener("click",()=>{
