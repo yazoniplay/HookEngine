@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [main]
   push:
-    branches: [phase-2-plans-limits-economics]
+    branches: [phase-2-plans-limits-economics, phase-2-spec-alignment]
 
 permissions:
   contents: read
