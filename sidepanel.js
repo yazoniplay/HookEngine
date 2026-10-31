@@ -6,6 +6,11 @@ import {
   VARIATION_SEPARATOR,
   PLATFORM_LABELS
 } from "./extension/config.js";
+import {
+  restoreSession,
+  signIn as authenticate,
+  signOut as terminateSession
+} from "./extension/auth.js";
 
 const $ = id => document.getElementById(id);
 const SESSION_KEY = STORAGE_KEYS.session;
@@ -78,85 +83,13 @@ function renderAccount() {
 $("accountToggle").addEventListener("click", () => {
   $("accountPanel").hidden = !$("accountPanel").hidden;
 });
-async function clearStoredAccountSession() {
-  accountSession = null;
-  accountUser = null;
-  await chrome.storage.local.remove(SESSION_KEY);
-}
-
 async function loadAccountSession() {
   try {
-    const saved = await chrome.storage.local.get(SESSION_KEY);
-    accountSession = saved[SESSION_KEY] || null;
-    if (!accountSession?.access_token) {
-      await clearStoredAccountSession();
-    } else if (accountSession.expires_at && accountSession.expires_at * 1000 < Date.now() + 30000) {
-      if (!accountSession.refresh_token) {
-        await clearStoredAccountSession();
-      } else {
-        let refreshed;
-        try {
-          refreshed = await fetch(SUPABASE_URL + "/auth/v1/token?grant_type=refresh_token", {
-            method: "POST",
-            headers: { apikey: SUPABASE_KEY, "Content-Type": "application/json" },
-            body: JSON.stringify({ refresh_token: accountSession.refresh_token })
-          });
-        } catch (error) {
-          accountUser = accountSession.user || null;
-          console.warn("HookEngine: session refresh unavailable; keeping the saved session", error);
-          showError("Couldn't reach sign-in. Your saved session is preserved; check your connection and retry.");
-          renderAccount();
-          return;
-        }
-
-        if (!refreshed.ok) {
-          if ([400, 401, 403].includes(refreshed.status)) {
-            await clearStoredAccountSession();
-          } else {
-            accountUser = accountSession.user || null;
-            console.warn("HookEngine: temporary session refresh failure", refreshed.status);
-            showError("Sign-in is temporarily unavailable. Your saved session is preserved.");
-            renderAccount();
-            return;
-          }
-        } else {
-          accountSession = await refreshed.json();
-          if (!accountSession?.access_token) throw new Error("The sign-in service returned an invalid session.");
-          accountSession.expires_at = Math.floor(Date.now() / 1000) + (accountSession.expires_in || 3600);
-          await chrome.storage.local.set({ [SESSION_KEY]: accountSession });
-        }
-      }
-    }
-
-    if (accountSession?.access_token) {
-      let response;
-      try {
-        response = await fetch(SUPABASE_URL + "/auth/v1/user", {
-          headers: { apikey: SUPABASE_KEY, Authorization: "Bearer " + accountSession.access_token }
-        });
-      } catch (error) {
-        accountUser = accountSession.user || null;
-        console.warn("HookEngine: could not verify the saved session because the network is unavailable", error);
-        showError("Couldn't verify your saved session. Check your connection; your session has been kept.");
-        renderAccount();
-        return;
-      }
-
-      if (response.status === 401 || response.status === 403) {
-        await clearStoredAccountSession();
-      } else if (!response.ok) {
-        accountUser = accountSession.user || null;
-        console.warn("HookEngine: temporary session verification failure", response.status);
-        showError("Sign-in verification is temporarily unavailable. Your saved session is preserved.");
-        renderAccount();
-        return;
-      } else {
-        accountUser = await response.json();
-      }
-    }
+    const restored = await restoreSession();
+    accountSession = restored.session;
+    accountUser = restored.user;
+    if (restored.warning) showError(restored.warning);
   } catch (error) {
-    // Storage and network errors must not silently erase a valid saved session.
-    accountUser = accountSession?.user || null;
     console.warn("HookEngine: account session could not be restored", error);
     showError("Couldn't restore your account right now. Your saved session has not been deleted.");
   }
@@ -197,19 +130,9 @@ async function signIn(source = "account") {
   signInButton.disabled = true;
   message.textContent = "Signing in…";
   try {
-    const response = await fetch(SUPABASE_URL + "/auth/v1/token?grant_type=password", {
-      method: "POST",
-      headers: { apikey: SUPABASE_KEY, "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password })
-    });
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(data.msg || data.message || "Check your email and password.");
-
-    data.expires_at = Math.floor(Date.now() / 1000) + (data.expires_in || 3600);
-    accountSession = data;
-    accountUser = data.user || null;
-    await chrome.storage.local.set({ [SESSION_KEY]: data });
-
+    const result = await authenticate(email, password);
+    accountSession = result.session;
+    accountUser = result.user;
     $("accountPassword").value = "";
     $("gatePassword").value = "";
     message.textContent = "";
@@ -230,11 +153,14 @@ $("gatePassword").addEventListener("keydown", event => {
 $("accountPassword").addEventListener("keydown", event => {
   if (event.key === "Enter") signIn("account");
 });
-$("accountSignOut").addEventListener("click",async()=>{
-  if(accountSession?.access_token) fetch(SUPABASE_URL+"/auth/v1/logout",{method:"POST",headers:{apikey:SUPABASE_KEY,Authorization:"Bearer "+accountSession.access_token}}).catch(()=>{});
-  accountSession=null;accountUser=null;accountUsage={plan:"free",used:0,limit:5,remaining:5};
-  await chrome.storage.local.remove(SESSION_KEY);renderAccount();
+$("accountSignOut").addEventListener("click", async () => {
+  await terminateSession();
+  accountSession = null;
+  accountUser = null;
+  accountUsage = { plan: "free", used: 0, limit: 5, remaining: 5 };
+  renderAccount();
 });
+
 function updateSourceMeta() {
   $("charCount").textContent=($("sourceText").value.length).toLocaleString()+" characters";
   $("sourceLabel").textContent=$("sourceText").value.trim()?"Source added":"No source";
