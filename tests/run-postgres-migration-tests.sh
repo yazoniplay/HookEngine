@@ -36,6 +36,7 @@ migrations=(
   supabase/migrations/20261031000141_hookengine_revoke_unsafe_table_privileges.sql
   supabase/migrations/20261031000151_hookengine_revoke_anon_table_read.sql
   supabase/migrations/20261031004500_hookengine_plan_credits_entitlements.sql
+  supabase/migrations/20261031090000_hookengine_usage_reporting_admin_entitlements.sql
 )
 
 for migration in "${migrations[@]}"; do
