@@ -215,6 +215,15 @@ begin
 
   if (v_sub.plan = 'pro' and (v_sub.status <> 'active' or (v_sub.current_period_end is not null and v_sub.current_period_end <= now())))
      or (v_sub.plan = 'lifetime' and v_sub.status <> 'active') then
+    if v_sub.credits_balance > 0 then
+      insert into public.hookengine_credit_ledger(
+        user_id,entry_type,amount,balance_after,period_started_at,period_ends_at,idempotency_key,metadata
+      ) values (
+        p_user_id,'period_expire',-v_sub.credits_balance,0,v_sub.credit_period_started_at,v_sub.credit_period_ends_at,
+        'period-expire:'||p_user_id::text||':'||coalesce(v_sub.credit_period_started_at::text,'initial'),
+        jsonb_build_object('reason','subscription_expired','previous_plan',v_sub.plan)
+      ) on conflict (idempotency_key) do nothing;
+    end if;
     update public.hookengine_subscriptions
     set plan='free',status='inactive',credits_balance=0,
         credit_period_started_at=null,credit_period_ends_at=null,updated_at=now()
@@ -224,6 +233,15 @@ begin
   end if;
 
   if v_sub.plan = 'trial' and (v_sub.trial_ends_at is null or v_sub.trial_ends_at <= now() or v_sub.credits_balance <= 0) then
+    if v_sub.credits_balance > 0 then
+      insert into public.hookengine_credit_ledger(
+        user_id,entry_type,amount,balance_after,period_started_at,period_ends_at,idempotency_key,metadata
+      ) values (
+        p_user_id,'period_expire',-v_sub.credits_balance,0,v_sub.credit_period_started_at,v_sub.credit_period_ends_at,
+        'trial-expire:'||p_user_id::text,
+        jsonb_build_object('reason','trial_expired','previous_plan','trial')
+      ) on conflict (idempotency_key) do nothing;
+    end if;
     update public.hookengine_subscriptions
     set plan='free',status='inactive',trial_started_at=null,trial_ends_at=null,
         credits_balance=0,credit_period_started_at=null,credit_period_ends_at=null,updated_at=now()
@@ -244,6 +262,7 @@ begin
     v_start := date_trunc('month', timezone('UTC', now())) at time zone 'UTC';
     v_end := v_start + interval '1 month';
   elsif v_plan.billing_interval = 'trial' then
+    update public.hookengine_profiles set plan=v_sub.plan where user_id=p_user_id;
     return jsonb_build_object('plan',v_plan.plan_key,'credits_balance',v_sub.credits_balance,
       'period_started_at',v_sub.credit_period_started_at,'period_ends_at',v_sub.trial_ends_at);
   else
@@ -285,10 +304,11 @@ begin
     select * into v_sub from public.hookengine_subscriptions where user_id=p_user_id;
   end if;
 
+  update public.hookengine_profiles set plan=v_sub.plan where user_id=p_user_id;
   return jsonb_build_object('plan',v_plan.plan_key,'credits_balance',v_sub.credits_balance,
     'period_started_at',v_sub.credit_period_started_at,'period_ends_at',v_sub.credit_period_ends_at);
 end;
-$$;
+$;
 
 create or replace function public.hookengine_history_visible(p_created_at timestamptz)
 returns boolean
