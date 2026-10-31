@@ -1,5 +1,5 @@
 # These findings are intentional browser-side Supabase client credentials.
-# Two historical values are sb_publishable_* keys; four are legacy anon JWTs.
+# Two historical values are sb_publishable_* keys; four are legacy anon JWTs; the current config contains one public anon JWT.
 # They are public client identifiers/keys and rely on Supabase RLS and function authorization.
 # Do not add service-role, secret, provider, or payment credentials to this allowlist.
 01f732d29f4cba10d2577f3499f7360da5ac1261:sidepanel.js:generic-api-key:3
