@@ -5,6 +5,13 @@ on:
     paths:
       - "background.js"
       - "content.js"
+      - "extension/**"
+      - "manifest.json"
+      - "popup.html"
+      - "sidepanel.html"
+      - "sidepanel.js"
+      - "settings.html"
+      - "settings.js"
       - "tests/**"
       - ".github/workflows/extension-tests.yml"
   push:
