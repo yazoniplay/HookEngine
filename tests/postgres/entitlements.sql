@@ -23,7 +23,10 @@ begin
     (v_video_user,'video-test@example.invalid'),
     (v_transcript_user,'transcript-test@example.invalid'),
     (v_lifetime_user,'lifetime-customer-fixture@example.test'),
-    (v_second_lifetime_user,'second-lifetime-customer-fixture@example.test');
+    (v_second_lifetime_user,'second-lifetime-customer-fixture@example.test'),
+    ('60000000-0000-4000-8000-000000000006','paypal-cancel-fixture@example.test'),
+    ('70000000-0000-4000-8000-000000000007','paypal-failure-fixture@example.test'),
+    ('80000000-0000-4000-8000-000000000008','paypal-refund-fixture@example.test');
 
   insert into public.hookengine_internal_accounts(user_id,reason) values
     (v_free_user,'CI test fixture'),
@@ -454,3 +457,64 @@ begin
 end;
 $hookengine_invoker_test$;
 reset role;
+
+
+-- PayPal subscription state transitions, refunds and replay idempotency.
+do $hookengine_paypal_events$
+declare
+  v_cancel uuid := '60000000-0000-4000-8000-000000000006';
+  v_failure uuid := '70000000-0000-4000-8000-000000000007';
+  v_refund uuid := '80000000-0000-4000-8000-000000000008';
+  v_event_time timestamptz := now();
+  v_result jsonb;
+begin
+  update public.hookengine_subscriptions
+  set plan='pro',status='active',provider='paypal',provider_subscription_id='I-CANCEL-TEST',
+      credits_balance=300,current_period_end=now()+interval '30 days'
+  where user_id=v_cancel;
+  update public.hookengine_profiles set plan='pro' where user_id=v_cancel;
+
+  v_result := public.hookengine_apply_paypal_event(
+    'WH-CANCEL-TEST','BILLING.SUBSCRIPTION.CANCELLED','I-CANCEL-TEST',v_event_time,null
+  );
+  if not coalesce((v_result->>'applied')::boolean,false)
+     or (select plan from public.hookengine_subscriptions where user_id=v_cancel)<>'free'
+     or (select status from public.hookengine_subscriptions where user_id=v_cancel)<>'cancelled' then
+    raise exception 'PayPal cancellation did not revoke Pro: %',v_result;
+  end if;
+  v_result := public.hookengine_apply_paypal_event(
+    'WH-CANCEL-TEST','BILLING.SUBSCRIPTION.CANCELLED','I-CANCEL-TEST',v_event_time,null
+  );
+  if v_result->>'reason' is distinct from 'duplicate_event' then
+    raise exception 'Replayed PayPal event was not rejected idempotently: %',v_result;
+  end if;
+
+  update public.hookengine_subscriptions
+  set plan='pro',status='active',provider='paypal',provider_subscription_id='I-FAILURE-TEST',
+      credits_balance=300,current_period_end=now()+interval '30 days'
+  where user_id=v_failure;
+  update public.hookengine_profiles set plan='pro' where user_id=v_failure;
+  v_result := public.hookengine_apply_paypal_event(
+    'WH-FAILURE-TEST','BILLING.SUBSCRIPTION.PAYMENT.FAILED','I-FAILURE-TEST',v_event_time,null
+  );
+  if not coalesce((v_result->>'applied')::boolean,false)
+     or (select plan from public.hookengine_subscriptions where user_id=v_failure)<>'free'
+     or (select status from public.hookengine_subscriptions where user_id=v_failure)<>'past_due' then
+    raise exception 'PayPal payment failure did not revoke paid access: %',v_result;
+  end if;
+
+  update public.hookengine_subscriptions
+  set plan='pro',status='active',provider='paypal',provider_subscription_id='I-REFUND-TEST',
+      credits_balance=300,current_period_end=now()+interval '30 days'
+  where user_id=v_refund;
+  update public.hookengine_profiles set plan='pro' where user_id=v_refund;
+  v_result := public.hookengine_apply_paypal_event(
+    'WH-REFUND-TEST','PAYMENT.SALE.REFUNDED','I-REFUND-TEST',v_event_time,null
+  );
+  if not coalesce((v_result->>'applied')::boolean,false)
+     or (select plan from public.hookengine_subscriptions where user_id=v_refund)<>'free'
+     or (select status from public.hookengine_subscriptions where user_id=v_refund)<>'past_due' then
+    raise exception 'PayPal sale refund did not revoke paid access: %',v_result;
+  end if;
+end;
+$hookengine_paypal_events$;
