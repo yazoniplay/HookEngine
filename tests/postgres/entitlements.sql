@@ -13,6 +13,7 @@ declare
   v_root uuid;
   v_regeneration uuid;
   v_video_root uuid;
+  v_failed_video uuid;
   v_video_regeneration uuid;
   v_balance integer;
   v_event_time timestamptz;
@@ -168,15 +169,15 @@ begin
      or (v_result->>'credits_reserved')::integer <> 5 then
     raise exception 'Video failure refund test did not reserve five credits: %',v_result;
   end if;
-  v_video_root := (v_result->>'generation_id')::uuid;
+  v_failed_video := (v_result->>'generation_id')::uuid;
   select credits_balance into v_balance from public.hookengine_subscriptions where user_id=v_video_user;
   if not public.hookengine_finish_generation(
-    p_generation_id=>v_video_root,p_user_id=>v_video_user,p_status=>'failed',p_error_message=>'forced video failure test'
+    p_generation_id=>v_failed_video,p_user_id=>v_video_user,p_status=>'failed',p_error_message=>'forced video failure test'
   ) then
     raise exception 'Could not finalize failed video reservation';
   end if;
   if (select credits_balance from public.hookengine_subscriptions where user_id=v_video_user) <> v_balance + 5
-     or (select refunded_at from public.hookengine_generations where id=v_video_root) is null then
+     or (select refunded_at from public.hookengine_generations where id=v_failed_video) is null then
     raise exception 'Failed 5-credit video reservation was not fully refunded';
   end if;
 
