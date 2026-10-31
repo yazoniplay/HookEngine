@@ -125,26 +125,51 @@ async function showDashboard() {
     const isAdmin = String(user.email || "").toLowerCase() === "yayazan.mahmoud@gmail.com" && !!user.email_confirmed_at;
     $("adminPlanControls").hidden = !isAdmin;
     if (isAdmin) $("adminPlanMessage").textContent = "";
-    const today=utcStart();
-    const [subs,history,todayRows]=await Promise.all([
-      api("/rest/v1/hookengine_subscriptions?select=plan,status,current_period_end&limit=1"),
-      api("/rest/v1/hookengine_generations?select=id,source_type,source_title,source_url,status,x_thread,linkedin_post,tiktok_hooks,outputs,selected_platforms,provider,error_message,created_at,completed_at&order=created_at.desc&limit=50"),
-      api("/rest/v1/hookengine_generations?select=id,status,created_at&created_at=gte."+encodeURIComponent(today)+"&status=in.%28reserved%2Ccompleted%29&order=created_at.desc&limit=100")
+    const [usage,history]=await Promise.all([
+      api("/rest/v1/rpc/hookengine_get_usage",{method:"POST",body:"{}"}),
+      api("/rest/v1/hookengine_generations?select=id,source_type,source_title,source_url,status,x_thread,linkedin_post,tiktok_hooks,outputs,selected_platforms,provider,error_message,created_at,completed_at&order=created_at.desc&limit=100")
     ]);
-    const sub=subs[0]||{plan:"free",status:"inactive"};
-    currentPlan=sub.status==="active"&&sub.plan==="pro"?"pro":"free";
-    const used=todayRows.filter(row=>["reserved","completed"].includes(row.status)).length;
-    const limit=currentPlan==="pro"?100:5;
-    $("planBadge").textContent=currentPlan==="pro"?"PRO PLAN":"FREE PLAN";
-    $("planBadge").classList.toggle("pro",currentPlan==="pro");
-    $("currentPlan").textContent=currentPlan==="pro"?"Pro":"Free";
-    $("planDescription").textContent=currentPlan==="pro"?"More room for daily content production.":"A simple daily allowance to get started.";
-    $("planPrice").textContent=currentPlan==="pro"?"€4.99":"€0";
+    currentPlan=usage.plan||"free";
+    const used=Number(usage.daily_used)||0;
+    const limit=Number(usage.daily_limit)||0;
+    const credits=Number(usage.credits_balance)||0;
+    const planLabels={free:"FREE PLAN",pro:"PRO PLAN",trial:"PRO TRIAL",lifetime:"LIFETIME PLAN"};
+    $("planBadge").textContent=planLabels[currentPlan]||"FREE PLAN";
+    $("planBadge").classList.toggle("pro",currentPlan!=="free");
+    $("currentPlan").textContent={free:"Free",pro:"Pro",trial:"Pro Trial",lifetime:"Lifetime"}[currentPlan]||"Free";
+    $("planDescription").textContent={
+      free:"5 credits each week, with a maximum of 3 generations per day.",
+      pro:"300 credits each month, with a maximum of 30 generations per day.",
+      trial:"Pro features for 7 days or 40 credits, whichever comes first.",
+      lifetime:"Pro features with 150 credits refreshed each month."
+    }[currentPlan]||"Your HookEngine plan.";
+    $("planPrice").textContent={free:"€0",pro:"€4.99",trial:"€0",lifetime:"—"}[currentPlan]||"€0";
+    $("planPricePeriod").textContent={free:"/ month",pro:"/ month",trial:"/ 7 days",lifetime:"price unset"}[currentPlan]||"";
+    const dashboardPerks={
+      free:["5 credits each UTC week","Up to 3 generations per day","X, LinkedIn and TikTok drafts","1 version and 1 regeneration per source","7-day generation history"],
+      trial:["40 Pro trial credits · 7-day expiry","Up to 30 generations per day","All six supported platforms","3 variations per generation","Video analysis included · unlimited history during trial"],
+      pro:["300 credits each UTC month","Up to 30 generations per day","All six supported platforms","3 variations per generation","Video analysis · unlimited regenerations within credits","Unlimited generation history"],
+      lifetime:["150 credits each UTC month","Up to 30 generations per day","All six supported platforms","3 variations per generation","Video analysis · unlimited regenerations within credits","Unlimited generation history"]
+    };
+    const perksRoot=$("dashboardPerks");
+    perksRoot.replaceChildren(...(dashboardPerks[currentPlan]||dashboardPerks.free).map(item=>{
+      const li=document.createElement("li");
+      const check=document.createElement("span");
+      check.className="perk-check";
+      check.textContent="✓";
+      li.append(check,document.createTextNode(item));
+      return li;
+    }));
     $("usedCount").textContent=used;$("limitCount").textContent="/ "+limit;
-    $("usageProgress").style.width=Math.min(100,used/limit*100)+"%";
-    $("remainingText").textContent=Math.max(0,limit-used)+" generations left today";
-    $("upgradeBtn").hidden=currentPlan==="pro";
-    $("billingMessage").textContent=currentPlan==="pro"?(sub.current_period_end?"Current period ends "+timeLabel(sub.current_period_end):"Pro membership active."): "Pro: 100 generations per day · €4.99/month.";
+    $("usageProgress").style.width=(limit>0?Math.min(100,used/limit*100):0)+"%";
+    $("remainingText").textContent=credits+" credits left · "+Math.max(0,limit-used)+" generations left today";
+    $("upgradeBtn").hidden=currentPlan==="pro"||currentPlan==="lifetime";
+    $("billingMessage").textContent={
+      free:"Free: 5 weekly credits · 3 daily generations · 7-day history.",
+      pro:"Pro: 300 monthly credits · 30 daily generations · €4.99/month.",
+      trial:"Trial ends "+(usage.trial_ends_at?timeLabel(usage.trial_ends_at):"after 7 days or when credits run out")+".",
+      lifetime:"Lifetime: 150 monthly credits · Pro features · 50 spots total. Pricing is not configured."
+    }[currentPlan]||"Plan details unavailable.";
     renderHistory(history);
   } catch(err) {
     message("Could not load account data: "+err.message,true);

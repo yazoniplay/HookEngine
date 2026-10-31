@@ -28,6 +28,7 @@ const PLATFORM_GUIDANCE:Record<string,string> = {
   threads_posts:"Write a sequence of 3–5 concise, conversational Threads posts. Make each post stand alone while building one coherent idea.",
   facebook_post:"Write one natural Facebook post for a broad audience. Use clear language, useful context and a conversational close without engagement bait."
 };
+type TextGenerationResult = {outputs:Record<string,string>;model:string;inputTokens:number|null;outputTokens:number|null};
 const LABELS:Record<string,string> = {
   x_thread:"X thread",linkedin_post:"LinkedIn post",tiktok_hooks:"TikTok hooks",
   instagram_caption:"Instagram caption",threads_posts:"Threads posts",facebook_post:"Facebook post"
@@ -56,16 +57,21 @@ async function rpc(name:string,args:Record<string,unknown>){
   if(!r.ok){console.error("Usage RPC",name,r.status,(await r.text()).slice(0,250));throw new Error("Could not update your usage. Please try again.");}
   return await r.json();
 }
-async function reserve(userId:string,sourceType:string,title:string,url:string,sourceText:string){
-  return await rpc("hookengine_reserve_generation",{p_user_id:userId,p_source_type:sourceType,p_source_title:title,p_source_url:url,p_source_text:sourceText});
+async function reserve(userId:string,sourceType:string,title:string,url:string,sourceText:string,platforms:string[],actionType:string,parentGenerationId:string|null){
+  return await rpc("hookengine_reserve_generation",{
+    p_user_id:userId,p_source_type:sourceType,p_source_title:title,p_source_url:url,p_source_text:sourceText,
+    p_action_type:actionType,p_parent_generation_id:parentGenerationId,p_selected_platforms:platforms
+  });
 }
-async function finish(userId:string,id:string,status:"completed"|"failed",outputs:Record<string,string>={},platforms:string[]=[],provider:string|null=null,errorMessage:string|null=null){
+async function finish(userId:string,id:string,status:"completed"|"failed",outputs:Record<string,string>={},platforms:string[]=[],provider:string|null=null,model:string|null=null,inputTokens:number|null=null,outputTokens:number|null=null,latencyMs:number|null=null,errorMessage:string|null=null){
   const args={
     p_generation_id:id,p_user_id:userId,p_status:status,
     p_x_thread:outputs.x_thread??null,p_linkedin_post:outputs.linkedin_post??null,p_tiktok_hooks:outputs.tiktok_hooks??null,
-    p_error_message:errorMessage,p_outputs:outputs,p_selected_platforms:platforms,p_provider:provider
+    p_error_message:errorMessage,p_outputs:outputs,p_selected_platforms:platforms,p_provider:provider,
+    p_model:model,p_input_tokens:inputTokens,p_output_tokens:outputTokens,p_latency_ms:latencyMs
   };
-  try{await rpc("hookengine_finish_generation",args);}catch(e){console.error("Could not finalize generation:",e);}
+  const finalized=await rpc("hookengine_finish_generation",args);
+  if(finalized!==true)throw new Error("Generation reservation could not be finalized.");
 }
 function promptFor(title:string,sourceText:string,platforms:string[],preferences:any,variationCount:number){
   const instructions=platforms.map(key=>key.toUpperCase()+": "+PLATFORM_GUIDANCE[key]).join("\n");
@@ -97,7 +103,7 @@ function schemaFor(platforms:string[]){
   return {type:"OBJECT",properties,required:platforms};
 }
 function transient(status:number){return status===408||status===409||status===425||status===429||status>=500;}
-async function geminiText(prompt:string,platforms:string[]){
+async function geminiText(prompt:string,platforms:string[]):Promise<TextGenerationResult>{
   if(!GEMINI_API_KEY){const e=new Error("Gemini is not configured.");(e as any).status=503;throw e;}
   const response=await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+encodeURIComponent(GEMINI_MODEL)+":generateContent?key="+encodeURIComponent(GEMINI_API_KEY),{
     method:"POST",headers:{"Content-Type":"application/json"},signal:AbortSignal.timeout(22000),
@@ -108,9 +114,11 @@ async function geminiText(prompt:string,platforms:string[]){
   const raw=data?.candidates?.[0]?.content?.parts?.map((p:any)=>p.text||"").join("")||"";
   const outputs=parseOutputs(raw,platforms);
   if(!outputs)throw new Error("Gemini returned an invalid draft format.");
-  return outputs;
+  const usage=data?.usageMetadata||{};
+  return {outputs,model:GEMINI_MODEL,inputTokens:Number.isFinite(usage.promptTokenCount)?usage.promptTokenCount:null,
+    outputTokens:Number.isFinite(usage.candidatesTokenCount)?usage.candidatesTokenCount:null};
 }
-async function compatibleText(provider:"Groq"|"Ollama",prompt:string,platforms:string[]){
+async function compatibleText(provider:"Groq"|"Ollama",prompt:string,platforms:string[]):Promise<TextGenerationResult>{
   const groq=provider==="Groq";
   const key=groq?GROQ_API_KEY:OLLAMA_API_KEY;
   if(!key)throw new Error(provider+" is not configured.");
@@ -132,11 +140,15 @@ async function compatibleText(provider:"Groq"|"Ollama",prompt:string,platforms:s
   const raw=groq?data?.choices?.[0]?.message?.content:data?.message?.content;
   const outputs=parseOutputs(typeof raw==="string"?raw:"",platforms);
   if(!outputs)throw new Error(provider+" returned an invalid draft format.");
-  return outputs;
+  const usage=groq?data?.usage||{}:{};
+  const inputTokens=groq?usage.prompt_tokens:data?.prompt_eval_count;
+  const outputTokens=groq?usage.completion_tokens:data?.eval_count;
+  return {outputs,model,inputTokens:Number.isFinite(inputTokens)?inputTokens:null,
+    outputTokens:Number.isFinite(outputTokens)?outputTokens:null};
 }
 async function generateText(prompt:string,platforms:string[]){
   let primaryError:unknown;
-  try{return {outputs:await geminiText(prompt,platforms),provider:"Gemini",fallbackUsed:false};}
+  try{return {...await geminiText(prompt,platforms),provider:"Gemini",fallbackUsed:false};}
   catch(error){
     primaryError=error;
     const status=(error as any)?.status;
@@ -144,19 +156,19 @@ async function generateText(prompt:string,platforms:string[]){
     if(status&&!transient(status)&&status!==401&&status!==403)throw error;
     if(!status&&!isTimeout&&!(error instanceof TypeError))throw error;
   }
-  const fallbacks:Array<{name:"Groq"|"Ollama";ready:boolean;run:()=>Promise<Record<string,string>>}>=[
+  const fallbacks:Array<{name:"Groq"|"Ollama";ready:boolean;run:()=>Promise<TextGenerationResult>}>=[
     {name:"Groq",ready:!!GROQ_API_KEY,run:()=>compatibleText("Groq",prompt,platforms)},
     {name:"Ollama",ready:!!OLLAMA_API_KEY,run:()=>compatibleText("Ollama",prompt,platforms)}
   ];
   for(const fallback of fallbacks){
     if(!fallback.ready)continue;
-    try{return {outputs:await fallback.run(),provider:fallback.name,fallbackUsed:true};}
+    try{return {...await fallback.run(),provider:fallback.name,fallbackUsed:true};}
     catch(error){console.error(fallback.name+" fallback failed:",String(error).slice(0,180));}
   }
   console.error("Gemini primary failed; no fallback completed:",String(primaryError).slice(0,180));
   throw new Error("AI providers are temporarily unavailable. Please try again shortly.");
 }
-async function generateYouTube(url:string,title:string,platforms:string[],preferences:any,variationCount:number){
+async function generateYouTube(url:string,title:string,platforms:string[],preferences:any,variationCount:number):Promise<TextGenerationResult>{
   if(!GEMINI_API_KEY)throw new Error("Gemini video analysis is not configured.");
   const instructions=platforms.map(key=>key.toUpperCase()+": "+PLATFORM_GUIDANCE[key]).join("\n");
   const prompt=[
@@ -179,7 +191,12 @@ async function generateYouTube(url:string,title:string,platforms:string[],prefer
   if(!raw){const blocks:any[]=[];for(const step of data.steps||[])if(step?.type==="model_output"&&Array.isArray(step.content))blocks.push(...step.content);raw=blocks.filter(b=>b?.type==="text"&&typeof b.text==="string").map(b=>b.text).join("\n");}
   const outputs=parseOutputs(raw,platforms);
   if(!outputs)throw new Error("Gemini returned an invalid video draft format.");
-  return outputs;
+  const usage=data?.usage||data?.usage_metadata||{};
+  const inputTokens=usage.prompt_tokens??usage.input_tokens??usage.promptTokenCount;
+  const outputTokens=usage.completion_tokens??usage.output_tokens??usage.candidatesTokenCount;
+  return {outputs,model:GEMINI_MODEL,
+    inputTokens:Number.isFinite(inputTokens)?inputTokens:null,
+    outputTokens:Number.isFinite(outputTokens)?outputTokens:null};
 }
 Deno.serve(async(req:Request)=>{
   if(req.method==="OPTIONS")return new Response("ok",{headers:CORS});
@@ -188,35 +205,53 @@ Deno.serve(async(req:Request)=>{
   if(!userId)return reply({error:"Sign in to HookEngine to use your daily allowance."},401);
   if(!SUPABASE_SERVICE_ROLE_KEY)return reply({error:"Usage service is not configured."},503);
   let body:any;try{body=await req.json();}catch{return reply({error:"Request body must be valid JSON."},400);}
-  const {text="",title="",sourceUrl="",sourceMode="text",preferences={}}=body||{};
+  const payload=body&&typeof body==="object"&&!Array.isArray(body)?body:{};
+  const {text="",title="",sourceUrl="",sourceMode="text",preferences={}}=payload;
   if(typeof text!=="string"||typeof title!=="string"||typeof sourceUrl!=="string"||typeof sourceMode!=="string")
     return reply({error:"Title, source URL and source text must be strings."},400);
-  const platforms=Array.isArray(body.platforms)?[...new Set(body.platforms.filter((p:any)=>typeof p==="string"))]:FREE_PLATFORMS;
+  const requestedPlatforms:unknown[]=Array.isArray(payload.platforms)?payload.platforms:FREE_PLATFORMS;
+  const platforms:string[]=[...new Set(requestedPlatforms.filter((p):p is string=>typeof p==="string"))];
   if(!platforms.length||platforms.some((p:string)=>!ALL_PLATFORMS.includes(p)))return reply({error:"Choose one or more supported platforms."},400);
   if(sourceMode==="youtube_video"&&!validYouTube(sourceUrl))return reply({error:"Open a public YouTube video and try again."},400);
   if(sourceMode!=="youtube_video"&&sourceMode!=="text")return reply({error:"Unsupported source mode."},400);
   if(sourceMode==="text"&&(text.trim().length<80||text.length>60000))return reply({error:"Source text must contain 80–60,000 characters."},400);
 
-  const reservation=await reserve(userId,sourceMode==="youtube_video"?"youtube_video":"article",title,sourceUrl,sourceMode==="text"?text.trim():"");
-  if(!reservation?.allowed)return reply({error:"You've reached today's generation limit.",limitReached:true,plan:reservation?.plan||"free",used:reservation?.used||0,limit:reservation?.limit||5,remaining:0},429);
-  const premiumRequested=platforms.some((p:string)=>PRO_PLATFORMS.includes(p));
-  const variationCount=reservation.plan==="pro"?3:1;
-  if(premiumRequested&&reservation.plan!=="pro"){
-    await finish(userId,reservation.generation_id,"failed",{},[] ,null,"Pro platforms require an active Pro subscription.");
-    return reply({error:"Instagram, Threads and Facebook drafts are part of HookEngine Pro.",upgradeRequired:true},403);
+  const actionType=payload.actionType==="regeneration"?"regeneration":"generation";
+  const parentGenerationId=typeof payload.parentGenerationId==="string"?payload.parentGenerationId:null;
+  if(payload.actionType!==undefined&&payload.actionType!=="generation"&&payload.actionType!=="regeneration")
+    return reply({error:"Unsupported generation action."},400);
+  const reservation=await reserve(userId,sourceMode==="youtube_video"?"youtube_video":"article",title,sourceUrl,sourceMode==="text"?text.trim():"",platforms,actionType,parentGenerationId);
+  if(!reservation?.allowed){
+    const reason=String(reservation?.reason||"reservation_denied");
+    const status=["daily_limit_reached","insufficient_credits","too_many_pending"].includes(reason)?429:
+      ["video_not_included","platform_not_included","trial_expired","regeneration_limit_reached"].includes(reason)?403:400;
+    return reply({
+      error:reservation?.message||"This request is not available on your current plan.",
+      reason,plan:reservation?.plan||"free",creditsBalance:reservation?.credits_balance??null,
+      creditsRequired:reservation?.credits_required??null,dailyUsed:reservation?.used??reservation?.daily_used??null,
+      dailyLimit:reservation?.daily_limit??null,allowedPlatforms:reservation?.allowed_platforms??null,
+      limitReached:reason==="daily_limit_reached"||reason==="insufficient_credits"
+    },status);
   }
+  const variationCount=Number(reservation.versions_per_generation)||1;
+  const startedAt=performance.now();
   try{
     const result=sourceMode==="youtube_video"
-      ?{outputs:await generateYouTube(sourceUrl,title,platforms,preferences,variationCount),provider:"Gemini",fallbackUsed:false}
+      ?{...await generateYouTube(sourceUrl,title,platforms,preferences,variationCount),provider:"Gemini",fallbackUsed:false}
       :await generateText(promptFor(title,text.trim(),platforms,preferences,variationCount),platforms);
-    await finish(userId,reservation.generation_id,"completed",result.outputs,platforms,result.provider);
+    const latencyMs=Math.round(performance.now()-startedAt);
+    await finish(userId,reservation.generation_id,"completed",result.outputs,platforms,result.provider,result.model??null,
+      result.inputTokens??null,result.outputTokens??null,latencyMs);
     return reply({
       outputs:result.outputs,provider:result.provider,fallbackUsed:result.fallbackUsed,
-      usage:{plan:reservation.plan,used:reservation.used,limit:reservation.limit,remaining:reservation.remaining}
+      usage:{plan:reservation.plan,creditsReserved:reservation.credits_reserved,creditsBalance:reservation.credits_balance,
+        dailyUsed:reservation.daily_used,dailyLimit:reservation.daily_limit,remainingDaily:reservation.remaining_daily}
     });
   }catch(error){
     const message=error instanceof Error?error.message:"Generation failed.";
-    await finish(userId,reservation.generation_id,"failed",{},[],null,message);
+    const latencyMs=Math.round(performance.now()-startedAt);
+    try{await finish(userId,reservation.generation_id,"failed",{},[],null,null,null,null,latencyMs,message);}
+    catch(finalizeError){console.error("Could not record failed generation:",finalizeError);}
     console.error("HookEngine generation failed:",message.slice(0,300));
     return reply({error:message==="AI providers are temporarily unavailable. Please try again shortly."||message==="Could not analyze this YouTube video."?message:"Generation failed. Please try again."},502);
   }

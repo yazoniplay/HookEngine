@@ -1,0 +1,35 @@
+name: Phase 2 validation
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [phase-2-plans-limits-economics]
+
+permissions:
+  contents: read
+
+jobs:
+  edge-function:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Type-check generation Edge Function
+        run: deno check supabase/functions/hookengine-generate/index.ts
+      - name: Check account JavaScript syntax
+        run: node --check account/account.js
+      - name: Check background worker JavaScript syntax
+        run: node --check background.js
+
+  postgres-migration:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Apply all HookEngine migrations to PostgreSQL and run entitlement tests
+        run: bash tests/run-postgres-migration-tests.sh
