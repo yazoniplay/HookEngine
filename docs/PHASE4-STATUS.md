@@ -13,7 +13,7 @@
 - Daily usage shows the remaining daily generations and warns when one remains or the cap has been reached.
 
 ### Non-modal upgrade moments
-- A one-time prompt appears after an account's first-ever completed Free generation.
+- A one-time prompt appears after an account's first successful Free generation in the extension.
 - Free users can click locked Version 2 and Version 3 tabs to see the Pro explanation; no fake draft content is shown.
 - Pro-only platform selection is interactive but safely reverted for Free accounts, with an inline explanation.
 - Missing YouTube transcripts and server-declared Pro-only video-analysis denials show an inline Pro prompt. Free users are still told they can use a manually selected transcript.
