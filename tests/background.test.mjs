@@ -382,3 +382,45 @@ test("draft output renderer accepts array versions and exposes result actions", 
   assert.match(html, /id="copyAllBtn"/);
   assert.match(html, /id="clearResultsBtn"/);
 });
+
+
+test("manifest declares the 1.7.0 toolbar popup, settings page and native-size icons", async () => {
+  const manifest = JSON.parse(await readFile(new URL("../manifest.json", import.meta.url), "utf8"));
+  assert.equal(manifest.version, "1.7.0");
+  assert.equal(manifest.action.default_popup, "popup.html");
+  assert.equal(manifest.options_page, "settings.html");
+  assert.equal(manifest.action.default_icon["16"], "icons/icon16.png");
+  assert.equal(manifest.action.default_icon["32"], "icons/icon32.png");
+  assert.equal(manifest.icons["48"], "icons/icon48.png");
+  assert.equal(manifest.icons["128"], "icons/icon128.png");
+  assert.equal(manifest.background.type, "module");
+});
+
+test("writing preferences are saved in sync storage and sent with generation requests", async () => {
+  const settings = await readFile(new URL("../settings.js", import.meta.url), "utf8");
+  const popup = await readFile(new URL("../sidepanel.js", import.meta.url), "utf8");
+  const html = await readFile(new URL("../settings.html", import.meta.url), "utf8");
+  assert.match(settings, /chrome\.storage\.sync\.get/);
+  assert.match(settings, /chrome\.storage\.sync\.set/);
+  for (const field of ["tone", "style", "length", "audience"]) {
+    assert.match(html, new RegExp('id="' + field + '"'));
+    assert.match(settings, new RegExp('"' + field + '"'));
+  }
+  assert.match(popup, /preferences:\(await chrome\.storage\.sync\.get\(WRITING_PREFS_KEY\)\)/);
+  assert.match(popup, /openOptionsPage/);
+});
+
+test("account toggle remains a real button and switches the account panel", async () => {
+  const html = await readFile(new URL("../popup.html", import.meta.url), "utf8");
+  const popup = await readFile(new URL("../sidepanel.js", import.meta.url), "utf8");
+  assert.match(html, /<button id="accountToggle"[^>]*type="button"/);
+  assert.match(popup, /accountPanel"\)\.hidden = !\$\("accountPanel"\)\.hidden/);
+});
+
+test("the popup includes an account history link and the last generation is restored", async () => {
+  const html = await readFile(new URL("../popup.html", import.meta.url), "utf8");
+  const popup = await readFile(new URL("../sidepanel.js", import.meta.url), "utf8");
+  assert.match(html, /Account &amp; history/);
+  assert.match(popup, /restoreLastGeneration\(\)/);
+  assert.match(popup, /HOOKENGINE_GET_LAST_GENERATION/);
+});
