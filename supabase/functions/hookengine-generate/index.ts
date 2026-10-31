@@ -2,9 +2,9 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import {
   GENERATION_SYSTEM_INSTRUCTION,
   parseOutputs,
+  runWithProviderFallback,
   schemaFor,
   serializeOutput,
-  shouldFallback,
   validateGenerationPayload,
   validYouTube,
   type GenerationPayload,
@@ -240,30 +240,15 @@ async function compatibleText(
 }
 
 async function generateText(prompt: string, platforms: string[], variationCount: number) {
-  try {
-    return { ...await geminiText(prompt, platforms, variationCount), provider: "Gemini", fallbackUsed: false };
-  } catch (primaryError) {
-    if (!shouldFallback(primaryError)) throw primaryError;
-    console.warn("Gemini generation failed; trying configured fallback providers.");
-  }
-
-  const fallbacks: Array<{ name: "Groq" | "Ollama"; ready: boolean }> = [
-    { name: "Groq", ready: !!GROQ_API_KEY },
-    { name: "Ollama", ready: !!OLLAMA_API_KEY },
-  ];
-  for (const fallback of fallbacks) {
-    if (!fallback.ready) continue;
-    try {
-      return {
-        ...await compatibleText(fallback.name, prompt, platforms, variationCount),
-        provider: fallback.name,
-        fallbackUsed: true,
-      };
-    } catch (error) {
-      console.error(fallback.name + " fallback failed", safeErrorStatus(error));
-    }
-  }
-  throw new Error("AI providers are temporarily unavailable. Please try again shortly.");
+  const result = await runWithProviderFallback(
+    () => geminiText(prompt, platforms, variationCount),
+    [
+      ...(GROQ_API_KEY ? [{ name: "Groq", run: () => compatibleText("Groq", prompt, platforms, variationCount) }] : []),
+      ...(OLLAMA_API_KEY ? [{ name: "Ollama", run: () => compatibleText("Ollama", prompt, platforms, variationCount) }] : []),
+    ],
+    (provider, error) => console.error(provider + " fallback failed", safeErrorStatus(error)),
+  );
+  return { ...result.value, provider: result.provider, fallbackUsed: result.fallbackUsed };
 }
 
 function supportsAgenticVideo(model: string): boolean {
