@@ -369,6 +369,7 @@ declare
   v_daily_used integer;
   v_pending integer;
   v_regenerations integer;
+  v_parent public.hookengine_generations%rowtype;
   v_generation_id uuid;
   v_selected text[] := coalesce(p_selected_platforms,array[]::text[]);
 begin
@@ -435,11 +436,23 @@ begin
     if p_parent_generation_id is null then
       return jsonb_build_object('allowed',false,'reason','missing_parent_generation','message','A source generation is required to regenerate.');
     end if;
-    if not exists (
-      select 1 from public.hookengine_generations
-      where id=p_parent_generation_id and user_id=p_user_id and status='completed'
-    ) then
+    select * into v_parent
+    from public.hookengine_generations
+    where id=p_parent_generation_id and user_id=p_user_id and status='completed';
+    if not found then
       return jsonb_build_object('allowed',false,'reason','parent_generation_not_found','message','The source draft could not be found.');
+    end if;
+    -- Regenerations must always point to the original completed generation.
+    -- This prevents nested regeneration chains from resetting the per-source allowance.
+    if v_parent.action_type <> 'generation' then
+      return jsonb_build_object('allowed',false,'reason','invalid_regeneration_parent',
+        'message','Regenerate from the original source draft, not from another regeneration.');
+    end if;
+    if v_parent.source_type <> p_source_type
+       or v_parent.source_url <> left(coalesce(p_source_url,''),2000)
+       or v_parent.source_text <> left(coalesce(p_source_text,''),60000) then
+      return jsonb_build_object('allowed',false,'reason','regeneration_source_mismatch',
+        'message','Regeneration must use the same source as the original draft.');
     end if;
     select count(*)::integer into v_regenerations
     from public.hookengine_generations g
@@ -449,7 +462,8 @@ begin
       return jsonb_build_object('allowed',false,'reason','regeneration_limit_reached','plan',v_plan.plan_key,
         'message','You have reached the regeneration limit for this draft.');
     end if;
-    v_cost := 1;
+    -- Video regeneration re-runs the video analysis pipeline and therefore costs 5 credits.
+    v_cost := case when p_source_type='youtube_video' then 5 else 1 end;
   else
     v_cost := case when p_source_type='youtube_video' then 5 else 1 end;
   end if;
