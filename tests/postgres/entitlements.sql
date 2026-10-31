@@ -34,7 +34,7 @@ begin
   v_result := public.hookengine_reserve_generation(
     v_free_user,'unsupported_source','Invalid','','', 'generation',null,array['x_thread']::text[]
   );
-  if v_result->>'reason' <> 'invalid_source_type' then
+  if v_result->>'reason' is distinct from 'invalid_source_type' then
     raise exception 'Unsupported source type was not rejected: %',v_result;
   end if;
 
@@ -77,21 +77,21 @@ begin
   v_result := public.hookengine_reserve_generation(
     v_free_user,'article','Nested attempt','',v_source,'regeneration',v_regeneration,array['x_thread']::text[]
   );
-  if v_result->>'reason' <> 'invalid_regeneration_parent' then
+  if v_result->>'reason' is distinct from 'invalid_regeneration_parent' then
     raise exception 'Nested regeneration was not rejected: %',v_result;
   end if;
 
   v_result := public.hookengine_reserve_generation(
     v_free_user,'article','Second attempt','',v_source,'regeneration',v_root,array['x_thread']::text[]
   );
-  if v_result->>'reason' <> 'regeneration_limit_reached' then
+  if v_result->>'reason' is distinct from 'regeneration_limit_reached' then
     raise exception 'Free per-source regeneration limit was not enforced: %',v_result;
   end if;
 
   v_result := public.hookengine_reserve_generation(
     v_free_user,'article','Changed source','',v_other_source,'regeneration',v_root,array['x_thread']::text[]
   );
-  if v_result->>'reason' <> 'regeneration_source_mismatch' then
+  if v_result->>'reason' is distinct from 'regeneration_source_mismatch' then
     raise exception 'Regeneration accepted a different source: %',v_result;
   end if;
 
@@ -157,7 +157,7 @@ begin
     v_video_user,'youtube_video','Insufficient credits','https://www.youtube.com/watch?v=another-test','',
     'generation',null,array['x_thread']::text[]
   );
-  if v_result->>'reason' <> 'insufficient_credits' or (v_result->>'credits_required')::integer <> 5 then
+  if v_result->>'reason' is distinct from 'insufficient_credits' or (v_result->>'credits_required')::integer <> 5 then
     raise exception 'Video request with 4 credits should be refused with a 5-credit requirement: %',v_result;
   end if;
 end;
