@@ -204,9 +204,9 @@ async function fallbackReadPage(tabId) {
       target: { tabId },
       func: () => {
         const clean = value => (value || "")
-          .replace(/\\u200b/g, "")
-          .replace(/[ \\t]+/g, " ")
-          .replace(/\\n{3,}/g, "\\n\\n")
+          .replace(/\u200b/g, "")
+          .replace(/[ \t]+/g, " ")
+          .replace(/\n{3,}/g, "\n\n")
           .trim();
         const hidden = [
           "script","style","noscript","nav","header","footer","aside","form","button","input",
