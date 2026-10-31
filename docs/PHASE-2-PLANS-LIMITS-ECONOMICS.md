@@ -23,9 +23,10 @@ The Lifetime entitlement is capped at 50 accounts. Its price is intentionally un
 
 - Article text or transcript generation: 1 credit.
 - Video analysis: 5 credits.
-- Regeneration: 1 credit.
+- Article/text regeneration: 1 credit.
+- YouTube video regeneration: 5 credits because the video analysis pipeline runs again.
 
-The database reservation RPC is authoritative. It checks the UTC daily cap, available credits, platform entitlements, video access, regeneration allowance and pending-reservation limit in one transaction under a per-user advisory lock.
+The database reservation RPC is authoritative. It checks the UTC daily cap, available credits, platform entitlements, video access, regeneration allowance and pending-reservation limit in one transaction under a per-user advisory lock. Regeneration must reference the original completed generation and must match its source type, URL and stored text; regenerated drafts cannot become new regeneration parents.
 
 Failed requests refund reserved credits. Reservations older than five minutes are failed and refunded by the cleanup job. At most two active recent reservations are allowed per user.
 
@@ -54,7 +55,7 @@ RLS is enabled on plan, ledger and rate tables. Browser roles receive no direct 
 
 ## Deployment order
 
-1. Review and validate this migration and the generation Edge Function together.
+1. Review and validate this migration and the generation Edge Function together. CI applies the full migration sequence to a clean PostgreSQL instance with pg_cron enabled and runs entitlement integration tests.
 2. Merge the Phase 2 branch.
 3. Apply the database migration to the HookEngine Supabase project.
 4. Deploy the updated `hookengine-generate` Edge Function.
