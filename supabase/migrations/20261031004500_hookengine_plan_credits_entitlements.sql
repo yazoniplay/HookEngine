@@ -233,10 +233,10 @@ begin
   end if;
 
   if v_plan.billing_interval = 'weekly' then
-    v_start := date_trunc('week', v_now_utc);
+    v_start := date_trunc('week', timezone('UTC', now())) at time zone 'UTC';
     v_end := v_start + interval '7 days';
   elsif v_plan.billing_interval = 'monthly' then
-    v_start := date_trunc('month', v_now_utc);
+    v_start := date_trunc('month', timezone('UTC', now())) at time zone 'UTC';
     v_end := v_start + interval '1 month';
   elsif v_plan.billing_interval = 'trial' then
     return jsonb_build_object('plan',v_plan.plan_key,'credits_balance',v_sub.credits_balance,
