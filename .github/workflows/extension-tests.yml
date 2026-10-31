@@ -37,5 +37,14 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: 22
+      - name: Check extension JavaScript syntax
+        run: |
+          node --check background.js
+          node --check content.js
+          node --check sidepanel.js
+          node --check settings.js
+          node --check extension/auth.js
+          node --check extension/config.js
+          node --check vendor/readability.js
       - name: Run extension regression tests
         run: node --test tests/*.test.mjs
