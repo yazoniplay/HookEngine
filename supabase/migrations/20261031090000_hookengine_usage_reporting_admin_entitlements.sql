@@ -55,7 +55,7 @@ begin
   where g.user_id=v_user_id;
 
   select count(*)::integer into v_lifetime_claimed
-  from public.hookengine_subscriptions where plan='lifetime';
+  from public.hookengine_subscriptions where lifetime_claimed_at is not null;
   select coalesce(lifetime_spot_limit,50) into v_lifetime_limit
   from public.hookengine_plans where plan_key='lifetime';
 
@@ -79,6 +79,83 @@ begin
     'average_latency_ms',v_avg_latency,'unpriced_generations',v_unpriced_generations,'lifetime_claimed',v_lifetime_claimed,
     'lifetime_limit',v_lifetime_limit,'lifetime_remaining',greatest(0,v_lifetime_limit-v_lifetime_claimed)
   );
+end;
+$$;
+
+create or replace function public.hookengine_assign_lifetime(p_user_id uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_limit integer;
+  v_claimed integer;
+  v_old_balance integer := 0;
+  v_old_period_started_at timestamptz;
+  v_old_period_ends_at timestamptz;
+  v_previously_claimed boolean := false;
+  v_start timestamptz := date_trunc('month', timezone('UTC',now())) at time zone 'UTC';
+  v_end timestamptz := (date_trunc('month', timezone('UTC',now())) + interval '1 month') at time zone 'UTC';
+begin
+  perform pg_advisory_xact_lock(hashtextextended('hookengine-lifetime-claims',0));
+  perform pg_advisory_xact_lock(hashtextextended('hookengine-user:'||p_user_id::text,0));
+  select lifetime_claimed_at is not null into v_previously_claimed
+  from public.hookengine_subscriptions where user_id=p_user_id;
+  if not found then
+    return jsonb_build_object('assigned',false,'reason','account_not_found');
+  end if;
+  if exists (select 1 from public.hookengine_subscriptions where user_id=p_user_id and plan='lifetime') then
+    return jsonb_build_object('assigned',false,'reason','already_lifetime');
+  end if;
+  select lifetime_spot_limit into v_limit from public.hookengine_plans where plan_key='lifetime';
+  select count(*)::integer into v_claimed
+  from public.hookengine_subscriptions where lifetime_claimed_at is not null;
+  if not v_previously_claimed and v_claimed >= coalesce(v_limit,50) then
+    return jsonb_build_object('assigned',false,'reason','sold_out','claimed',v_claimed,'limit',v_limit);
+  end if;
+
+  select credits_balance,credit_period_started_at,credit_period_ends_at
+  into v_old_balance,v_old_period_started_at,v_old_period_ends_at
+  from public.hookengine_subscriptions where user_id=p_user_id for update;
+  if not found then
+    return jsonb_build_object('assigned',false,'reason','account_not_found');
+  end if;
+
+  if v_old_balance > 0 then
+    insert into public.hookengine_credit_ledger(
+      user_id,entry_type,amount,balance_after,period_started_at,period_ends_at,idempotency_key,metadata
+    )
+    values (
+      p_user_id,'period_expire',-v_old_balance,0,v_old_period_started_at,v_old_period_ends_at,
+      'lifetime-conversion-expire:'||p_user_id::text,
+      jsonb_build_object('reason','plan_conversion','target_plan','lifetime')
+    )
+    on conflict (idempotency_key) do nothing;
+  end if;
+
+  update public.hookengine_subscriptions
+  set plan='lifetime',status='active',provider='paypal',provider_subscription_id=null,
+      current_period_end=null,lifetime_claimed_at=coalesce(lifetime_claimed_at,now()),
+      credits_balance=150,credit_period_started_at=v_start,credit_period_ends_at=v_end,updated_at=now()
+  where user_id=p_user_id;
+
+  if not found then
+    return jsonb_build_object('assigned',false,'reason','account_not_found');
+  end if;
+
+  update public.hookengine_profiles set plan='lifetime' where user_id=p_user_id;
+
+  insert into public.hookengine_credit_ledger(
+    user_id,entry_type,amount,balance_after,period_started_at,period_ends_at,idempotency_key,metadata
+  )
+  values (
+    p_user_id,'admin_adjustment',150,150,v_start,v_end,
+    'lifetime-initial-grant:'||p_user_id::text,jsonb_build_object('plan','lifetime')
+  )
+  on conflict (idempotency_key) do nothing;
+
+  return jsonb_build_object('assigned',true,'plan','lifetime','credits_balance',150,'claimed',v_claimed+case when v_previously_claimed then 0 else 1 end,'limit',v_limit);
 end;
 $$;
 
