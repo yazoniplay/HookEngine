@@ -2,13 +2,15 @@ name: Full-history secret scan
 
 on:
   pull_request:
+  push:
+    branches:
+      - "audit/**"
   schedule:
     - cron: "17 3 * * 6"
   workflow_dispatch:
 
 permissions:
   contents: read
-  pull-requests: read
 
 jobs:
   gitleaks:
@@ -16,13 +18,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out complete repository history
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
-      - name: Scan every reachable commit
-        uses: gitleaks/gitleaks-action@v2
+      - name: Scan repository history with Gitleaks
+        uses: gitleaks/gitleaks-action@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          args: detect --source . --log-opts=--all --redact --exit-code 1
+          GITLEAKS_ENABLE_COMMENTS: "false"
+          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: "false"
