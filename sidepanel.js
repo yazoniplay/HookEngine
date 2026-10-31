@@ -71,7 +71,7 @@ function usageMainLine(usage) {
     return usage.credits + " of " + usage.creditsTotal +
       " sources left this week · resets " + resetDay;
   }
-  const periodLabel = usage.period === "monthly" ? "this month" : "this period";
+  const periodLabel = ["month", "monthly"].includes(usage.period) ? "this month" : "this period";
   const resetDate = usage.resetAt
     ? new Date(usage.resetAt).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })
     : "at the period reset";
