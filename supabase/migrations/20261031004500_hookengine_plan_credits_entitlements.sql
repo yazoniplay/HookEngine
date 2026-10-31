@@ -208,6 +208,16 @@ begin
     select * into v_sub from public.hookengine_subscriptions where user_id=p_user_id for update;
   end if;
 
+  if (v_sub.plan = 'pro' and v_sub.status <> 'active')
+     or (v_sub.plan = 'lifetime' and v_sub.status <> 'active') then
+    update public.hookengine_subscriptions
+    set plan='free',status='inactive',credits_balance=0,
+        credit_period_started_at=null,credit_period_ends_at=null,updated_at=now()
+    where user_id=p_user_id;
+    update public.hookengine_profiles set plan='free' where user_id=p_user_id;
+    select * into v_sub from public.hookengine_subscriptions where user_id=p_user_id for update;
+  end if;
+
   if v_sub.plan = 'trial' and (v_sub.trial_ends_at is null or v_sub.trial_ends_at <= now() or v_sub.credits_balance <= 0) then
     update public.hookengine_subscriptions
     set plan='free',status='inactive',trial_started_at=null,trial_ends_at=null,
@@ -570,38 +580,48 @@ security definer
 set search_path = ''
 as $$
 declare
+  v_user record;
   v_row record;
   v_count integer := 0;
   v_balance integer;
 begin
-  for v_row in
-    select id,user_id,credits_reserved
+  -- Always acquire the per-user advisory lock before locking generation rows.
+  for v_user in
+    select distinct user_id
     from public.hookengine_generations
     where status='reserved' and reservation_expires_at is not null and reservation_expires_at<=now()
-    order by reservation_expires_at
-    for update skip locked
-    limit 500
+    order by user_id
   loop
-    perform pg_advisory_xact_lock(hashtextextended('hookengine-user:'||v_row.user_id::text,0));
-    update public.hookengine_subscriptions
-    set credits_balance=credits_balance+v_row.credits_reserved,updated_at=now()
-    where user_id=v_row.user_id
-    returning credits_balance into v_balance;
+    perform pg_advisory_xact_lock(hashtextextended('hookengine-user:'||v_user.user_id::text,0));
+    for v_row in
+      select id,user_id,credits_reserved
+      from public.hookengine_generations
+      where user_id=v_user.user_id and status='reserved'
+        and reservation_expires_at is not null and reservation_expires_at<=now()
+      order by reservation_expires_at
+      for update skip locked
+      limit 100
+    loop
+      update public.hookengine_subscriptions
+      set credits_balance=credits_balance+v_row.credits_reserved,updated_at=now()
+      where user_id=v_row.user_id
+      returning credits_balance into v_balance;
 
-    insert into public.hookengine_credit_ledger(
-      user_id,generation_id,entry_type,amount,balance_after,idempotency_key,metadata
-    )
-    values (
-      v_row.user_id,v_row.id,'refund',v_row.credits_reserved,v_balance,
-      'refund:'||v_row.id::text,jsonb_build_object('reason','reservation_timeout')
-    )
-    on conflict (idempotency_key) do nothing;
+      insert into public.hookengine_credit_ledger(
+        user_id,generation_id,entry_type,amount,balance_after,idempotency_key,metadata
+      )
+      values (
+        v_row.user_id,v_row.id,'refund',v_row.credits_reserved,v_balance,
+        'refund:'||v_row.id::text,jsonb_build_object('reason','reservation_timeout')
+      )
+      on conflict (idempotency_key) do nothing;
 
-    update public.hookengine_generations
-    set status='failed',error_message='Generation timed out.',refunded_at=now(),
-        reservation_expires_at=null,completed_at=now()
-    where id=v_row.id and status='reserved';
-    v_count := v_count + 1;
+      update public.hookengine_generations
+      set status='failed',error_message='Generation timed out.',refunded_at=now(),
+          reservation_expires_at=null,completed_at=now()
+      where id=v_row.id and status='reserved';
+      v_count := v_count + 1;
+    end loop;
   end loop;
   return v_count;
 end;
@@ -614,18 +634,26 @@ security definer
 set search_path = ''
 as $$
 declare
-  v_count integer;
+  v_user record;
+  v_count integer := 0;
 begin
-  update public.hookengine_subscriptions
-  set plan='free',status='inactive',trial_started_at=null,trial_ends_at=null,
-      credits_balance=0,credit_period_started_at=null,credit_period_ends_at=null,updated_at=now()
-  where plan='trial' and (trial_ends_at<=now() or credits_balance<=0);
-
-  get diagnostics v_count = row_count;
-  update public.hookengine_profiles p
-  set plan='free'
-  where p.plan='trial'
-    and exists (select 1 from public.hookengine_subscriptions s where s.user_id=p.user_id and s.plan='free');
+  for v_user in
+    select user_id
+    from public.hookengine_subscriptions
+    where plan='trial' and (trial_ends_at<=now() or credits_balance<=0)
+    order by user_id
+  loop
+    perform pg_advisory_xact_lock(hashtextextended('hookengine-user:'||v_user.user_id::text,0));
+    update public.hookengine_subscriptions
+    set plan='free',status='inactive',trial_started_at=null,trial_ends_at=null,
+        credits_balance=0,credit_period_started_at=null,credit_period_ends_at=null,updated_at=now()
+    where user_id=v_user.user_id and plan='trial'
+      and (trial_ends_at<=now() or credits_balance<=0);
+    if found then
+      update public.hookengine_profiles set plan='free' where user_id=v_user.user_id;
+      v_count := v_count + 1;
+    end if;
+  end loop;
   return v_count;
 end;
 $$;
@@ -643,6 +671,10 @@ declare
   v_end timestamptz := (date_trunc('month', timezone('UTC',now())) + interval '1 month') at time zone 'UTC';
 begin
   perform pg_advisory_xact_lock(hashtextextended('hookengine-lifetime-claims',0));
+  perform pg_advisory_xact_lock(hashtextextended('hookengine-user:'||p_user_id::text,0));
+  if exists (select 1 from public.hookengine_subscriptions where user_id=p_user_id and plan='lifetime') then
+    return jsonb_build_object('assigned',false,'reason','already_lifetime');
+  end if;
   select lifetime_spot_limit into v_limit from public.hookengine_plans where plan_key='lifetime';
   select count(*)::integer into v_claimed from public.hookengine_subscriptions where plan='lifetime';
   if v_claimed >= coalesce(v_limit,50) then
@@ -698,7 +730,7 @@ do $$
 begin
   if exists (select 1 from pg_available_extensions where name='pg_cron') then
     begin
-      execute 'create extension if not exists pg_cron with schema pg_catalog';
+      execute 'create extension if not exists pg_cron';
       if exists (select 1 from pg_namespace where nspname='cron') then
         perform cron.schedule('hookengine-reservation-cleanup','* * * * *','select public.hookengine_cleanup_reservations();');
         perform cron.schedule('hookengine-trial-expiry','5 * * * *','select public.hookengine_expire_trials();');
