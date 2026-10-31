@@ -420,7 +420,13 @@ test("account toggle remains a real button and switches the account panel", asyn
 test("the popup includes an account history link and the last generation is restored", async () => {
   const html = await readFile(new URL("../popup.html", import.meta.url), "utf8");
   const popup = await readFile(new URL("../sidepanel.js", import.meta.url), "utf8");
-  assert.match(html, /Account &amp; history/);
+  assert.match(html, /Account & history/);
   assert.match(popup, /restoreLastGeneration\(\)/);
   assert.match(popup, /HOOKENGINE_GET_LAST_GENERATION/);
+});
+
+
+test("worker messages require the extension sender identity", async () => {
+  const background = await readFile(new URL("../background.js", import.meta.url), "utf8");
+  assert.match(background, /sender\?\.id !== chrome\.runtime\.id/);
 });
