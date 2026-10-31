@@ -78,31 +78,90 @@ function renderAccount() {
 $("accountToggle").addEventListener("click", () => {
   $("accountPanel").hidden = !$("accountPanel").hidden;
 });
+async function clearStoredAccountSession() {
+  accountSession = null;
+  accountUser = null;
+  await chrome.storage.local.remove(SESSION_KEY);
+}
+
 async function loadAccountSession() {
   try {
     const saved = await chrome.storage.local.get(SESSION_KEY);
     accountSession = saved[SESSION_KEY] || null;
-    if (accountSession?.expires_at && accountSession.expires_at * 1000 < Date.now() + 30000 && accountSession.refresh_token) {
-      const refreshed = await fetch(SUPABASE_URL + "/auth/v1/token?grant_type=refresh_token", {
-        method:"POST",headers:{apikey:SUPABASE_KEY,"Content-Type":"application/json"},
-        body:JSON.stringify({refresh_token:accountSession.refresh_token})
-      });
-      if (!refreshed.ok) throw new Error("Session expired");
-      accountSession = await refreshed.json();
-      accountSession.expires_at = Math.floor(Date.now()/1000) + (accountSession.expires_in || 3600);
-      await chrome.storage.local.set({[SESSION_KEY]:accountSession});
+    if (!accountSession?.access_token) {
+      accountSession = null;
+      accountUser = null;
+    } else if (accountSession.expires_at && accountSession.expires_at * 1000 < Date.now() + 30000) {
+      if (!accountSession.refresh_token) {
+        await clearStoredAccountSession();
+      } else {
+        let refreshed;
+        try {
+          refreshed = await fetch(SUPABASE_URL + "/auth/v1/token?grant_type=refresh_token", {
+            method: "POST",
+            headers: { apikey: SUPABASE_KEY, "Content-Type": "application/json" },
+            body: JSON.stringify({ refresh_token: accountSession.refresh_token })
+          });
+        } catch (error) {
+          accountUser = accountSession.user || null;
+          console.warn("HookEngine: session refresh unavailable; keeping the saved session", error);
+          showError("Couldn't reach sign-in. Your saved session is preserved; check your connection and retry.");
+          renderAccount();
+          return;
+        }
+
+        if (!refreshed.ok) {
+          if ([400, 401, 403].includes(refreshed.status)) {
+            await clearStoredAccountSession();
+          } else {
+            accountUser = accountSession.user || null;
+            console.warn("HookEngine: temporary session refresh failure", refreshed.status);
+            showError("Sign-in is temporarily unavailable. Your saved session is preserved.");
+            renderAccount();
+            return;
+          }
+        } else {
+          accountSession = await refreshed.json();
+          if (!accountSession?.access_token) throw new Error("The sign-in service returned an invalid session.");
+          accountSession.expires_at = Math.floor(Date.now() / 1000) + (accountSession.expires_in || 3600);
+          await chrome.storage.local.set({ [SESSION_KEY]: accountSession });
+        }
+      }
     }
+
     if (accountSession?.access_token) {
-      const response = await fetch(SUPABASE_URL + "/auth/v1/user", {
-        headers:{apikey:SUPABASE_KEY,Authorization:"Bearer "+accountSession.access_token}
-      });
-      if (!response.ok) throw new Error("Session expired");
-      accountUser = await response.json();
-    } else accountSession = null;
-  } catch {
-    accountSession = null; accountUser = null;
-    await chrome.storage.local.remove(SESSION_KEY);
+      let response;
+      try {
+        response = await fetch(SUPABASE_URL + "/auth/v1/user", {
+          headers: { apikey: SUPABASE_KEY, Authorization: "Bearer " + accountSession.access_token }
+        });
+      } catch (error) {
+        accountUser = accountSession.user || null;
+        console.warn("HookEngine: could not verify the saved session because the network is unavailable", error);
+        showError("Couldn't verify your saved session. Check your connection; your session has been kept.");
+        renderAccount();
+        return;
+      }
+
+      if (response.status === 401 || response.status === 403) {
+        await clearStoredAccountSession();
+      } else if (!response.ok) {
+        accountUser = accountSession.user || null;
+        console.warn("HookEngine: temporary session verification failure", response.status);
+        showError("Sign-in verification is temporarily unavailable. Your saved session is preserved.");
+        renderAccount();
+        return;
+      } else {
+        accountUser = await response.json();
+      }
+    }
+  } catch (error) {
+    // Storage and network errors must not silently erase a valid saved session.
+    accountUser = accountSession?.user || null;
+    console.warn("HookEngine: account session could not be restored", error);
+    showError("Couldn't restore your account right now. Your saved session has not been deleted.");
   }
+
   renderAccount();
   if (accountUser) await refreshUsage();
 }
