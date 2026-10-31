@@ -12,6 +12,7 @@ declare
   v_video_root uuid;
   v_video_regeneration uuid;
   v_balance integer;
+  v_event_time timestamptz;
 begin
   insert into auth.users(id,email) values
     (v_free_user,'free-test@example.invalid'),
@@ -185,6 +186,49 @@ begin
      or (v_result->>'credits_consumed')::bigint <> 6
      or (v_result->>'estimated_provider_cost_usd')::numeric <= 0 then
     raise exception 'Usage RPC did not return token, credit and provider cost metrics: %',v_result;
+  end if;
+
+  -- PayPal activation grants the Pro period once; duplicates and out-of-order events are ignored.
+  update public.hookengine_subscriptions
+  set provider='paypal',provider_subscription_id='I-TEST-SUBSCRIPTION',
+      plan='pro',status='inactive',credits_balance=12,
+      credit_period_started_at=date_trunc('week',timezone('UTC',now())) at time zone 'UTC',
+      credit_period_ends_at=(date_trunc('week',timezone('UTC',now())) + interval '7 days') at time zone 'UTC'
+  where user_id=v_video_user;
+  v_event_time := now();
+  v_result := public.hookengine_apply_paypal_event(
+    'evt-hookengine-activated','BILLING.SUBSCRIPTION.ACTIVATED','I-TEST-SUBSCRIPTION',
+    v_event_time,v_event_time+interval '30 days'
+  );
+  if not coalesce((v_result->>'applied')::boolean,false)
+     or (select plan from public.hookengine_subscriptions where user_id=v_video_user) <> 'pro'
+     or (select credits_balance from public.hookengine_subscriptions where user_id=v_video_user) <> 300 then
+    raise exception 'PayPal activation did not grant the Pro monthly credits: %',v_result;
+  end if;
+  v_result := public.hookengine_apply_paypal_event(
+    'evt-hookengine-activated','BILLING.SUBSCRIPTION.ACTIVATED','I-TEST-SUBSCRIPTION',
+    v_event_time,v_event_time+interval '30 days'
+  );
+  if v_result->>'reason' is distinct from 'duplicate_event' then
+    raise exception 'Duplicate PayPal event was not ignored: %',v_result;
+  end if;
+
+  v_result := public.hookengine_apply_paypal_event(
+    'evt-hookengine-cancelled','BILLING.SUBSCRIPTION.CANCELLED','I-TEST-SUBSCRIPTION',
+    v_event_time+interval '2 seconds',null
+  );
+  if not coalesce((v_result->>'applied')::boolean,false)
+     or (select plan from public.hookengine_subscriptions where user_id=v_video_user) <> 'free'
+     or (select credits_balance from public.hookengine_subscriptions where user_id=v_video_user) <> 0 then
+    raise exception 'PayPal cancellation did not downgrade and clear Pro credits: %',v_result;
+  end if;
+  v_result := public.hookengine_apply_paypal_event(
+    'evt-hookengine-stale-activation','BILLING.SUBSCRIPTION.ACTIVATED','I-TEST-SUBSCRIPTION',
+    v_event_time+interval '1 second',v_event_time+interval '31 days'
+  );
+  if v_result->>'reason' is distinct from 'stale_event'
+     or (select plan from public.hookengine_subscriptions where user_id=v_video_user) <> 'free' then
+    raise exception 'Out-of-order PayPal event changed the current plan: %',v_result;
   end if;
 
   -- Existing accounts can be granted a fresh trial by the authenticated admin endpoint.
