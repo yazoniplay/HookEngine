@@ -32,11 +32,10 @@ begin
   update public.hookengine_profiles set plan='free' where user_id=v_free_user;
 
   v_result := public.hookengine_reserve_generation(
-    v_free_user,'article','Free root','','', 'generation',null,array['x_thread']::text[]
+    v_free_user,'unsupported_source','Invalid','','', 'generation',null,array['x_thread']::text[]
   );
-  -- The source text is supplied below through the same persisted input used for regeneration.
-  if coalesce((v_result->>'allowed')::boolean,false) then
-    raise exception 'Empty article source unexpectedly passed the reservation RPC';
+  if v_result->>'reason' <> 'invalid_source_type' then
+    raise exception 'Unsupported source type was not rejected: %',v_result;
   end if;
 
   v_result := public.hookengine_reserve_generation(
