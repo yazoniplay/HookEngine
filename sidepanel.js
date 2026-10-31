@@ -218,47 +218,164 @@ function sendExtraction(type) {
 $("extractBtn").addEventListener("click",()=>sendExtraction("HOOKENGINE_EXTRACT_ACTIVE_TAB"));
 $("selectionBtn").addEventListener("click",()=>sendExtraction("HOOKENGINE_EXTRACT_SELECTION"));
 
+function outputVersions(value) {
+  const versions = Array.isArray(value)
+    ? value
+    : (typeof value === "string" ? value.split(VARIATION_SEPARATOR) : []);
+  return versions.filter(version => typeof version === "string" && version.trim()).map(version => version.trim());
+}
+
 function renderOutputs(outputs) {
-  const root=$("outputList");root.replaceChildren();
-  const entries=Object.entries(outputs||{}).filter(([key,value])=>PLATFORM_LABELS[key]&&typeof value==="string"&&value.trim());
-  $("resultCount").textContent=entries.length+" drafts";
-  for(const [key,value] of entries) {
-    const card=document.createElement("article");card.className="output-card";
-    const top=document.createElement("div");top.className="output-top";
-    const title=document.createElement("strong");title.className="output-title";title.textContent=PLATFORM_LABELS[key];
-    const copy=document.createElement("button");copy.className="copy-btn";copy.type="button";copy.textContent="Copy";
-    const versions=value.split(VARIATION_SEPARATOR).map(v=>v.trim()).filter(Boolean);
-    const editor=document.createElement("textarea");editor.className="output-text";
-    editor.value=versions[0]||value;editor.rows=Math.min(12,Math.max(5,Math.ceil(editor.value.length/75)));
-    editor.setAttribute("aria-label",PLATFORM_LABELS[key]+" draft");
-    copy.addEventListener("click",async()=>{try{await navigator.clipboard.writeText(editor.value);copy.textContent="Copied";setTimeout(()=>copy.textContent="Copy",1200);}catch{showError("Clipboard access failed. Select the draft and copy it manually.");}});
-    top.append(title,copy);card.append(top);
-    if(versions.length>1){
-      const tabs=document.createElement("div");tabs.className="variation-tabs";
-      versions.forEach((version,index)=>{const button=document.createElement("button");button.type="button";button.className="variation-tab"+(index===0?" active":"");button.textContent="Version "+(index+1);button.addEventListener("click",()=>{editor.value=version;editor.rows=Math.min(12,Math.max(5,Math.ceil(version.length/75)));tabs.querySelectorAll("button").forEach((b,i)=>b.classList.toggle("active",i===index));});tabs.append(button);});
+  const root = $("outputList");
+  root.replaceChildren();
+  const entries = Object.entries(outputs || {})
+    .map(([key, value]) => [key, outputVersions(value)])
+    .filter(([key, versions]) => PLATFORM_LABELS[key] && versions.length);
+  $("resultCount").textContent = entries.length + " platforms";
+  $("copyAllBtn").hidden = entries.length === 0;
+  $("clearResultsBtn").hidden = entries.length === 0;
+
+  for (const [key, versions] of entries) {
+    const card = document.createElement("article");
+    card.className = "output-card";
+    const top = document.createElement("div");
+    top.className = "output-top";
+    const title = document.createElement("strong");
+    title.className = "output-title";
+    title.textContent = PLATFORM_LABELS[key];
+
+    const actions = document.createElement("div");
+    actions.className = "output-actions";
+    const copy = document.createElement("button");
+    copy.className = "copy-btn";
+    copy.type = "button";
+    copy.textContent = "Copy";
+
+    const editor = document.createElement("textarea");
+    editor.className = "output-text";
+    editor.value = versions[0];
+    editor.rows = Math.min(12, Math.max(5, Math.ceil(editor.value.length / 75)));
+    editor.setAttribute("aria-label", PLATFORM_LABELS[key] + " draft");
+
+    const meta = document.createElement("span");
+    meta.className = "output-meta";
+    const threadParts = key === "x_thread"
+      ? (editor.value.match(/^\s*\d+\s*(?:\/|of)\s*\d+/gm) || []).length
+      : 0;
+    meta.textContent = (threadParts ? threadParts + " posts · " : "") +
+      editor.value.length.toLocaleString() + " characters";
+
+    copy.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(editor.value);
+        copy.textContent = "Copied";
+        setTimeout(() => copy.textContent = "Copy", 1200);
+      } catch {
+        showError("Clipboard access failed. Select the draft and copy it manually.");
+      }
+    });
+    actions.append(copy);
+    top.append(title, meta, actions);
+    card.append(top);
+
+    if (versions.length > 1) {
+      const tabs = document.createElement("div");
+      tabs.className = "variation-tabs";
+      versions.forEach((version, index) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "variation-tab" + (index === 0 ? " active" : "");
+        button.textContent = "Version " + (index + 1);
+        button.addEventListener("click", () => {
+          editor.value = version;
+          editor.rows = Math.min(12, Math.max(5, Math.ceil(version.length / 75)));
+          const parts = key === "x_thread"
+            ? (version.match(/^\s*\d+\s*(?:\/|of)\s*\d+/gm) || []).length
+            : 0;
+          meta.textContent = (parts ? parts + " posts · " : "") +
+            version.length.toLocaleString() + " characters";
+          tabs.querySelectorAll("button").forEach((tab, i) => tab.classList.toggle("active", i === index));
+        });
+        tabs.append(button);
+      });
       card.append(tabs);
     }
-    card.append(editor);root.append(card);
+
+    card.append(editor);
+    root.append(card);
   }
-  $("results").hidden=entries.length===0;
+  $("results").hidden = entries.length === 0;
 }
+
+$("copyAllBtn").addEventListener("click", async () => {
+  const drafts = [...document.querySelectorAll(".output-card")].map(card => {
+    const title = card.querySelector(".output-title")?.textContent || "Draft";
+    const text = card.querySelector(".output-text")?.value || "";
+    return title + "\n\n" + text;
+  }).filter(Boolean).join("\n\n--------------------\n\n");
+  if (!drafts) return;
+  try {
+    await navigator.clipboard.writeText(drafts);
+    $("copyAllBtn").textContent = "Copied all";
+    setTimeout(() => $("copyAllBtn").textContent = "Copy all", 1200);
+  } catch {
+    showError("Clipboard access failed. Copy drafts individually.");
+  }
+});
+
+$("clearResultsBtn").addEventListener("click", async () => {
+  try {
+    await chrome.runtime.sendMessage({ type: "HOOKENGINE_CLEAR_LAST_GENERATION" });
+    $("results").hidden = true;
+    $("providerNote").hidden = true;
+  } catch {
+    showError("Could not clear saved drafts.");
+  }
+});
+
 async function requestGeneration(payload) {
-  if(!accountSession?.access_token) throw new Error("Sign in to generate drafts.");
-  const response=await fetch(FUNCTION_URL,{
-    method:"POST",
-    headers:{"Content-Type":"application/json",apikey:SUPABASE_KEY,Authorization:"Bearer "+accountSession.access_token},
-    body:JSON.stringify(payload)
+  if (!accountSession?.access_token) throw new Error("Sign in to generate drafts.");
+  const result = await chrome.runtime.sendMessage({
+    type: "HOOKENGINE_GENERATE",
+    payload
   });
-  const data=await response.json().catch(()=>({}));
-  if(!response.ok) throw new Error(data.error||"Generation failed ("+response.status+").");
-  if(data.usage) accountUsage=data.usage;
+  if (chrome.runtime.lastError) throw new Error(chrome.runtime.lastError.message);
+  if (!result?.ok) throw new Error(result?.error || "Generation failed.");
+  const data = result.data || {};
+
+  if (data.usage) accountUsage = data.usage;
   else await refreshUsage();
   renderAccount();
-  const outputs=data.outputs||Object.fromEntries(["x_thread","linkedin_post","tiktok_hooks"].filter(k=>typeof data[k]==="string").map(k=>[k,data[k]]));
-  renderOutputs(outputs);
-  $("providerNote").hidden=!data.provider;
-  if(data.provider) $("providerNote").textContent="Generated with "+data.provider+(data.fallbackUsed?" · primary provider unavailable":"");
+  renderOutputs(result.lastGeneration?.outputs || data.outputs || {});
+  const notes = [];
+  if (result.transcriptUsed) notes.push("Transcript-first");
+  else if (payload.sourceMode === "youtube_video") notes.push("Gemini video analysis");
+  if (data.provider) notes.push("Generated with " + data.provider);
+  if (data.fallbackUsed) notes.push("primary provider unavailable");
+  $("providerNote").textContent = notes.join(" · ");
+  $("providerNote").hidden = notes.length === 0;
   return data;
+}
+
+async function restoreLastGeneration() {
+  try {
+    const result = await chrome.runtime.sendMessage({ type: "HOOKENGINE_GET_LAST_GENERATION" });
+    if (!result?.ok || !result.lastGeneration) return;
+    const last = result.lastGeneration;
+    renderOutputs(last.outputs || {});
+    if (last.usage) accountUsage = last.usage;
+    renderAccount();
+
+    const notes = [];
+    if (last.transcriptUsed) notes.push("Transcript-first");
+    else if (last.sourceMode === "youtube_video") notes.push("Gemini video analysis");
+    if (last.provider) notes.push("Generated with " + last.provider);
+    if (last.fallbackUsed) notes.push("primary provider unavailable");
+    $("providerNote").textContent = notes.join(" · ");
+    $("providerNote").hidden = notes.length === 0;
+  } catch (error) {
+    console.warn("HookEngine: could not restore the previous result", error);
+  }
 }
 async function generateForSource(sourceMode="text",sourceUrl="") {
   clearError();$("providerNote").hidden=true;
@@ -268,7 +385,7 @@ async function generateForSource(sourceMode="text",sourceUrl="") {
     return showError("Add at least " + MIN_SOURCE_CHARS + " characters of source text first.");
   if (sourceMode === "text" && $("sourceText").value.length > MAX_SOURCE_CHARS)
     return showError("Source text must be " + MAX_SOURCE_CHARS.toLocaleString() + " characters or fewer.");
-  setLoading(true,sourceMode==="youtube_video"?"Analyzing the YouTube video…":"Generating drafts…");
+  setLoading(true,sourceMode === "youtube_video" ? "Checking for a transcript before video analysis…" : "Generating drafts…");
   try {
     await requestGeneration({
       text:sourceMode==="text"?$("sourceText").value.trim():"",
@@ -296,4 +413,4 @@ $("analyzeVideoBtn").addEventListener("click",()=>{
   });
 });
 $("accountToggle").addEventListener("keydown",e=>{if(e.key==="Enter")$("accountToggle").click();});
-initTheme();loadAccountSession();updateSourceMeta();updatePlatformCount();
+initTheme();loadAccountSession();restoreLastGeneration();updateSourceMeta();updatePlatformCount();
