@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import {
   GENERATION_SYSTEM_INSTRUCTION,
+  interactionsSchemaFor,
   parseOutputs,
   runWithProviderFallback,
   schemaFor,
@@ -296,7 +297,7 @@ async function generateYouTube(
       response_format: {
         type: "text",
         mime_type: "application/json",
-        schema: schemaFor(platforms, variationCount),
+        schema: interactionsSchemaFor(platforms, variationCount),
       },
       generation_config: { max_output_tokens: 6000 },
       store: false,
