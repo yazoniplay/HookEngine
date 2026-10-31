@@ -423,7 +423,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     "HOOKENGINE_GET_LAST_GENERATION",
     "HOOKENGINE_CLEAR_LAST_GENERATION"
   ];
-  if (!supported.includes(message?.type) || sender?.id !== chrome.runtime.id) return;
+  if (!supported.includes(message?.type) || (sender?.id && sender.id !== chrome.runtime.id)) return;
 
   (async () => {
     if (message.type === "HOOKENGINE_GENERATE") {
