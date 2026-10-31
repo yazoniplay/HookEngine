@@ -48,3 +48,10 @@ test("extracts the embedded YouTube player response without greedy parsing", () 
   const html = "prefix ytInitialPlayerResponse = " + JSON.stringify(expected) + "; suffix";
   assert.deepEqual(JSON.parse(JSON.stringify(context.extractPlayerResponse(html))), expected);
 });
+
+test("accepts only HTTPS YouTube timed-text caption URLs", () => {
+  assert.match(context.normalizeCaptionUrl("https://www.youtube.com/api/timedtext?v=abc"), /^https:\/\/www\.youtube\.com\/api\/timedtext/);
+  assert.equal(context.normalizeCaptionUrl("http://www.youtube.com/api/timedtext?v=abc"), "");
+  assert.equal(context.normalizeCaptionUrl("https://attacker.example/api/timedtext?v=abc"), "");
+  assert.equal(context.normalizeCaptionUrl("https://www.youtube.com/watch?v=abc"), "");
+});
