@@ -23,6 +23,8 @@ jobs:
         run: deno check supabase/functions/hookengine-generate/index.ts
       - name: Type-check admin plan Edge Function
         run: deno check supabase/functions/hookengine-admin-plan/index.ts
+      - name: Type-check PayPal webhook Edge Function
+        run: deno check supabase/functions/hookengine-paypal-webhook/index.ts
       - name: Check account JavaScript syntax
         run: node --check account/account.js
       - name: Check extension popup JavaScript syntax
