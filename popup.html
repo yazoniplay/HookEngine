@@ -35,7 +35,7 @@
 
   <section class="account-strip" id="accountStrip">
     <div class="account-state"><span class="account-indicator"></span><span id="accountSummary">Sign in to use HookEngine</span></div>
-    <div class="account-actions"><span id="planSummary" class="plan-tag">FREE</span><button id="accountToggle" class="text-button" type="button">Sign in</button></div>
+    <div class="account-actions"><span id="planSummary" class="plan-tag">FREE</span><button id="accountToggle" class="text-button" type="button" aria-controls="accountPanel" aria-expanded="false">Sign in</button></div>
   </section>
   <section id="accountPanel" class="account-panel" hidden>
     <div id="signedOutPanel">
@@ -68,7 +68,7 @@
       </button>
       <button id="selectionBtn" class="selection-action" type="button"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 5h16M4 9h10M4 13h16M4 17h10"/><path d="M18 16v5m-2.5-2.5h5"/></svg> Use selected text instead</button>
     </div>
-    <textarea id="sourceText" rows="5" placeholder="Paste an article or transcript, or read the current page…"></textarea>
+    <textarea id="sourceText" rows="5" maxlength="60000" placeholder="Paste an article or transcript, or read the current page…"></textarea>
     <div class="source-meta"><span id="charCount">0 characters</span><button id="clearSourceBtn" class="text-button" type="button">Clear</button></div>
     <label class="field-label" for="sourceTitle">Title <span>Optional</span></label>
     <input id="sourceTitle" type="text" placeholder="Source title">
@@ -94,12 +94,12 @@
   <p id="providerNote" class="provider-note" role="status" hidden></p>
 
   <section id="results" class="results" hidden>
-    <div class="results-head"><h2>Drafts</h2><span id="resultCount" class="source-label"></span></div>
+    <div class="results-head"><h2>Drafts</h2><div class="results-actions"><span id="resultCount" class="source-label"></span><button id="copyAllBtn" class="text-button" type="button" hidden>Copy all</button><button id="clearResultsBtn" class="text-button" type="button" hidden>Clear</button></div></div>
     <div id="outputList" class="output-list"></div>
   </section>
-  <a id="upgradeButton" class="upgrade-button" href="https://yazoniplay.github.io/HookEngine/account/" target="_blank" rel="noopener"><span><strong>Upgrade to Pro</strong><small>Unlock all platforms, 3 variations per draft & 100 daily generations</small></span><span aria-hidden="true">↗</span></a>
+  <a id="upgradeButton" class="upgrade-button" href="https://yazoniplay.github.io/HookEngine/account/" target="_blank" rel="noopener"><span><strong>Upgrade to Pro</strong><small>Unlock every platform, more variations and higher usage limits</small></span><span aria-hidden="true">↗</span></a>
   <footer><span>HookEngine</span><a href="https://yazoniplay.github.io/HookEngine/account/" target="_blank" rel="noopener">Manage account ↗</a></footer>
 </main>
-<script src="sidepanel.js"></script>
+<script type="module" src="sidepanel.js"></script>
 </body>
 </html>

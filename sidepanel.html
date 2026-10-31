@@ -22,7 +22,7 @@
 
   <section class="account-strip" id="accountStrip">
     <div class="account-state"><span class="account-indicator"></span><span id="accountSummary">Sign in to use HookEngine</span></div>
-    <button id="accountToggle" class="text-button" type="button">Sign in</button>
+    <button id="accountToggle" class="text-button" type="button" aria-controls="accountPanel" aria-expanded="false">Sign in</button>
   </section>
   <section id="accountPanel" class="account-panel" hidden>
     <div id="signedOutPanel">
@@ -47,7 +47,7 @@
       <button id="selectionBtn" class="secondary-button" type="button">Use selection</button>
       <button id="analyzeVideoBtn" class="secondary-button video-action" type="button">▶ YouTube</button>
     </div>
-    <textarea id="sourceText" rows="5" placeholder="Paste an article or transcript, or read the current page…"></textarea>
+    <textarea id="sourceText" rows="5" maxlength="60000" placeholder="Paste an article or transcript, or read the current page…"></textarea>
     <div class="source-meta"><span id="charCount">0 characters</span><button id="clearSourceBtn" class="text-button" type="button">Clear</button></div>
     <label class="field-label" for="sourceTitle">Title <span>Optional</span></label>
     <input id="sourceTitle" type="text" placeholder="Source title">
@@ -73,11 +73,11 @@
   <p id="providerNote" class="provider-note" role="status" hidden></p>
 
   <section id="results" class="results" hidden>
-    <div class="results-head"><h2>Drafts</h2><span id="resultCount" class="source-label"></span></div>
+    <div class="results-head"><h2>Drafts</h2><div class="results-actions"><span id="resultCount" class="source-label"></span><button id="copyAllBtn" class="text-button" type="button" hidden>Copy all</button><button id="clearResultsBtn" class="text-button" type="button" hidden>Clear</button></div></div>
     <div id="outputList" class="output-list"></div>
   </section>
   <footer><span>HookEngine</span><a href="https://yazoniplay.github.io/HookEngine/account/" target="_blank" rel="noopener">Manage account ↗</a></footer>
 </main>
-<script src="sidepanel.js"></script>
+<script type="module" src="sidepanel.js"></script>
 </body>
 </html>

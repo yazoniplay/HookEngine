@@ -1,0 +1,63 @@
+name: Extension tests
+
+on:
+  pull_request:
+    paths:
+      - "background.js"
+      - "content.js"
+      - "extension/**"
+      - "icons/**"
+      - "vendor/**"
+      - "manifest.json"
+      - "popup.html"
+      - "sidepanel.html"
+      - "sidepanel.js"
+      - "settings.html"
+      - "settings.js"
+      - "styles.css"
+      - "tests/**"
+      - ".github/workflows/extension-tests.yml"
+  push:
+    branches:
+      - "phase-1-*"
+    paths:
+      - "background.js"
+      - "content.js"
+      - "extension/**"
+      - "icons/**"
+      - "vendor/**"
+      - "manifest.json"
+      - "popup.html"
+      - "sidepanel.html"
+      - "sidepanel.js"
+      - "settings.html"
+      - "settings.js"
+      - "styles.css"
+      - "tests/**"
+      - ".github/workflows/extension-tests.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  extension-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+      - name: Check extension JavaScript syntax
+        run: |
+          node --check background.js
+          node --check content.js
+          node --check sidepanel.js
+          node --check settings.js
+          node --check extension/auth.js
+          node --check extension/config.js
+          node --check vendor/readability.js
+      - name: Run extension regression tests
+        run: node --test tests/*.test.mjs

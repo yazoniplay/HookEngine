@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "HookEngine — Content Repurposer",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "description": "Turn articles and public YouTube videos into ready-to-edit social content.",
   "minimum_chrome_version": "116",
   "permissions": [
@@ -16,9 +16,19 @@
     "https://ppaknwuwiublxogclqdw.supabase.co/*"
   ],
   "options_page": "settings.html",
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
   "action": {
     "default_title": "Open HookEngine",
-    "default_popup": "popup.html"
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png"
+    }
   },
   "background": {
     "service_worker": "background.js",

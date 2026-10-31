@@ -3,8 +3,9 @@
 Chrome Manifest V3 extension popup that opens from the browser toolbar and turns articles, selected page text and public YouTube videos into editable social drafts.
 
 ## Plans
-- Free: X threads, LinkedIn posts and TikTok hooks; 5 generations per day.
-- Pro: everything in Free plus Instagram captions, Threads sequences and Facebook posts; 100 generations per day.
+- Free includes X threads, LinkedIn posts and TikTok hooks.
+- Pro adds Instagram captions, Threads sequences and Facebook posts, plus additional variations.
+- Current usage limits are shown in the account portal; this README intentionally avoids hard-coding limits that may change.
 
 ## Managed AI providers
 All provider calls run inside the Supabase Edge Function. Provider keys are never included in extension code.
@@ -25,6 +26,8 @@ Text generation order: Gemini, then Groq, then Ollama Cloud. Fallback is attempt
 Apply the new migration under `supabase/migrations` before deploying the updated Edge Function. It adds JSON output, selected-platform metadata and provider attribution to generation history, and updates the server-only finalize RPC.
 
 ## Extension popup
+
+Current extension manifest version: `1.7.0`.
 HookEngine opens as a toolbar popup, not a Chrome side panel.
 
 1. Open `chrome://extensions`.
@@ -32,8 +35,14 @@ HookEngine opens as a toolbar popup, not a Chrome side panel.
 3. Select this repository folder.
 4. Sign in, read a page or paste source text, choose platforms and generate.
 
+## Development checks
+Run the extension regression suite with Node.js 22 or newer:
+
+```bash
+node --test tests/*.test.mjs
+```
+
 ## Account and limits
 - Account portal: https://yazoniplay.github.io/HookEngine/account/
-- Free: 5 generations per UTC day.
-- Pro: 100 generations per UTC day.
+- Usage limits are plan-managed and displayed in the account portal.
 - PayPal checkout still depends on the existing merchant configuration.

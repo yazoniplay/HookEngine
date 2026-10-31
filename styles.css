@@ -78,10 +78,12 @@ textarea::placeholder,input::placeholder{color:var(--subtle)}
 .error{margin:8px 0 0;padding:8px 9px;border-radius:6px;background:var(--danger-bg);color:var(--danger);font-size:10px}
 .provider-note{margin:7px 0 0;color:var(--muted);font-size:9px}
 .results{padding-top:15px}.results-head{margin-bottom:8px}
+.results-actions,.output-actions{display:flex;align-items:center;gap:7px}
 .output-list{display:grid;gap:7px}
 .output-card{padding:9px;border:1px solid var(--line);border-radius:7px;background:var(--surface)}
-.output-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px}
+.output-top{display:flex;align-items:center;gap:8px;margin-bottom:7px;flex-wrap:wrap}
 .output-title{font-size:10px;font-weight:700}
+.output-meta{margin-left:auto;color:var(--muted);font-size:9px;font-variant-numeric:tabular-nums}
 .copy-btn{padding:5px 8px;border:1px solid var(--line);border-radius:5px;background:var(--surface-2);color:var(--text);font-size:9px;font-weight:650}
 .copy-btn:hover{border-color:var(--accent)}
 .output-text{min-height:100px;font-size:10px;line-height:1.55}

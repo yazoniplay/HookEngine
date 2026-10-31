@@ -1,19 +1,24 @@
+import {
+  SUPABASE_URL,
+  SUPABASE_KEY,
+  FUNCTION_URL,
+  STORAGE_KEYS,
+  MAX_SOURCE_CHARS,
+  MIN_SOURCE_CHARS,
+  VARIATION_SEPARATOR,
+  PLATFORM_LABELS
+} from "./extension/config.js";
+import {
+  restoreSession,
+  signIn as authenticate,
+  signOut as terminateSession
+} from "./extension/auth.js";
+
 const $ = id => document.getElementById(id);
-const SUPABASE_URL = "https://ppaknwuwiublxogclqdw.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBwYWtud3V3aXVibHhvZ2NscWR3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE5NzkxNzQsImV4cCI6MjEwNzU1NTE3NH0.mlJayLmT_xCRfGjyrA7j8bqKQVhQrjhCBD5e3czVfr0";
-const FUNCTION_URL = SUPABASE_URL + "/functions/v1/hookengine-generate";
-const SESSION_KEY = "hookengine-account-session";
-const THEME_KEY = "hookengine-theme";
-const WRITING_PREFS_KEY = "hookengine-writing-preferences";
-const VARIATION_SEPARATOR = "\\n\\n---HOOKENGINE-VARIATION---\\n\\n";
-const PLATFORM_LABELS = {
-  x_thread: "X thread",
-  linkedin_post: "LinkedIn post",
-  tiktok_hooks: "TikTok hooks",
-  instagram_caption: "Instagram caption",
-  threads_posts: "Threads posts",
-  facebook_post: "Facebook post"
-};
+const SESSION_KEY = STORAGE_KEYS.session;
+const THEME_KEY = STORAGE_KEYS.theme;
+const WRITING_PREFS_KEY = STORAGE_KEYS.writingPreferences;
+
 let accountSession = null;
 let accountUser = null;
 let accountUsage = { plan:"free", used:0, limit:5, remaining:5 };
@@ -55,6 +60,7 @@ function renderAccount() {
   $("upgradeButton").hidden = accountUsage.plan === "pro";
   $("planSummary").textContent = accountUsage.plan.toUpperCase();
   $("accountPanel").hidden = true;
+  $("accountToggle").setAttribute("aria-expanded", "false");
   $("accountToggle").textContent = signedIn ? "Account" : "Sign in";
   $("accountStrip").classList.toggle("is-signed-in", signedIn);
   $("accountSummary").textContent = signedIn
@@ -78,33 +84,21 @@ function renderAccount() {
   $("proHint").hidden = accountUsage.plan === "pro";
 }
 $("accountToggle").addEventListener("click", () => {
-  $("accountPanel").hidden = !$("accountPanel").hidden;
+  const panel = $("accountPanel");
+  panel.hidden = !panel.hidden;
+  $("accountToggle").setAttribute("aria-expanded", String(!panel.hidden));
 });
 async function loadAccountSession() {
   try {
-    const saved = await chrome.storage.local.get(SESSION_KEY);
-    accountSession = saved[SESSION_KEY] || null;
-    if (accountSession?.expires_at && accountSession.expires_at * 1000 < Date.now() + 30000 && accountSession.refresh_token) {
-      const refreshed = await fetch(SUPABASE_URL + "/auth/v1/token?grant_type=refresh_token", {
-        method:"POST",headers:{apikey:SUPABASE_KEY,"Content-Type":"application/json"},
-        body:JSON.stringify({refresh_token:accountSession.refresh_token})
-      });
-      if (!refreshed.ok) throw new Error("Session expired");
-      accountSession = await refreshed.json();
-      accountSession.expires_at = Math.floor(Date.now()/1000) + (accountSession.expires_in || 3600);
-      await chrome.storage.local.set({[SESSION_KEY]:accountSession});
-    }
-    if (accountSession?.access_token) {
-      const response = await fetch(SUPABASE_URL + "/auth/v1/user", {
-        headers:{apikey:SUPABASE_KEY,Authorization:"Bearer "+accountSession.access_token}
-      });
-      if (!response.ok) throw new Error("Session expired");
-      accountUser = await response.json();
-    } else accountSession = null;
-  } catch {
-    accountSession = null; accountUser = null;
-    await chrome.storage.local.remove(SESSION_KEY);
+    const restored = await restoreSession();
+    accountSession = restored.session;
+    accountUser = restored.user;
+    if (restored.warning) showError(restored.warning);
+  } catch (error) {
+    console.warn("HookEngine: account session could not be restored", error);
+    showError("Couldn't restore your account right now. Your saved session has not been deleted.");
   }
+
   renderAccount();
   if (accountUser) await refreshUsage();
 }
@@ -124,38 +118,58 @@ async function refreshUsage() {
   } catch {}
   renderAccount();
 }
-async function signIn() {
-  const email=($("gateEmail")?.value || $("accountEmail").value).trim(),password=$("gatePassword")?.value || $("accountPassword").value;
-  const message=$("gateMessage") || $("accountMessage");
-  const signInButton=$("gateSignIn") || $("accountSignIn");
-  signInButton.disabled=true;message.textContent="Signing in…";
+async function signIn(source = "account") {
+  const isGate = source === "gate";
+  const emailInput = $(isGate ? "gateEmail" : "accountEmail");
+  const passwordInput = $(isGate ? "gatePassword" : "accountPassword");
+  const message = $(isGate ? "gateMessage" : "accountMessage");
+  const signInButton = $(isGate ? "gateSignIn" : "accountSignIn");
+  const email = emailInput.value.trim();
+  const password = passwordInput.value;
+
+  if (!email || !password) {
+    message.textContent = "Enter your email and password.";
+    return;
+  }
+
+  signInButton.disabled = true;
+  message.textContent = "Signing in…";
   try {
-    const response=await fetch(SUPABASE_URL+"/auth/v1/token?grant_type=password",{
-      method:"POST",headers:{apikey:SUPABASE_KEY,"Content-Type":"application/json"},
-      body:JSON.stringify({email,password})
-    });
-    const data=await response.json().catch(()=>({}));
-    if(!response.ok) throw new Error(data.msg||data.message||"Check your email and password.");
-    data.expires_at=Math.floor(Date.now()/1000)+(data.expires_in||3600);
-    accountSession=data;accountUser=data.user;
-    await chrome.storage.local.set({[SESSION_KEY]:data});
-    $("accountPassword").value="";if($("gatePassword"))$("gatePassword").value="";message.textContent="";
-    await refreshUsage();renderAccount();
-  } catch(error) {message.textContent=error.message||"Could not sign in.";}
-  finally {signInButton.disabled=false;}
+    const result = await authenticate(email, password);
+    accountSession = result.session;
+    accountUser = result.user;
+    $("accountPassword").value = "";
+    $("gatePassword").value = "";
+    message.textContent = "";
+    await refreshUsage();
+    renderAccount();
+  } catch (error) {
+    message.textContent = error.message || "Could not sign in.";
+  } finally {
+    signInButton.disabled = false;
+  }
 }
-$("accountSignIn").addEventListener("click",signIn);
-$("gateSignIn").addEventListener("click",signIn);
-$("gatePassword").addEventListener("keydown",e=>{if(e.key==="Enter")signIn();});
-$("accountPassword").addEventListener("keydown",e=>{if(e.key==="Enter")signIn();});
-$("accountSignOut").addEventListener("click",async()=>{
-  if(accountSession?.access_token) fetch(SUPABASE_URL+"/auth/v1/logout",{method:"POST",headers:{apikey:SUPABASE_KEY,Authorization:"Bearer "+accountSession.access_token}}).catch(()=>{});
-  accountSession=null;accountUser=null;accountUsage={plan:"free",used:0,limit:5,remaining:5};
-  await chrome.storage.local.remove(SESSION_KEY);renderAccount();
+
+$("accountSignIn").addEventListener("click", () => signIn("account"));
+$("gateSignIn").addEventListener("click", () => signIn("gate"));
+$("gatePassword").addEventListener("keydown", event => {
+  if (event.key === "Enter") signIn("gate");
 });
+$("accountPassword").addEventListener("keydown", event => {
+  if (event.key === "Enter") signIn("account");
+});
+$("accountSignOut").addEventListener("click", async () => {
+  await terminateSession();
+  accountSession = null;
+  accountUser = null;
+  accountUsage = { plan: "free", used: 0, limit: 5, remaining: 5 };
+  renderAccount();
+});
+
 function updateSourceMeta() {
-  $("charCount").textContent=($("sourceText").value.length).toLocaleString()+" characters";
-  $("sourceLabel").textContent=$("sourceText").value.trim()?"Source added":"No source";
+  const length = $("sourceText").value.length;
+  $("charCount").textContent = length.toLocaleString() + " / " + MAX_SOURCE_CHARS.toLocaleString() + " characters";
+  $("sourceLabel").textContent = length > MAX_SOURCE_CHARS ? "Source too long" : ($("sourceText").value.trim() ? "Source added" : "No source");
 }
 $("sourceText").addEventListener("input",updateSourceMeta);
 $("clearSourceBtn").addEventListener("click",()=>{
@@ -207,55 +221,174 @@ function sendExtraction(type) {
 $("extractBtn").addEventListener("click",()=>sendExtraction("HOOKENGINE_EXTRACT_ACTIVE_TAB"));
 $("selectionBtn").addEventListener("click",()=>sendExtraction("HOOKENGINE_EXTRACT_SELECTION"));
 
+function outputVersions(value) {
+  const versions = Array.isArray(value)
+    ? value
+    : (typeof value === "string" ? value.split(VARIATION_SEPARATOR) : []);
+  return versions.filter(version => typeof version === "string" && version.trim()).map(version => version.trim());
+}
+
 function renderOutputs(outputs) {
-  const root=$("outputList");root.replaceChildren();
-  const entries=Object.entries(outputs||{}).filter(([key,value])=>PLATFORM_LABELS[key]&&typeof value==="string"&&value.trim());
-  $("resultCount").textContent=entries.length+" drafts";
-  for(const [key,value] of entries) {
-    const card=document.createElement("article");card.className="output-card";
-    const top=document.createElement("div");top.className="output-top";
-    const title=document.createElement("strong");title.className="output-title";title.textContent=PLATFORM_LABELS[key];
-    const copy=document.createElement("button");copy.className="copy-btn";copy.type="button";copy.textContent="Copy";
-    const versions=value.split(VARIATION_SEPARATOR).map(v=>v.trim()).filter(Boolean);
-    const editor=document.createElement("textarea");editor.className="output-text";
-    editor.value=versions[0]||value;editor.rows=Math.min(12,Math.max(5,Math.ceil(editor.value.length/75)));
-    editor.setAttribute("aria-label",PLATFORM_LABELS[key]+" draft");
-    copy.addEventListener("click",async()=>{try{await navigator.clipboard.writeText(editor.value);copy.textContent="Copied";setTimeout(()=>copy.textContent="Copy",1200);}catch{showError("Clipboard access failed. Select the draft and copy it manually.");}});
-    top.append(title,copy);card.append(top);
-    if(versions.length>1){
-      const tabs=document.createElement("div");tabs.className="variation-tabs";
-      versions.forEach((version,index)=>{const button=document.createElement("button");button.type="button";button.className="variation-tab"+(index===0?" active":"");button.textContent="Version "+(index+1);button.addEventListener("click",()=>{editor.value=version;editor.rows=Math.min(12,Math.max(5,Math.ceil(version.length/75)));tabs.querySelectorAll("button").forEach((b,i)=>b.classList.toggle("active",i===index));});tabs.append(button);});
+  const root = $("outputList");
+  root.replaceChildren();
+  const entries = Object.entries(outputs || {})
+    .map(([key, value]) => [key, outputVersions(value)])
+    .filter(([key, versions]) => PLATFORM_LABELS[key] && versions.length);
+  $("resultCount").textContent = entries.length + " platforms";
+  $("copyAllBtn").hidden = entries.length === 0;
+  $("clearResultsBtn").hidden = entries.length === 0;
+
+  for (const [key, versions] of entries) {
+    const card = document.createElement("article");
+    card.className = "output-card";
+    const top = document.createElement("div");
+    top.className = "output-top";
+    const title = document.createElement("strong");
+    title.className = "output-title";
+    title.textContent = PLATFORM_LABELS[key];
+
+    const actions = document.createElement("div");
+    actions.className = "output-actions";
+    const copy = document.createElement("button");
+    copy.className = "copy-btn";
+    copy.type = "button";
+    copy.textContent = "Copy";
+
+    const editor = document.createElement("textarea");
+    editor.className = "output-text";
+    editor.value = versions[0];
+    editor.rows = Math.min(12, Math.max(5, Math.ceil(editor.value.length / 75)));
+    editor.setAttribute("aria-label", PLATFORM_LABELS[key] + " draft");
+
+    const meta = document.createElement("span");
+    meta.className = "output-meta";
+    const threadParts = key === "x_thread"
+      ? (editor.value.match(/^\s*\d+\s*(?:\/|of)\s*\d+/gm) || []).length
+      : 0;
+    meta.textContent = (threadParts ? threadParts + " posts · " : "") +
+      editor.value.length.toLocaleString() + " characters";
+
+    copy.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(editor.value);
+        copy.textContent = "Copied";
+        setTimeout(() => copy.textContent = "Copy", 1200);
+      } catch {
+        showError("Clipboard access failed. Select the draft and copy it manually.");
+      }
+    });
+    actions.append(copy);
+    top.append(title, meta, actions);
+    card.append(top);
+
+    if (versions.length > 1) {
+      const tabs = document.createElement("div");
+      tabs.className = "variation-tabs";
+      versions.forEach((version, index) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "variation-tab" + (index === 0 ? " active" : "");
+        button.textContent = "Version " + (index + 1);
+        button.addEventListener("click", () => {
+          editor.value = version;
+          editor.rows = Math.min(12, Math.max(5, Math.ceil(version.length / 75)));
+          const parts = key === "x_thread"
+            ? (version.match(/^\s*\d+\s*(?:\/|of)\s*\d+/gm) || []).length
+            : 0;
+          meta.textContent = (parts ? parts + " posts · " : "") +
+            version.length.toLocaleString() + " characters";
+          tabs.querySelectorAll("button").forEach((tab, i) => tab.classList.toggle("active", i === index));
+        });
+        tabs.append(button);
+      });
       card.append(tabs);
     }
-    card.append(editor);root.append(card);
+
+    card.append(editor);
+    root.append(card);
   }
-  $("results").hidden=entries.length===0;
+  $("results").hidden = entries.length === 0;
 }
+
+$("copyAllBtn").addEventListener("click", async () => {
+  const drafts = [...document.querySelectorAll(".output-card")].map(card => {
+    const title = card.querySelector(".output-title")?.textContent || "Draft";
+    const text = card.querySelector(".output-text")?.value || "";
+    return title + "\n\n" + text;
+  }).filter(Boolean).join("\n\n--------------------\n\n");
+  if (!drafts) return;
+  try {
+    await navigator.clipboard.writeText(drafts);
+    $("copyAllBtn").textContent = "Copied all";
+    setTimeout(() => $("copyAllBtn").textContent = "Copy all", 1200);
+  } catch {
+    showError("Clipboard access failed. Copy drafts individually.");
+  }
+});
+
+$("clearResultsBtn").addEventListener("click", async () => {
+  try {
+    await chrome.runtime.sendMessage({ type: "HOOKENGINE_CLEAR_LAST_GENERATION" });
+    $("results").hidden = true;
+    $("providerNote").hidden = true;
+  } catch {
+    showError("Could not clear saved drafts.");
+  }
+});
+
 async function requestGeneration(payload) {
-  if(!accountSession?.access_token) throw new Error("Sign in to generate drafts.");
-  const response=await fetch(FUNCTION_URL,{
-    method:"POST",
-    headers:{"Content-Type":"application/json",apikey:SUPABASE_KEY,Authorization:"Bearer "+accountSession.access_token},
-    body:JSON.stringify(payload)
+  if (!accountSession?.access_token) throw new Error("Sign in to generate drafts.");
+  const result = await chrome.runtime.sendMessage({
+    type: "HOOKENGINE_GENERATE",
+    payload
   });
-  const data=await response.json().catch(()=>({}));
-  if(!response.ok) throw new Error(data.error||"Generation failed ("+response.status+").");
-  if(data.usage) accountUsage=data.usage;
+  if (chrome.runtime.lastError) throw new Error(chrome.runtime.lastError.message);
+  if (!result?.ok) throw new Error(result?.error || "Generation failed.");
+  const data = result.data || {};
+
+  if (data.usage) accountUsage = data.usage;
   else await refreshUsage();
   renderAccount();
-  const outputs=data.outputs||Object.fromEntries(["x_thread","linkedin_post","tiktok_hooks"].filter(k=>typeof data[k]==="string").map(k=>[k,data[k]]));
-  renderOutputs(outputs);
-  $("providerNote").hidden=!data.provider;
-  if(data.provider) $("providerNote").textContent="Generated with "+data.provider+(data.fallbackUsed?" · primary provider unavailable":"");
+  renderOutputs(result.lastGeneration?.outputs || data.outputs || {});
+  const notes = [];
+  if (result.transcriptUsed) notes.push("Transcript-first");
+  else if (payload.sourceMode === "youtube_video") notes.push("Gemini video analysis");
+  if (data.provider) notes.push("Generated with " + data.provider);
+  if (data.fallbackUsed) notes.push("primary provider unavailable");
+  $("providerNote").textContent = notes.join(" · ");
+  $("providerNote").hidden = notes.length === 0;
   return data;
+}
+
+async function restoreLastGeneration() {
+  try {
+    const result = await chrome.runtime.sendMessage({ type: "HOOKENGINE_GET_LAST_GENERATION" });
+    if (!result?.ok || !result.lastGeneration) return;
+    const last = result.lastGeneration;
+    renderOutputs(last.outputs || {});
+    if (last.usage) accountUsage = last.usage;
+    renderAccount();
+
+    const notes = [];
+    if (last.transcriptUsed) notes.push("Transcript-first");
+    else if (last.sourceMode === "youtube_video") notes.push("Gemini video analysis");
+    if (last.provider) notes.push("Generated with " + last.provider);
+    if (last.fallbackUsed) notes.push("primary provider unavailable");
+    $("providerNote").textContent = notes.join(" · ");
+    $("providerNote").hidden = notes.length === 0;
+  } catch (error) {
+    console.warn("HookEngine: could not restore the previous result", error);
+  }
 }
 async function generateForSource(sourceMode="text",sourceUrl="") {
   clearError();$("providerNote").hidden=true;
   const platforms=selectedPlatforms();
   if(!platforms.length)return showError("Choose at least one platform.");
-  if(sourceMode==="text"&&$("sourceText").value.trim().length<80)
-    return showError("Add at least 80 characters of source text first.");
-  setLoading(true,sourceMode==="youtube_video"?"Analyzing the YouTube video…":"Generating drafts…");
+  if (sourceMode === "text" && $("sourceText").value.trim().length < MIN_SOURCE_CHARS)
+    return showError("Add at least " + MIN_SOURCE_CHARS + " characters of source text first.");
+  if (sourceMode === "text" && $("sourceText").value.length > MAX_SOURCE_CHARS)
+    return showError("Source text must be " + MAX_SOURCE_CHARS.toLocaleString() + " characters or fewer.");
+  setLoading(true,sourceMode === "youtube_video" ? "Checking for a transcript before video analysis…" : "Generating drafts…");
   try {
     await requestGeneration({
       text:sourceMode==="text"?$("sourceText").value.trim():"",
@@ -282,5 +415,4 @@ $("analyzeVideoBtn").addEventListener("click",()=>{
     generateForSource("youtube_video",tab.url);
   });
 });
-$("accountToggle").addEventListener("keydown",e=>{if(e.key==="Enter")$("accountToggle").click();});
-initTheme();loadAccountSession();updateSourceMeta();updatePlatformCount();
+initTheme();loadAccountSession();restoreLastGeneration();updateSourceMeta();updatePlatformCount();
