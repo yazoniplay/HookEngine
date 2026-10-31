@@ -70,7 +70,8 @@ async function finish(userId:string,id:string,status:"completed"|"failed",output
     p_error_message:errorMessage,p_outputs:outputs,p_selected_platforms:platforms,p_provider:provider,
     p_model:model,p_input_tokens:inputTokens,p_output_tokens:outputTokens,p_latency_ms:latencyMs
   };
-  try{await rpc("hookengine_finish_generation",args);}catch(e){console.error("Could not finalize generation:",e);}
+  const finalized=await rpc("hookengine_finish_generation",args);
+  if(finalized!==true)throw new Error("Generation reservation could not be finalized.");
 }
 function promptFor(title:string,sourceText:string,platforms:string[],preferences:any,variationCount:number){
   const instructions=platforms.map(key=>key.toUpperCase()+": "+PLATFORM_GUIDANCE[key]).join("\n");
@@ -248,7 +249,8 @@ Deno.serve(async(req:Request)=>{
   }catch(error){
     const message=error instanceof Error?error.message:"Generation failed.";
     const latencyMs=Math.round(performance.now()-startedAt);
-    await finish(userId,reservation.generation_id,"failed",{},[],null,null,null,null,latencyMs,message);
+    try{await finish(userId,reservation.generation_id,"failed",{},[],null,null,null,null,latencyMs,message);}
+    catch(finalizeError){console.error("Could not record failed generation:",finalizeError);}
     console.error("HookEngine generation failed:",message.slice(0,300));
     return reply({error:message==="AI providers are temporarily unavailable. Please try again shortly."||message==="Could not analyze this YouTube video."?message:"Generation failed. Please try again."},502);
   }
