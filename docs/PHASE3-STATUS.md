@@ -1,6 +1,6 @@
 # HookEngine Phase 3 — Edge Function reliability
 
-**Status:** Implementation in review on `phase3-edge-reliability`. Not merged or deployed.  
+**Status:** Merged to `main` and deployed to production on 2026-10-31. Supabase Edge Function `hookengine-generate` is ACTIVE at version 20.  
 **Scope:** Edge Function reliability, validation and output quality.  
 **Manifest:** 1.7.0 unchanged.  
 **Database migrations:** None added in this phase so far.  
@@ -52,7 +52,7 @@ The branch adds:
 - `tests/generation-http-response.test.ts`: CORS headers on JSON errors and preflight responses.
 - CI checks generation Edge Function types, both new test files, existing reservation tests, admin/PayPal checks, extension JavaScript syntax and PostgreSQL migrations.
 
-The production source-privacy check was read-only. No production Edge Function has been replaced in this phase yet.
+The production source-privacy check was read-only. Production deployment replaced `hookengine-generate` v19 with v20. No database migration was required.
 
 ## Not yet verified
 
@@ -63,8 +63,8 @@ The production source-privacy check was read-only. No production Edge Function h
 - The wildcard CORS origin remains until the production extension/web origins are confirmed.
 - No Phase 4 work has started.
 
-## Manual steps after merge/deploy
-1. Load the updated extension from the repository in desktop Chrome (the Android Chrome app cannot load unpacked extensions).
+## Remaining acceptance tests
+1. Load the updated extension from the `main` branch in desktop Chrome or Chromebook Chrome (Android Chrome cannot load unpacked extensions).
 2. Test one Free text generation, one Pro/Trial multi-variation generation, a rejected Pro-only platform on Free, and a regeneration.
 3. Verify provider, token counts, latency and credit balance in account history/usage.
 4. If testing YouTube video analysis, use a public video and check the reservation/refund result if the provider times out.
