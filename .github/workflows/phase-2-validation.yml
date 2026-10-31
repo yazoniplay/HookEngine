@@ -21,6 +21,8 @@ jobs:
           deno-version: v2.x
       - name: Type-check generation Edge Function
         run: deno check supabase/functions/hookengine-generate/index.ts
+      - name: Test reservation refusal status mapping
+        run: deno test tests/reservation-status.test.ts
       - name: Type-check admin plan Edge Function
         run: deno check supabase/functions/hookengine-admin-plan/index.ts
       - name: Type-check PayPal webhook Edge Function
