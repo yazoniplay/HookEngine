@@ -4,6 +4,7 @@ do $hookengine_test$
 declare
   v_free_user uuid := '10000000-0000-4000-8000-000000000001';
   v_video_user uuid := '20000000-0000-4000-8000-000000000002';
+  v_transcript_user uuid := '30000000-0000-4000-8000-000000000003';
   v_source text := repeat('Validated source content for HookEngine integration tests. ', 2);
   v_other_source text := repeat('Different source content that must not be accepted for regeneration. ', 2);
   v_result jsonb;
@@ -16,7 +17,8 @@ declare
 begin
   insert into auth.users(id,email) values
     (v_free_user,'free-test@example.invalid'),
-    (v_video_user,'video-test@example.invalid');
+    (v_video_user,'video-test@example.invalid'),
+    (v_transcript_user,'transcript-test@example.invalid');
 
   if not exists (
     select 1 from public.hookengine_subscriptions
@@ -49,6 +51,16 @@ begin
     raise exception 'Article generation must reserve 1 credit: %',v_result;
   end if;
   v_root := (v_result->>'generation_id')::uuid;
+  if (select source_text from public.hookengine_generations where id=v_root) is not null then
+    raise exception 'Source text must never be persisted';
+  end if;
+  if (select source_hash from public.hookengine_generations where id=v_root)
+      is distinct from encode(extensions.digest(convert_to(v_source,'UTF8'),'sha256'),'hex') then
+    raise exception 'Source SHA-256 fingerprint was not persisted correctly';
+  end if;
+  if (select source_length from public.hookengine_generations where id=v_root) <> char_length(v_source) then
+    raise exception 'Source length was not persisted correctly';
+  end if;
 
   if not public.hookengine_finish_generation(
     p_generation_id=>v_root,p_user_id=>v_free_user,p_status=>'completed',
@@ -158,7 +170,7 @@ begin
     v_video_user,'youtube_video','Insufficient credits','https://www.youtube.com/watch?v=another-test','',
     'generation',null,array['x_thread']::text[]
   );
-  if v_result->>'reason' is distinct from 'insufficient_credits' or (v_result->>'credits_required')::integer <> 5 then
+  if v_result->>'reason' is distinct from 'monthly_limit' or (v_result->>'credits_required')::integer <> 5 then
     raise exception 'Video request with 4 credits should be refused with a 5-credit requirement: %',v_result;
   end if;
 
@@ -257,3 +269,104 @@ end;
 $hookengine_test$;
 
 select 'HookEngine PostgreSQL migration and entitlement tests passed' as result;
+
+
+-- Transcript-first requests cost one credit on Free; the source is hashed but not stored.
+update public.hookengine_subscriptions
+set plan='free',status='inactive',credits_balance=5,
+    credit_period_started_at=date_trunc('week',timezone('UTC',now())) at time zone 'UTC',
+    credit_period_ends_at=(date_trunc('week',timezone('UTC',now()))+interval '7 days') at time zone 'UTC'
+where user_id='30000000-0000-4000-8000-000000000003';
+update public.hookengine_profiles set plan='free' where user_id='30000000-0000-4000-8000-000000000003';
+
+do $hookengine_phase2_contract$
+declare
+  v_user uuid := '30000000-0000-4000-8000-000000000003';
+  v_source text := 'A transcript-first test source.';
+  v_result jsonb;
+  v_id uuid;
+  v_usage jsonb;
+  i integer;
+begin
+  v_result := public.hookengine_reserve_generation(
+    v_user,'youtube_transcript','Transcript test','https://www.youtube.com/watch?v=transcript-test',
+    v_source,'generation',null,array['x_thread']::text[],1
+  );
+  if not coalesce((v_result->>'allowed')::boolean,false)
+     or (v_result->>'credits_reserved')::integer<>1 then
+    raise exception 'Transcript source must cost one credit: %',v_result;
+  end if;
+  v_id := (v_result->>'generation_id')::uuid;
+  if (select source_text from public.hookengine_generations where id=v_id) is not null then
+    raise exception 'Transcript source text was persisted';
+  end if;
+  if not public.hookengine_finish_generation(
+    p_generation_id=>v_id,p_user_id=>v_user,p_status=>'failed',p_error_message=>'refund test'
+  ) then
+    raise exception 'Transcript reservation could not be finalized';
+  end if;
+
+  update public.hookengine_subscriptions set credits_balance=0 where user_id=v_user;
+  v_result := public.hookengine_reserve_generation(
+    v_user,'article','Weekly cap test','',v_source,'generation',null,array['x_thread']::text[]
+  );
+  if v_result->>'reason' is distinct from 'weekly_limit' then
+    raise exception 'Free credit exhaustion must return weekly_limit: %',v_result;
+  end if;
+
+  update public.hookengine_subscriptions set credits_balance=5 where user_id=v_user;
+  for i in 1..3 loop
+    v_result := public.hookengine_reserve_generation(
+      v_user,'article','Daily cap test','',v_source,'generation',null,array['x_thread']::text[]
+    );
+    if not coalesce((v_result->>'allowed')::boolean,false) then
+      raise exception 'Allowed daily generation % was refused: %',i,v_result;
+    end if;
+    v_id := (v_result->>'generation_id')::uuid;
+    if not public.hookengine_finish_generation(
+      p_generation_id=>v_id,p_user_id=>v_user,p_status=>'completed',
+      p_outputs=>'{"x_thread":"daily cap test"}'::jsonb,p_selected_platforms=>array['x_thread']::text[]
+    ) then
+      raise exception 'Daily cap test generation % could not be finalized',i;
+    end if;
+  end loop;
+  v_result := public.hookengine_reserve_generation(
+    v_user,'article','Daily cap exceeded','',v_source,'generation',null,array['x_thread']::text[]
+  );
+  if v_result->>'reason' is distinct from 'daily_cap' then
+    raise exception 'Fourth daily generation must return daily_cap: %',v_result;
+  end if;
+end;
+$hookengine_phase2_contract$;
+
+-- Verify the browser role can read its own usage but cannot execute write RPCs.
+set request.jwt.claim.sub = '30000000-0000-4000-8000-000000000003';
+set role authenticated;
+do $hookengine_invoker_test$
+declare
+  v_usage jsonb;
+begin
+  if (select prosecdef from pg_proc where oid='public.hookengine_my_usage()'::regprocedure) then
+    raise exception 'hookengine_my_usage must be SECURITY INVOKER';
+  end if;
+  if has_function_privilege('authenticated',
+      'public.hookengine_reserve_generation(uuid,text,text,text,text,text,uuid,text[],integer)'::regprocedure,'EXECUTE') then
+    raise exception 'Authenticated users must not execute reservation RPC';
+  end if;
+  if has_table_privilege('authenticated','public.hookengine_subscriptions','UPDATE') then
+    raise exception 'Authenticated users must not write subscriptions';
+  end if;
+  v_usage := public.hookengine_my_usage();
+  if v_usage->>'plan' is distinct from 'free'
+     or (v_usage->>'credits_total')::integer<>5
+     or (v_usage->>'daily_limit')::integer<>3
+     or v_usage->>'reset_at' is null then
+    raise exception 'SECURITY INVOKER usage RPC returned incorrect plan limits: %',v_usage;
+  end if;
+  if (select count(*) from public.hookengine_subscriptions
+      where user_id='20000000-0000-4000-8000-000000000002')<>0 then
+    raise exception 'RLS exposed another user subscription';
+  end if;
+end;
+$hookengine_invoker_test$;
+reset role;
