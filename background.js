@@ -358,6 +358,10 @@ async function generateWithStoredSession(payload) {
     session.expires_at = Math.floor(Date.now() / 1000) + (session.expires_in || 3600);
     await chrome.storage.local.set({ [STORAGE_KEYS.session]: session });
     response = await postGeneration(payload, session.access_token);
+    if (response.status === 401) {
+      await chrome.storage.local.remove(STORAGE_KEYS.session);
+      throw new Error("Your session expired. Sign in again.");
+    }
   }
 
   const data = await response.json().catch(() => ({}));
