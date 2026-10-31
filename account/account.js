@@ -144,6 +144,22 @@ async function showDashboard() {
       lifetime:"Pro features with 150 credits refreshed each month."
     }[currentPlan]||"Your HookEngine plan.";
     $("planPrice").textContent={free:"€0",pro:"€4.99",trial:"€0",lifetime:"—"}[currentPlan]||"€0";
+    $("planPricePeriod").textContent={free:"/ month",pro:"/ month",trial:"/ 7 days",lifetime:"price unset"}[currentPlan]||"";
+    const dashboardPerks={
+      free:["5 credits each UTC week","Up to 3 generations per day","X, LinkedIn and TikTok drafts","1 version and 1 regeneration per source","7-day generation history"],
+      trial:["40 Pro trial credits · 7-day expiry","Up to 30 generations per day","All six supported platforms","3 variations per generation","Video analysis included · unlimited history during trial"],
+      pro:["300 credits each UTC month","Up to 30 generations per day","All six supported platforms","3 variations per generation","Video analysis · unlimited regenerations within credits","Unlimited generation history"],
+      lifetime:["150 credits each UTC month","Up to 30 generations per day","All six supported platforms","3 variations per generation","Video analysis · unlimited regenerations within credits","Unlimited generation history"]
+    };
+    const perksRoot=$("dashboardPerks");
+    perksRoot.replaceChildren(...(dashboardPerks[currentPlan]||dashboardPerks.free).map(item=>{
+      const li=document.createElement("li");
+      const check=document.createElement("span");
+      check.className="perk-check";
+      check.textContent="✓";
+      li.append(check,document.createTextNode(item));
+      return li;
+    }));
     $("usedCount").textContent=used;$("limitCount").textContent="/ "+limit;
     $("usageProgress").style.width=(limit>0?Math.min(100,used/limit*100):0)+"%";
     $("remainingText").textContent=credits+" credits left · "+Math.max(0,limit-used)+" generations left today";
