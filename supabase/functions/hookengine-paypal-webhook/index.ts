@@ -1,3 +1,5 @@
+import { validatePayPalProPlanId } from "./plan-validation.ts";
+
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 const URL = Deno.env.get("SUPABASE_URL") || "";
@@ -6,6 +8,7 @@ const CLIENT_ID = Deno.env.get("PAYPAL_CLIENT_ID") || "";
 const CLIENT_SECRET = Deno.env.get("PAYPAL_CLIENT_SECRET") || "";
 const WEBHOOK_ID = Deno.env.get("PAYPAL_WEBHOOK_ID") || "";
 const MODE = (Deno.env.get("PAYPAL_MODE") || "sandbox").toLowerCase();
+const PAYPAL_PRO_PLAN_ID = Deno.env.get("PAYPAL_PRO_PLAN_ID") || "";
 
 function reply(status: number, body: Record<string, unknown>) {
   return new Response(JSON.stringify(body), {
@@ -61,6 +64,7 @@ Deno.serve(async (req: Request) => {
     }
 
     const type = String(event.event_type || "");
+    const resource = event.resource || {};
     const supported = [
       "BILLING.SUBSCRIPTION.ACTIVATED",
       "BILLING.SUBSCRIPTION.RE-ACTIVATED",
@@ -71,8 +75,17 @@ Deno.serve(async (req: Request) => {
     ];
     if (!supported.includes(type)) return reply(200, { received: true, ignored: true });
 
+    if (type === "BILLING.SUBSCRIPTION.ACTIVATED" || type === "BILLING.SUBSCRIPTION.RE-ACTIVATED") {
+      const planCheck = validatePayPalProPlanId(resource, PAYPAL_PRO_PLAN_ID);
+      if (!planCheck.ok) {
+        if (planCheck.reason === "not_configured") {
+          return reply(503, { error: "PayPal Pro plan ID is not configured; subscription activation is disabled." });
+        }
+        return reply(400, { error: "PayPal subscription uses an unexpected plan ID." });
+      }
+    }
+
     const eventId = String(event.id || "");
-    const resource = event.resource || {};
     const subscriptionId = String(resource.id || resource.billing_agreement_id || "");
     const eventTime = new Date(String(event.create_time || ""));
     if (!eventId || !subscriptionId || !Number.isFinite(eventTime.getTime())) {
