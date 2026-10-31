@@ -432,3 +432,14 @@ test("worker messages require the extension sender identity", async () => {
   const background = await readFile(new URL("../background.js", import.meta.url), "utf8");
   assert.match(background, /sender\?\.id !== chrome\.runtime\.id/);
 });
+
+
+test("all manifest icon assets are valid PNGs at their declared dimensions", async () => {
+  const signature = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
+  for (const size of [16, 32, 48, 128]) {
+    const png = await readFile(new URL("../icons/icon" + size + ".png", import.meta.url));
+    assert.deepEqual(png.subarray(0, 8), signature);
+    assert.equal(png.readUInt32BE(16), size);
+    assert.equal(png.readUInt32BE(20), size);
+  }
+});
