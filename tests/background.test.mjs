@@ -3,12 +3,38 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import vm from "node:vm";
 
-const source = await readFile(new URL("../background.js", import.meta.url), "utf8");
+const source = (await readFile(new URL("../background.js", import.meta.url), "utf8"))
+  .replace(/^import \{[\s\S]*?\} from "\.\/extension\/config\.js";\s*/, "");
+const storage = new Map();
 const context = {
   URL,
   console,
-  chrome: { runtime: { onMessage: { addListener() {} } } }
+  SUPABASE_URL: "https://project.example",
+  SUPABASE_KEY: "public-anon-key",
+  FUNCTION_URL: "https://project.example/functions/v1/hookengine-generate",
+  STORAGE_KEYS: {
+    session: "hookengine-account-session",
+    lastGeneration: "hookengine-last-generation"
+  },
+  MAX_SOURCE_CHARS: 60000,
+  MIN_SOURCE_CHARS: 80
 };
+context.chrome = {
+  runtime: {
+    id: "hookengine-test",
+    onMessage: { addListener(listener) { context.messageListener = listener; } }
+  },
+  storage: {
+    local: {
+      async get(key) { return { [key]: storage.get(key) }; },
+      async set(values) { for (const [key, value] of Object.entries(values)) storage.set(key, value); },
+      async remove(key) { storage.delete(key); }
+    }
+  },
+  tabs: { async query() { return []; } },
+  scripting: { async executeScript() { return [{ result: null }]; } }
+};
+context.fetch = async () => { throw new Error("Unexpected fetch in test"); };
 vm.runInNewContext(source, context, { filename: "background.js" });
 
 test("decodes common caption entities", () => {
@@ -175,4 +201,109 @@ test("fallback page cleanup preserves the letter t and normalizes whitespace", a
   assert.equal(normalize("con\tent"), "con ent");
   assert.equal(normalize("a\u200bb"), "ab");
   assert.equal(normalize("first\n\n\nsecond"), "first\n\nsecond");
+});
+
+
+test("YouTube video IDs are validated against supported hosts and formats", () => {
+  assert.equal(context.getYouTubeVideoId("https://www.youtube.com/watch?v=abcdefghijk"), "abcdefghijk");
+  assert.equal(context.getYouTubeVideoId("https://youtu.be/abcdefghijk"), "abcdefghijk");
+  assert.equal(context.getYouTubeVideoId("https://attacker.example/watch?v=abcdefghijk"), "");
+  assert.equal(context.getYouTubeVideoId("https://www.youtube.com/watch?v=short"), "");
+});
+
+test("YouTube generation uses a transcript before the Gemini video fallback", async () => {
+  context.chrome.tabs.query = async () => [{
+    id: 7,
+    url: "https://www.youtube.com/watch?v=abcdefghijk",
+    title: "Video title"
+  }];
+  context.getPageCaptionTracks = async () => ({ title: "Video title", captionTracks: [] });
+  context.fetchCaptionTracks = async () => "A transcript with more than eighty characters. ".repeat(3);
+  context.fetchYouTubeTranscript = async () => "";
+  const source = {
+    sourceMode: "youtube_video",
+    sourceUrl: "https://www.youtube.com/watch?v=abcdefghijk",
+    title: "Video title",
+    platforms: ["x_thread"]
+  };
+  const transcript = await context.resolveYouTubeGenerationSource(source);
+  assert.equal(transcript.transcriptUsed, true);
+  assert.equal(transcript.payload.sourceMode, "text");
+  assert.ok(transcript.payload.text.length >= 80);
+
+  context.fetchCaptionTracks = async () => "";
+  const fallback = await context.resolveYouTubeGenerationSource(source);
+  assert.equal(fallback.transcriptUsed, false);
+  assert.equal(fallback.payload.sourceMode, "youtube_video");
+});
+
+test("service-worker generation refreshes an expired token exactly once", async () => {
+  storage.set("hookengine-account-session", {
+    access_token: "expired-access",
+    refresh_token: "refresh-token"
+  });
+  let generationCalls = 0;
+  let refreshCalls = 0;
+  context.fetch = async (url, options) => {
+    if (url === context.FUNCTION_URL) {
+      generationCalls++;
+      if (generationCalls === 1) return {
+        ok: false, status: 401, async json() { return { error: "expired" }; }
+      };
+      return {
+        ok: true, status: 200,
+        async json() { return { outputs: { x_thread: "Draft" }, usage: { plan: "free" } }; }
+      };
+    }
+    if (String(url).includes("grant_type=refresh_token")) {
+      refreshCalls++;
+      return {
+        ok: true, status: 200,
+        async json() { return { access_token: "fresh-access", refresh_token: "fresh-refresh", expires_in: 3600 }; }
+      };
+    }
+    throw new Error("Unexpected URL " + url);
+  };
+
+  const data = await context.generateWithStoredSession({ text: "source" });
+  assert.equal(data.outputs.x_thread, "Draft");
+  assert.equal(generationCalls, 2);
+  assert.equal(refreshCalls, 1);
+  assert.equal(storage.get("hookengine-account-session").access_token, "fresh-access");
+});
+
+test("service-worker generation persists the last result without storing source text", async () => {
+  storage.set("hookengine-account-session", {
+    access_token: "valid-access",
+    refresh_token: "refresh-token"
+  });
+  context.fetch = async url => {
+    assert.equal(url, context.FUNCTION_URL);
+    return {
+      ok: true, status: 200,
+      async json() {
+        return {
+          outputs: { x_thread: ["Version one", "Version two"] },
+          provider: "Gemini",
+          usage: { plan: "free", remaining: 2 }
+        };
+      }
+    };
+  };
+  const result = await context.handleGenerationMessage({
+    payload: {
+      text: "A source article long enough to pass validation. ".repeat(3),
+      title: "Source title",
+      sourceUrl: "https://example.com/article",
+      sourceMode: "text",
+      platforms: ["x_thread"]
+    }
+  });
+  const saved = storage.get("hookengine-last-generation");
+  assert.equal(result.ok, true);
+  assert.equal(saved.outputs.x_thread.length, 2);
+  assert.equal(saved.usage.remaining, 2);
+  assert.equal(saved.sourceUrl, "https://example.com/article");
+  assert.equal("sourceText" in saved, false);
+  assert.equal("text" in saved, false);
 });
