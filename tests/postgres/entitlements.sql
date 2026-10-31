@@ -5,6 +5,8 @@ declare
   v_free_user uuid := '10000000-0000-4000-8000-000000000001';
   v_video_user uuid := '20000000-0000-4000-8000-000000000002';
   v_transcript_user uuid := '30000000-0000-4000-8000-000000000003';
+  v_lifetime_user uuid := '40000000-0000-4000-8000-000000000004';
+  v_second_lifetime_user uuid := '50000000-0000-4000-8000-000000000005';
   v_source text := repeat('Validated source content for HookEngine integration tests. ', 2);
   v_other_source text := repeat('Different source content that must not be accepted for regeneration. ', 2);
   v_result jsonb;
@@ -18,7 +20,14 @@ begin
   insert into auth.users(id,email) values
     (v_free_user,'free-test@example.invalid'),
     (v_video_user,'video-test@example.invalid'),
-    (v_transcript_user,'transcript-test@example.invalid');
+    (v_transcript_user,'transcript-test@example.invalid'),
+    (v_lifetime_user,'lifetime-customer-fixture@example.test'),
+    (v_second_lifetime_user,'second-lifetime-customer-fixture@example.test');
+
+  insert into public.hookengine_internal_accounts(user_id,reason) values
+    (v_free_user,'CI test fixture'),
+    (v_video_user,'CI test fixture'),
+    (v_transcript_user,'CI test fixture');
 
   if not exists (
     select 1 from public.hookengine_subscriptions
@@ -255,14 +264,19 @@ begin
   end if;
 
   v_result := public.hookengine_admin_set_plan(v_free_user,'lifetime');
-  if not coalesce((v_result->>'assigned')::boolean,false)
-     or (select plan from public.hookengine_subscriptions where user_id=v_free_user) <> 'lifetime'
-     or (select credits_balance from public.hookengine_subscriptions where user_id=v_free_user) <> 150 then
-    raise exception 'Lifetime assignment failed: %',v_result;
+  if v_result->>'reason' is distinct from 'internal_account'
+     or (select plan from public.hookengine_subscriptions where user_id=v_free_user) = 'lifetime'
+     or (select lifetime_claimed_at from public.hookengine_subscriptions where user_id=v_free_user) is not null then
+    raise exception 'Internal CI account must not consume a Lifetime spot: %',v_result;
   end if;
 
   update public.hookengine_plans set lifetime_spot_limit=1 where plan_key='lifetime';
-  v_result := public.hookengine_admin_set_plan(v_video_user,'lifetime');
+  v_result := public.hookengine_admin_set_plan(v_lifetime_user,'lifetime');
+  if not coalesce((v_result->>'assigned')::boolean,false)
+     or (select plan from public.hookengine_subscriptions where user_id=v_lifetime_user) <> 'lifetime' then
+    raise exception 'Eligible Lifetime customer fixture could not claim a spot: %',v_result;
+  end if;
+  v_result := public.hookengine_admin_set_plan(v_second_lifetime_user,'lifetime');
   if v_result->>'reason' is distinct from 'sold_out' then
     raise exception 'Lifetime spot cap was not enforced: %',v_result;
   end if;
