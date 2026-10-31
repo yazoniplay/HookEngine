@@ -56,7 +56,10 @@ async function writeAudit(input: {
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-  if (req.method !== "POST") return json({ error: "Method not allowed." }, 405);
+  if (req.method !== "POST") {
+    await writeAudit({ outcome: "rejected_method", httpStatus: 405, details: { method: req.method } });
+    return json({ error: "Method not allowed." }, 405);
+  }
 
   const token = (req.headers.get("authorization") || "").match(/^Bearer\s+(.+)$/i)?.[1];
   if (!token || !SUPABASE_URL || !SUPABASE_ANON_KEY || !SUPABASE_SERVICE_ROLE_KEY) {
@@ -86,7 +89,15 @@ Deno.serve(async (req: Request) => {
   }
 
   let body: { plan?: unknown };
-  try { body = await req.json(); } catch { return json({ error: "Invalid request body." }, 400); }
+  try { body = await req.json(); } catch {
+    await writeAudit({
+      actorUserId: user.id,
+      actorEmail: user.email,
+      outcome: "rejected_invalid_body",
+      httpStatus: 400,
+    });
+    return json({ error: "Invalid request body." }, 400);
+  }
   const allowedPlans = ["free", "pro", "trial"];
   if (!allowedPlans.includes(String(body?.plan))) {
     await writeAudit({
