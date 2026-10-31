@@ -55,3 +55,23 @@ test("accepts only HTTPS YouTube timed-text caption URLs", () => {
   assert.equal(context.normalizeCaptionUrl("https://attacker.example/api/timedtext?v=abc"), "");
   assert.equal(context.normalizeCaptionUrl("https://www.youtube.com/watch?v=abc"), "");
 });
+
+test("the background worker injects Readability before the content extractor", async () => {
+  const background = await readFile(new URL("../background.js", import.meta.url), "utf8");
+  assert.match(background, /files:\s*\["vendor\/readability\.js",\s*"content\.js"\]/);
+});
+
+test("the article extractor prefers Readability and keeps a local fallback", async () => {
+  const extractor = await readFile(new URL("../content.js", import.meta.url), "utf8");
+  assert.match(extractor, /new Readability\(document\.cloneNode\(true\)/);
+  assert.match(extractor, /function articleText\(\)/);
+  assert.match(extractor, /const readable = readabilityArticleText\(\)/);
+  assert.match(extractor, /const candidates = new Set\(\)/);
+});
+
+test("YouTube transcript parsing has one owner in the background worker", async () => {
+  const extractor = await readFile(new URL("../content.js", import.meta.url), "utf8");
+  assert.doesNotMatch(extractor, /function youtubeTranscript\(/);
+  assert.doesNotMatch(extractor, /function findEmbeddedCaptionTrack\(/);
+  assert.match(extractor, /const transcript = isYouTube \? "" : nativeVideoTranscript\(\)/);
+});
