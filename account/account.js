@@ -127,7 +127,7 @@ async function showDashboard() {
     if (isAdmin) $("adminPlanMessage").textContent = "";
     const [usage,history]=await Promise.all([
       api("/rest/v1/rpc/hookengine_get_usage",{method:"POST",body:"{}"}),
-      api("/rest/v1/hookengine_generations?select=id,source_type,source_title,source_url,status,x_thread,linkedin_post,tiktok_hooks,outputs,selected_platforms,provider,error_message,created_at,completed_at&order=created_at.desc&limit=100")
+      api("/rest/v1/hookengine_generations?select=id,source_type,source_title,source_url,status,x_thread,linkedin_post,tiktok_hooks,outputs,selected_platforms,provider,error_message,created_at,completed_at,credits_reserved,input_tokens,output_tokens,latency_ms,estimated_provider_cost_usd,model,refunded_at&order=created_at.desc&limit=100")
     ]);
     currentPlan=usage.plan||"free";
     const used=Number(usage.daily_used)||0;
@@ -163,6 +163,24 @@ async function showDashboard() {
     $("usedCount").textContent=used;$("limitCount").textContent="/ "+limit;
     $("usageProgress").style.width=(limit>0?Math.min(100,used/limit*100):0)+"%";
     $("remainingText").textContent=credits+" credits left · "+Math.max(0,limit-used)+" generations left today";
+    const totalTokens=Number(usage.total_tokens)||0;
+    const inputTokens=Number(usage.total_input_tokens)||0;
+    const outputTokens=Number(usage.total_output_tokens)||0;
+    const consumed=Number(usage.credits_consumed)||0;
+    const providerCost=Number(usage.estimated_provider_cost_usd)||0;
+    const completed=Number(usage.total_generations)||0;
+    const latency=Number(usage.average_latency_ms)||0;
+    $("totalTokens").textContent=totalTokens.toLocaleString();
+    $("tokenBreakdown").textContent=inputTokens.toLocaleString()+" input · "+outputTokens.toLocaleString()+" output";
+    $("creditsConsumed").textContent=consumed.toLocaleString();
+    $("providerCost").textContent="$"+providerCost.toFixed(5);
+    const unpriced=Number(usage.unpriced_generations)||0;
+    $("providerCostNote").textContent=unpriced
+      ? "Partial · "+unpriced.toLocaleString()+" generations have no configured provider rate"
+      : "USD · all recorded token usage has a configured rate";
+    $("completedGenerations").textContent=completed.toLocaleString();
+    $("averageLatency").textContent=latency ? "Average "+(latency/1000).toFixed(1)+"s per generation" : "No latency data yet";
+    $("lifetimeSpots").textContent=(Number(usage.lifetime_claimed)||0)+" / "+(Number(usage.lifetime_limit)||50)+" Lifetime spots claimed · "+(Number(usage.lifetime_remaining)||0)+" remaining";
     $("upgradeBtn").hidden=currentPlan==="pro"||currentPlan==="lifetime";
     $("billingMessage").textContent={
       free:"Free: 5 weekly credits · 3 daily generations · 7-day history.",
@@ -183,7 +201,13 @@ function renderHistory(rows) {
     const type=row.source_type==="youtube_video"?"YouTube video":"Article / text";
     const completed=row.status==="completed";
     const labels={x_thread:"X THREAD",linkedin_post:"LINKEDIN",tiktok_hooks:"TIKTOK HOOKS",instagram_caption:"INSTAGRAM",threads_posts:"THREADS",facebook_post:"FACEBOOK"};const saved=row.outputs&&typeof row.outputs==="object"?row.outputs:{x_thread:row.x_thread,linkedin_post:row.linkedin_post,tiktok_hooks:row.tiktok_hooks};const draft=Object.entries(saved).filter(([key,value])=>labels[key]&&value).map(([key,value])=>labels[key]+"\n"+value).join("\n\n────────────────────\n\n");
-    return '<article class="history-item"><div class="history-top"><div><div class="history-title">'+safe(title)+'</div><div class="history-meta"><span>'+safe(timeLabel(row.created_at))+'</span><span>·</span><span>'+safe(type)+'</span></div></div><span class="type-pill">'+(completed?"Completed":safe(row.status))+'</span></div>'+
+    const usageMeta=[];
+    if(Number(row.credits_reserved)>0)usageMeta.push(Number(row.credits_reserved)+" credit"+(Number(row.credits_reserved)===1?"":"s")+(row.refunded_at?" refunded":""));
+    const tokens=(Number(row.input_tokens)||0)+(Number(row.output_tokens)||0);
+    if(tokens>0)usageMeta.push(tokens.toLocaleString()+" tokens");
+    if(Number(row.latency_ms)>0)usageMeta.push((Number(row.latency_ms)/1000).toFixed(1)+"s");
+    if(row.estimated_provider_cost_usd!==null&&row.estimated_provider_cost_usd!==undefined)usageMeta.push("~$"+Number(row.estimated_provider_cost_usd).toFixed(5));
+    return '<article class="history-item"><div class="history-top"><div><div class="history-title">'+safe(title)+'</div><div class="history-meta"><span>'+safe(timeLabel(row.created_at))+'</span><span>·</span><span>'+safe(type)+'</span>'+(usageMeta.length?'<span>·</span><span>'+safe(usageMeta.join(" · "))+'</span>':'')+'</div></div><span class="type-pill">'+(completed?"Completed":safe(row.status))+'</span></div>'+
       (row.status==="failed"?'<div class="history-status" style="color:var(--danger)">Generation failed</div>':'')+
       (completed?'<div class="history-actions"><button class="small-button" data-preview="'+safe(row.id)+'">View drafts</button>'+(row.source_url?'<a class="small-button" href="'+safe(row.source_url)+'" target="_blank" rel="noopener">Open source ↗</a>':'')+'</div><pre id="preview-'+safe(row.id)+'" class="draft-preview">'+safe(draft)+'</pre>':'')+
       '</article>';
@@ -194,21 +218,29 @@ function renderHistory(rows) {
 }
 $("refreshBtn").addEventListener("click",()=>showDashboard());
 async function setAdminPlan(plan) {
-  const freeButton=$("adminFreeBtn"),proButton=$("adminProBtn"),status=$("adminPlanMessage");
-  freeButton.disabled=true;proButton.disabled=true;status.textContent="Updating plan…";
+  const buttons=["adminFreeBtn","adminTrialBtn","adminProBtn","adminLifetimeBtn"].map(id=>$(id));
+  const status=$("adminPlanMessage");
+  buttons.forEach(button=>button.disabled=true);
+  status.textContent="Updating plan…";
   try {
     const result=await api("/functions/v1/hookengine-admin-plan",{method:"POST",body:JSON.stringify({plan})});
-    if(!result.ok || result.plan!==plan) throw new Error("The plan update could not be confirmed.");
+    if(!result.ok || result.plan!==plan) throw new Error(result.error||"The plan update could not be confirmed.");
     await showDashboard();
-    $("adminPlanMessage").textContent="Plan switched to "+(plan==="pro"?"Pro":"Free")+".";
+    $("adminPlanMessage").textContent=plan==="trial"
+      ? "A fresh 7-day Pro trial with 40 credits has been granted."
+      : plan==="lifetime"
+        ? "Lifetime assigned. The 50-account cap was enforced."
+        : "Plan switched to "+plan.charAt(0).toUpperCase()+plan.slice(1)+".";
   } catch(err) {
     status.textContent=err.message||"Could not update plan.";
   } finally {
-    freeButton.disabled=false;proButton.disabled=false;
+    buttons.forEach(button=>button.disabled=false);
   }
 }
 $("adminFreeBtn").addEventListener("click",()=>setAdminPlan("free"));
+$("adminTrialBtn").addEventListener("click",()=>setAdminPlan("trial"));
 $("adminProBtn").addEventListener("click",()=>setAdminPlan("pro"));
+$("adminLifetimeBtn").addEventListener("click",()=>setAdminPlan("lifetime"));
 $("upgradeBtn").addEventListener("click",async()=>{
   const button=$("upgradeBtn");button.disabled=true;button.innerHTML="Opening secure checkout…";
   try {

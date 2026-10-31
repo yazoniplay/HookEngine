@@ -40,34 +40,29 @@ Deno.serve(async (req: Request) => {
 
   let body: { plan?: unknown };
   try { body = await req.json(); } catch { return json({ error: "Invalid request body." }, 400); }
-  if (body?.plan !== "free" && body?.plan !== "pro") {
-    return json({ error: "Choose either the Free or Pro plan." }, 400);
+  const allowedPlans = ["free", "pro", "trial", "lifetime"];
+  if (!allowedPlans.includes(String(body?.plan))) {
+    return json({ error: "Choose Free, Pro, Trial or Lifetime." }, 400);
   }
 
-  const isPro = body.plan === "pro";
-  const update = await fetch(SUPABASE_URL + "/rest/v1/hookengine_subscriptions?on_conflict=user_id", {
+  const update = await fetch(SUPABASE_URL + "/rest/v1/rpc/hookengine_admin_set_plan", {
     method: "POST",
     headers: {
       apikey: SUPABASE_SERVICE_ROLE_KEY,
       Authorization: "Bearer " + SUPABASE_SERVICE_ROLE_KEY,
       "Content-Type": "application/json",
-      Prefer: "resolution=merge-duplicates,return=representation",
     },
-    body: JSON.stringify({
-      user_id: user.id,
-      plan: isPro ? "pro" : "free",
-      status: isPro ? "active" : "inactive",
-      provider: "paypal",
-      provider_subscription_id: null,
-      current_period_end: null,
-      updated_at: new Date().toISOString(),
-    }),
+    body: JSON.stringify({ p_user_id: user.id, p_plan: body.plan }),
   });
 
-  if (!update.ok) {
-    console.error("Admin plan update failed:", update.status, (await update.text()).slice(0, 300));
-    return json({ error: "Could not update the plan. Please try again." }, 500);
+  const result = await update.json().catch(() => null);
+  if (!update.ok || !result || result.ok === false || result.assigned === false) {
+    console.error("Admin plan update failed:", update.status, JSON.stringify(result).slice(0, 300));
+    const reason = result?.reason === "sold_out"
+      ? "All 50 Lifetime spots have been claimed."
+      : "Could not update the plan. Please try again.";
+    return json({ error: reason, ...result }, result?.reason === "sold_out" ? 409 : 500);
   }
 
-  return json({ ok: true, plan: body.plan });
+  return json({ ok: true, plan: body.plan, ...result });
 });

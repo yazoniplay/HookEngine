@@ -21,7 +21,7 @@ const WRITING_PREFS_KEY = STORAGE_KEYS.writingPreferences;
 
 let accountSession = null;
 let accountUser = null;
-let accountUsage = { plan:"free", used:0, limit:5, remaining:5 };
+let accountUsage = null;
 
 function applyTheme(theme) {
   const selected = theme === "light" ? "light" : "dark";
@@ -53,35 +53,51 @@ $("themeToggle").addEventListener("click", async () => {
   try { await chrome.storage.local.set({[THEME_KEY]:next}); } catch {}
 });
 
+function planLabel(plan) {
+  return ({free:"FREE",pro:"PRO",trial:"PRO TRIAL",lifetime:"LIFETIME"})[plan] || "FREE";
+}
 function renderAccount() {
   const signedIn = !!accountUser;
+  const usage = accountUsage;
+  const hasProFeatures = !!usage && usage.plan !== "free";
   $("authGate").hidden = signedIn;
   document.querySelector(".app").classList.toggle("auth-required", !signedIn);
-  $("upgradeButton").hidden = accountUsage.plan === "pro";
-  $("planSummary").textContent = accountUsage.plan.toUpperCase();
+  $("upgradeButton").hidden = !signedIn || hasProFeatures;
+  $("planSummary").textContent = usage ? planLabel(usage.plan) : "—";
   $("accountPanel").hidden = true;
   $("accountToggle").setAttribute("aria-expanded", "false");
   $("accountToggle").textContent = signedIn ? "Account" : "Sign in";
   $("accountStrip").classList.toggle("is-signed-in", signedIn);
-  $("accountSummary").textContent = signedIn
-    ? accountUsage.used + " of " + accountUsage.limit + " generations used today · " + accountUsage.remaining + " remaining"
-    : "Sign in to use HookEngine";
+  $("accountSummary").textContent = !signedIn
+    ? "Sign in to use HookEngine"
+    : !usage
+      ? "Loading your plan and credits…"
+      : usage.credits + " credits · " + usage.used + "/" + usage.limit + " daily generations used";
   document.querySelector(".account-indicator").classList.toggle("active", signedIn);
   $("signedOutPanel").hidden = signedIn;
   $("signedInPanel").hidden = !signedIn;
   if (signedIn) {
     $("signedInEmail").textContent = accountUser.email || "Signed in";
-    $("dailyUsage").textContent = accountUsage.remaining + " of " + accountUsage.limit + " generations left today";
-    $("extensionPlan").textContent = accountUsage.plan.toUpperCase();
-    $("extensionProgress").style.width = Math.min(100, accountUsage.used / Math.max(1,accountUsage.limit) * 100) + "%";
+    $("extensionPlan").textContent = usage ? planLabel(usage.plan) : "LOADING";
+    if (usage) {
+      const trialNote = usage.plan === "trial" && usage.trialEndsAt
+        ? " · Trial ends " + new Date(usage.trialEndsAt).toLocaleDateString()
+        : "";
+      $("dailyUsage").textContent = usage.credits + " credits left · " +
+        usage.remaining + "/" + usage.limit + " daily generations remaining" + trialNote;
+      $("extensionProgress").style.width = Math.min(100, usage.used / Math.max(1,usage.limit) * 100) + "%";
+    } else {
+      $("dailyUsage").textContent = "Usage unavailable";
+      $("extensionProgress").style.width = "0%";
+    }
   }
   document.querySelectorAll(".pro-option").forEach(label => {
     const input = label.querySelector("input");
-    const unlocked = accountUsage.plan === "pro";
+    const unlocked = hasProFeatures;
     label.classList.toggle("unlocked", unlocked);
     input.disabled = !unlocked;
   });
-  $("proHint").hidden = accountUsage.plan === "pro";
+  $("proHint").hidden = hasProFeatures;
 }
 $("accountToggle").addEventListener("click", () => {
   const panel = $("accountPanel");
@@ -105,17 +121,32 @@ async function loadAccountSession() {
 async function refreshUsage() {
   if (!accountUser || !accountSession?.access_token) return;
   try {
-    const start = new Date(Date.UTC(new Date().getUTCFullYear(),new Date().getUTCMonth(),new Date().getUTCDate())).toISOString();
-    const [subs,rows] = await Promise.all([
-      fetch(SUPABASE_URL+"/rest/v1/hookengine_subscriptions?select=plan,status&user_id=eq."+encodeURIComponent(accountUser.id)+"&limit=1",{headers:{apikey:SUPABASE_KEY,Authorization:"Bearer "+accountSession.access_token}}).then(r=>r.ok?r.json():[]),
-      fetch(SUPABASE_URL+"/rest/v1/hookengine_generations?select=id,status&user_id=eq."+encodeURIComponent(accountUser.id)+"&created_at=gte."+encodeURIComponent(start)+"&status=in.%28reserved%2Ccompleted%29&limit=100",{headers:{apikey:SUPABASE_KEY,Authorization:"Bearer "+accountSession.access_token}}).then(r=>r.ok?r.json():[])
-    ]);
-    const sub=subs[0]||{plan:"free",status:"inactive"};
-    accountUsage.plan=sub.plan==="pro"&&sub.status==="active"?"pro":"free";
-    accountUsage.limit=accountUsage.plan==="pro"?100:5;
-    accountUsage.used=rows.length;
-    accountUsage.remaining=Math.max(0,accountUsage.limit-accountUsage.used);
-  } catch {}
+    const response = await fetch(SUPABASE_URL + "/rest/v1/rpc/hookengine_get_usage", {
+      method: "POST",
+      headers: {
+        apikey: SUPABASE_KEY,
+        Authorization: "Bearer " + accountSession.access_token,
+        "Content-Type": "application/json"
+      },
+      body: "{}",
+      cache: "no-store"
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.message || data.details || "Usage request failed (" + response.status + ").");
+    accountUsage = {
+      plan: data.plan || "free",
+      credits: Number(data.credits_balance) || 0,
+      creditsPerPeriod: Number(data.credits_per_period) || 0,
+      used: Number(data.daily_used) || 0,
+      limit: Number(data.daily_limit) || 0,
+      remaining: Number(data.remaining_daily) || 0,
+      trialEndsAt: data.trial_ends_at || null,
+      platforms: Array.isArray(data.platforms) ? data.platforms : []
+    };
+  } catch (error) {
+    accountUsage = null;
+    showError("Couldn't load your HookEngine usage: " + (error.message || "Please retry."));
+  }
   renderAccount();
 }
 async function signIn(source = "account") {
@@ -162,7 +193,7 @@ $("accountSignOut").addEventListener("click", async () => {
   await terminateSession();
   accountSession = null;
   accountUser = null;
-  accountUsage = { plan: "free", used: 0, limit: 5, remaining: 5 };
+  accountUsage = null;
   renderAccount();
 });
 
@@ -346,8 +377,7 @@ async function requestGeneration(payload) {
   if (!result?.ok) throw new Error(result?.error || "Generation failed.");
   const data = result.data || {};
 
-  if (data.usage) accountUsage = data.usage;
-  else await refreshUsage();
+  await refreshUsage();
   renderAccount();
   renderOutputs(result.lastGeneration?.outputs || data.outputs || {});
   const notes = [];
@@ -366,7 +396,6 @@ async function restoreLastGeneration() {
     if (!result?.ok || !result.lastGeneration) return;
     const last = result.lastGeneration;
     renderOutputs(last.outputs || {});
-    if (last.usage) accountUsage = last.usage;
     renderAccount();
 
     const notes = [];
@@ -398,7 +427,10 @@ async function generateForSource(sourceMode="text",sourceUrl="") {
       platforms,
       preferences:(await chrome.storage.sync.get(WRITING_PREFS_KEY))[WRITING_PREFS_KEY]||{}
     });
-  } catch(error) {showError(error.message||"Could not generate drafts.");}
+  } catch(error) {
+    showError(error.message||"Could not generate drafts.");
+    if (accountUser) await refreshUsage();
+  }
   finally {setLoading(false);}
 }
 $("generateBtn").addEventListener("click",()=>generateForSource());

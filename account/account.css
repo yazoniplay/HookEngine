@@ -144,6 +144,12 @@ footer{display:flex;justify-content:space-between;gap:15px;border-top:1px solid 
 :root[data-theme="light"] .auth-card:before,:root[data-theme="light"] .panel:before,:root[data-theme="light"] .pricing-card:before{background:linear-gradient(130deg,rgba(255,255,255,.62),transparent 38%)}
 :root[data-theme="light"] .button.primary{color:#202516}
 :root[data-theme="light"] .global-message{box-shadow:0 15px 45px rgba(30,32,20,.12)}
+.metrics-section{margin-top:30px}
+.metrics-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.metric-card{display:grid;gap:8px;padding:19px}
+.metric-card strong{font:600 clamp(24px,3vw,34px)/1 'Space Grotesk',sans-serif;letter-spacing:-.06em;overflow-wrap:anywhere}
+.metric-card .muted{font-size:10px;margin:0}
+.metric-card .eyebrow{font-size:9px}
 [hidden]{display:none!important}
 @media(max-width:760px){
   .shell{padding:0 20px}
@@ -158,6 +164,7 @@ footer{display:flex;justify-content:space-between;gap:15px;border-top:1px solid 
   .pricing-card{padding:22px}
   .pricing-description{min-height:0;margin-bottom:19px}
   .overview-grid{grid-template-columns:1fr}
+  .metrics-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .welcome-row{padding-top:33px}
   .welcome-row h1{font-size:36px}
   .panel{padding:21px}
