@@ -720,14 +720,14 @@ begin
   for v_user in
     select user_id
     from public.hookengine_subscriptions
-    where plan='trial' and (trial_ends_at<=now() or credits_balance<=0)
+    where plan='trial' and (trial_ends_at is null or trial_ends_at<=now() or credits_balance<=0)
     order by user_id
   loop
     perform pg_advisory_xact_lock(hashtextextended('hookengine-user:'||v_user.user_id::text,0));
     if exists (
       select 1 from public.hookengine_subscriptions
       where user_id=v_user.user_id and plan='trial' and credits_balance>0
-        and (trial_ends_at<=now() or credits_balance<=0)
+        and (trial_ends_at is null or trial_ends_at<=now() or credits_balance<=0)
     ) then
       insert into public.hookengine_credit_ledger(
         user_id,entry_type,amount,balance_after,period_started_at,period_ends_at,idempotency_key,metadata
@@ -741,7 +741,7 @@ begin
     set plan='free',status='inactive',trial_started_at=null,trial_ends_at=null,
         credits_balance=0,credit_period_started_at=null,credit_period_ends_at=null,updated_at=now()
     where user_id=v_user.user_id and plan='trial'
-      and (trial_ends_at<=now() or credits_balance<=0);
+      and (trial_ends_at is null or trial_ends_at<=now() or credits_balance<=0);
     if found then
       update public.hookengine_profiles set plan='free' where user_id=v_user.user_id;
       v_count := v_count + 1;
