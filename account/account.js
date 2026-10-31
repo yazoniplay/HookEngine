@@ -5,6 +5,11 @@ const STORAGE_KEY = "hookengine-account-session";
 let mode = "login";
 let session = null;
 let currentPlan = "free";
+let historyRows = [];
+let historyOffset = 0;
+let historyHasMore = false;
+let historyLoading = false;
+const HISTORY_PAGE_SIZE = 100;
 
 const THEME_KEY = "hookengine-account-theme";
 function applyTheme(theme) {
@@ -127,7 +132,7 @@ async function showDashboard() {
     if (isAdmin) $("adminPlanMessage").textContent = "";
     const [usage,history]=await Promise.all([
       api("/rest/v1/rpc/hookengine_my_usage",{method:"POST",body:"{}"}),
-      api("/rest/v1/hookengine_generations?select=id,source_type,source_title,source_url,status,x_thread,linkedin_post,tiktok_hooks,outputs,selected_platforms,provider,error_message,created_at,completed_at,credits_reserved,input_tokens,output_tokens,latency_ms,estimated_provider_cost_usd,model,refunded_at&order=created_at.desc&limit=100")
+      api("/rest/v1/hookengine_generations?select=id,source_type,source_title,source_url,status,x_thread,linkedin_post,tiktok_hooks,outputs,selected_platforms,provider,error_message,created_at,completed_at,credits_reserved,input_tokens,output_tokens,latency_ms,estimated_provider_cost_usd,model,refunded_at&order=created_at.desc&limit=" + HISTORY_PAGE_SIZE + "&offset=0")
     ]);
     currentPlan=usage.plan||"free";
     const used=Number(usage.daily_used)||0;
@@ -194,7 +199,11 @@ async function showDashboard() {
       trial:"Trial ends "+(usage.trial_ends_at?timeLabel(usage.trial_ends_at):"after 7 days or when credits run out")+".",
       lifetime:`Lifetime: ${Number(usage.credits_total)||0} monthly credits · Pro features · ${Number(usage.lifetime_limit)||50} spots total.`
     }[currentPlan]||"Plan details unavailable.";
-    renderHistory(history);
+    historyRows = history;
+    historyOffset = history.length;
+    historyHasMore = history.length === HISTORY_PAGE_SIZE;
+    renderHistory(historyRows);
+    $("historyLoadMore").hidden = !historyHasMore;
   } catch(err) {
     message("Could not load account data: "+err.message,true);
   }
@@ -222,6 +231,28 @@ function renderHistory(rows) {
     const panel=$("preview-"+button.dataset.preview);panel.classList.toggle("open");button.textContent=panel.classList.contains("open")?"Hide drafts":"View drafts";
   }));
 }
+async function loadMoreHistory() {
+  if (historyLoading || !historyHasMore) return;
+  const button = $("historyLoadMore");
+  historyLoading = true;
+  button.disabled = true;
+  button.textContent = "Loading…";
+  try {
+    const rows = await api("/rest/v1/hookengine_generations?select=id,source_type,source_title,source_url,status,x_thread,linkedin_post,tiktok_hooks,outputs,selected_platforms,provider,error_message,created_at,completed_at,credits_reserved,input_tokens,output_tokens,latency_ms,estimated_provider_cost_usd,model,refunded_at&order=created_at.desc&limit=" + HISTORY_PAGE_SIZE + "&offset=" + historyOffset);
+    historyRows.push(...rows);
+    historyOffset += rows.length;
+    historyHasMore = rows.length === HISTORY_PAGE_SIZE;
+    renderHistory(historyRows);
+    button.hidden = !historyHasMore;
+  } catch (error) {
+    message("Could not load more history: " + (error.message || "Please retry."), true);
+  } finally {
+    historyLoading = false;
+    button.disabled = false;
+    button.textContent = "Load more history";
+  }
+}
+$("historyLoadMore").addEventListener("click", loadMoreHistory);
 $("refreshBtn").addEventListener("click",()=>showDashboard());
 async function setAdminPlan(plan) {
   const buttons=["adminFreeBtn","adminTrialBtn","adminProBtn","adminLifetimeBtn"].map(id=>$(id));
