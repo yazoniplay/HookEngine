@@ -17,18 +17,18 @@ const input = {
 };
 
 Deno.test("forged signature is rejected when PayPal verification returns FAILURE", async () => {
-  let submitted: Record<string, unknown> | null = null;
+  const submitted: Record<string, unknown>[] = [];
   const fakeFetch: typeof fetch = async (url, init) => {
     assertEquals(String(url), input.base + "/v1/notifications/verify-webhook-signature");
-    submitted = JSON.parse(String(init?.body));
+    submitted.push(JSON.parse(String(init?.body)));
     return new Response(JSON.stringify({ verification_status: "FAILURE" }), { status: 200 });
   };
   const accepted = await verifyPayPalWebhookSignature(input, fakeFetch);
   assertEquals(accepted, false);
-  assertEquals(submitted?.transmission_id, "transmission-123");
-  assertEquals(submitted?.transmission_sig, "forged-or-test-signature");
-  assertEquals(submitted?.webhook_id, "test-webhook-id");
-  assertEquals(submitted?.webhook_event, input.event);
+  assertEquals(submitted[0]?.transmission_id, "transmission-123");
+  assertEquals(submitted[0]?.transmission_sig, "forged-or-test-signature");
+  assertEquals(submitted[0]?.webhook_id, "test-webhook-id");
+  assertEquals(submitted[0]?.webhook_event, input.event);
 });
 
 Deno.test("valid signature is accepted only when PayPal returns SUCCESS", async () => {
