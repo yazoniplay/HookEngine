@@ -29,13 +29,15 @@ grant all on table public.hookengine_admin_audit to service_role;
 
 -- The product-owner account is an internal identity, never a customer Lifetime claimant.
 insert into public.hookengine_internal_accounts(user_id,reason)
-values ('79668c58-8676-4439-a440-03482afd7717','Product owner/admin account; excluded from customer Lifetime allocation')
+select id,'Product owner/admin account; excluded from customer Lifetime allocation'
+from auth.users where id='79668c58-8676-4439-a440-03482afd7717'
 on conflict (user_id) do update set reason=excluded.reason;
 
 -- Reclaim the incorrectly consumed spot. Historical ledger rows remain as an audit trail.
 update public.hookengine_subscriptions
 set lifetime_claimed_at=null,updated_at=now()
-where user_id='79668c58-8676-4439-a440-03482afd7717';
+where user_id in (select user_id from public.hookengine_internal_accounts
+                  where user_id='79668c58-8676-4439-a440-03482afd7717');
 
 create or replace function public.hookengine_assign_lifetime(p_user_id uuid)
 returns jsonb
