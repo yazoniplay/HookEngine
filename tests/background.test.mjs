@@ -75,3 +75,27 @@ test("YouTube transcript parsing has one owner in the background worker", async 
   assert.doesNotMatch(extractor, /function findEmbeddedCaptionTrack\(/);
   assert.match(extractor, /const transcript = isYouTube \? "" : nativeVideoTranscript\(\)/);
 });
+
+test("the vendored Readability dependency is pinned and attributed", async () => {
+  const vendor = await readFile(new URL("../vendor/readability.js", import.meta.url), "utf8");
+  const license = await readFile(new URL("../vendor/READABILITY-LICENSE.md", import.meta.url), "utf8");
+  const notice = await readFile(new URL("../vendor/READABILITY-NOTICE", import.meta.url), "utf8");
+  assert.match(vendor, /ab4027a8b37669745016869a37a504727992b2ba/);
+  assert.match(vendor, /function Readability\(/);
+  assert.match(license, /Apache License/);
+  assert.ok(notice.trim().length > 0);
+});
+
+test("the toolbar popup remains a Manifest V3 action popup", async () => {
+  const manifest = JSON.parse(await readFile(new URL("../manifest.json", import.meta.url), "utf8"));
+  assert.equal(manifest.manifest_version, 3);
+  assert.equal(manifest.action.default_popup, "popup.html");
+  assert.equal(manifest.background.type, "module");
+});
+
+test("the settings page loads the shared-storage module", async () => {
+  const html = await readFile(new URL("../settings.html", import.meta.url), "utf8");
+  const script = await readFile(new URL("../settings.js", import.meta.url), "utf8");
+  assert.match(html, /<script type="module" src="settings\.js"><\/script>/);
+  assert.match(script, /import \{ STORAGE_KEYS \} from "\.\/extension\/config\.js"/);
+});
