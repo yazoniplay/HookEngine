@@ -3,8 +3,9 @@
 Chrome Manifest V3 extension popup that opens from the browser toolbar and turns articles, selected page text and public YouTube videos into editable social drafts.
 
 ## Plans
-- Free: X threads, LinkedIn posts and TikTok hooks; 5 generations per day.
-- Pro: everything in Free plus Instagram captions, Threads sequences and Facebook posts; 100 generations per day.
+- Free includes X threads, LinkedIn posts and TikTok hooks.
+- Pro adds Instagram captions, Threads sequences and Facebook posts, plus additional variations.
+- Current usage limits are shown in the account portal; this README intentionally avoids hard-coding limits that may change.
 
 ## Managed AI providers
 All provider calls run inside the Supabase Edge Function. Provider keys are never included in extension code.
@@ -43,6 +44,5 @@ node --test tests/*.test.mjs
 
 ## Account and limits
 - Account portal: https://yazoniplay.github.io/HookEngine/account/
-- Free: 5 generations per UTC day.
-- Pro: 100 generations per UTC day.
+- Usage limits are plan-managed and displayed in the account portal.
 - PayPal checkout still depends on the existing merchant configuration.
