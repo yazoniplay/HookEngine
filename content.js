@@ -196,7 +196,7 @@
     }
     // YouTube transcript retrieval is owned by background.js. Keep this content script focused on DOM text and selections.
     const transcript = isYouTube ? "" : nativeVideoTranscript();
-    const text = transcript || selection || articleText();
+    const text = isYouTube ? selection : (transcript || selection || articleText());
     const usable = text.length >= 80;
     sendResponse({
       text: usable ? text.slice(0, 60000) : "",
