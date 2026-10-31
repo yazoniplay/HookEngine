@@ -16,7 +16,9 @@ import {
 import {
   planLabel,
   usageMainLine,
-  dailyLimitLine
+  dailyLimitLine,
+  creditUsageLabel,
+  creditUsagePercent
 } from "./extension/usage-display.mjs";
 
 const $ = id => document.getElementById(id);
@@ -85,11 +87,15 @@ function renderAccount() {
     $("signedInEmail").textContent = accountUser.email || "Signed in";
     $("extensionPlan").textContent = usage ? planLabel(usage.plan) : "LOADING";
     if (usage) {
+      $("creditUsage").textContent = creditUsageLabel(usage);
+      $("creditProgress").style.width = creditUsagePercent(usage) + "%";
       const dailyNote = dailyLimitLine(usage);
       $("dailyUsage").textContent = usage.remaining + "/" + usage.limit +
         " daily generations remaining" + (dailyNote ? " · " + dailyNote : "");
       $("extensionProgress").style.width = Math.min(100, usage.used / Math.max(1,usage.limit) * 100) + "%";
     } else {
+      $("creditUsage").textContent = "Credit balance unavailable";
+      $("creditProgress").style.width = "0%";
       $("dailyUsage").textContent = "Usage unavailable";
       $("extensionProgress").style.width = "0%";
     }
