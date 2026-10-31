@@ -365,7 +365,7 @@ test("a second generation 401 does not trigger another refresh attempt", async (
   };
   await assert.rejects(
     context.generateWithStoredSession({ text: "source" }),
-    /Generation failed \(401\)/
+    /Your session expired/
   );
   assert.equal(generationCalls, 2);
   assert.equal(refreshCalls, 1);
