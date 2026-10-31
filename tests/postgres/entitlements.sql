@@ -316,6 +316,10 @@ begin
   if v_result->>'reason' is distinct from 'weekly_limit' then
     raise exception 'Free credit exhaustion must return weekly_limit: %',v_result;
   end if;
+  if position('Weekly pool exhausted. Resets at ' in coalesce(v_result->>'message',''))=0
+     or v_result->>'reset_at' is null then
+    raise exception 'Weekly limit must include its name and exact reset timestamp: %',v_result;
+  end if;
 
   update public.hookengine_subscriptions set credits_balance=5 where user_id=v_user;
   for i in 1..3 loop
@@ -338,6 +342,10 @@ begin
   );
   if v_result->>'reason' is distinct from 'daily_cap' then
     raise exception 'Fourth daily generation must return daily_cap: %',v_result;
+  end if;
+  if position('Daily cap reached (3/3). Resets at ' in coalesce(v_result->>'message',''))=0
+     or v_result->>'reset_at' is null then
+    raise exception 'Daily cap must include its name and exact reset timestamp: %',v_result;
   end if;
 end;
 $hookengine_phase2_contract$;
@@ -374,7 +382,8 @@ begin
   if v_usage->>'plan' is distinct from 'free'
      or (v_usage->>'credits_total')::integer<>5
      or (v_usage->>'daily_limit')::integer<>3
-     or v_usage->>'reset_at' is null then
+     or v_usage->>'reset_at' is null
+     or v_usage->>'daily_reset_at' is null then
     raise exception 'SECURITY INVOKER usage RPC returned incorrect plan limits: %',v_usage;
   end if;
   if (select count(*) from public.hookengine_subscriptions
