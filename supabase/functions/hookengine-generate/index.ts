@@ -28,6 +28,7 @@ const PLATFORM_GUIDANCE:Record<string,string> = {
   threads_posts:"Write a sequence of 3–5 concise, conversational Threads posts. Make each post stand alone while building one coherent idea.",
   facebook_post:"Write one natural Facebook post for a broad audience. Use clear language, useful context and a conversational close without engagement bait."
 };
+type TextGenerationResult = {outputs:Record<string,string>;model:string;inputTokens:number|null;outputTokens:number|null};
 const LABELS:Record<string,string> = {
   x_thread:"X thread",linkedin_post:"LinkedIn post",tiktok_hooks:"TikTok hooks",
   instagram_caption:"Instagram caption",threads_posts:"Threads posts",facebook_post:"Facebook post"
@@ -101,7 +102,7 @@ function schemaFor(platforms:string[]){
   return {type:"OBJECT",properties,required:platforms};
 }
 function transient(status:number){return status===408||status===409||status===425||status===429||status>=500;}
-async function geminiText(prompt:string,platforms:string[]){
+async function geminiText(prompt:string,platforms:string[]):Promise<TextGenerationResult>{
   if(!GEMINI_API_KEY){const e=new Error("Gemini is not configured.");(e as any).status=503;throw e;}
   const response=await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+encodeURIComponent(GEMINI_MODEL)+":generateContent?key="+encodeURIComponent(GEMINI_API_KEY),{
     method:"POST",headers:{"Content-Type":"application/json"},signal:AbortSignal.timeout(22000),
@@ -116,7 +117,7 @@ async function geminiText(prompt:string,platforms:string[]){
   return {outputs,model:GEMINI_MODEL,inputTokens:Number.isFinite(usage.promptTokenCount)?usage.promptTokenCount:null,
     outputTokens:Number.isFinite(usage.candidatesTokenCount)?usage.candidatesTokenCount:null};
 }
-async function compatibleText(provider:"Groq"|"Ollama",prompt:string,platforms:string[]){
+async function compatibleText(provider:"Groq"|"Ollama",prompt:string,platforms:string[]):Promise<TextGenerationResult>{
   const groq=provider==="Groq";
   const key=groq?GROQ_API_KEY:OLLAMA_API_KEY;
   if(!key)throw new Error(provider+" is not configured.");
@@ -154,7 +155,7 @@ async function generateText(prompt:string,platforms:string[]){
     if(status&&!transient(status)&&status!==401&&status!==403)throw error;
     if(!status&&!isTimeout&&!(error instanceof TypeError))throw error;
   }
-  const fallbacks:Array<{name:"Groq"|"Ollama";ready:boolean;run:()=>Promise<Record<string,string>>}>=[
+  const fallbacks:Array<{name:"Groq"|"Ollama";ready:boolean;run:()=>Promise<TextGenerationResult>}>=[
     {name:"Groq",ready:!!GROQ_API_KEY,run:()=>compatibleText("Groq",prompt,platforms)},
     {name:"Ollama",ready:!!OLLAMA_API_KEY,run:()=>compatibleText("Ollama",prompt,platforms)}
   ];
@@ -166,7 +167,7 @@ async function generateText(prompt:string,platforms:string[]){
   console.error("Gemini primary failed; no fallback completed:",String(primaryError).slice(0,180));
   throw new Error("AI providers are temporarily unavailable. Please try again shortly.");
 }
-async function generateYouTube(url:string,title:string,platforms:string[],preferences:any,variationCount:number){
+async function generateYouTube(url:string,title:string,platforms:string[],preferences:any,variationCount:number):Promise<TextGenerationResult>{
   if(!GEMINI_API_KEY)throw new Error("Gemini video analysis is not configured.");
   const instructions=platforms.map(key=>key.toUpperCase()+": "+PLATFORM_GUIDANCE[key]).join("\n");
   const prompt=[
@@ -206,7 +207,8 @@ Deno.serve(async(req:Request)=>{
   const {text="",title="",sourceUrl="",sourceMode="text",preferences={}}=body||{};
   if(typeof text!=="string"||typeof title!=="string"||typeof sourceUrl!=="string"||typeof sourceMode!=="string")
     return reply({error:"Title, source URL and source text must be strings."},400);
-  const platforms=Array.isArray(body.platforms)?[...new Set(body.platforms.filter((p:any)=>typeof p==="string"))]:FREE_PLATFORMS;
+  const requestedPlatforms:unknown[]=Array.isArray(body?.platforms)?body.platforms:FREE_PLATFORMS;
+  const platforms:string[]=[...new Set(requestedPlatforms.filter((p):p is string=>typeof p==="string"))];
   if(!platforms.length||platforms.some((p:string)=>!ALL_PLATFORMS.includes(p)))return reply({error:"Choose one or more supported platforms."},400);
   if(sourceMode==="youtube_video"&&!validYouTube(sourceUrl))return reply({error:"Open a public YouTube video and try again."},400);
   if(sourceMode!=="youtube_video"&&sourceMode!=="text")return reply({error:"Unsupported source mode."},400);
