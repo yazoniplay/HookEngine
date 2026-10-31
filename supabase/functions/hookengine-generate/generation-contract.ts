@@ -213,3 +213,25 @@ export const GENERATION_SYSTEM_INSTRUCTION = [
   "Follow the requested platform format, writing preferences and variation count exactly.",
   "Return only the requested JSON object. Do not add markdown fences or commentary.",
 ].join(" ");
+
+
+export async function runWithProviderFallback<T>(
+  primary: () => Promise<T>,
+  fallbacks: Array<{ name: string; run: () => Promise<T> }>,
+  onFallbackError?: (name: string, error: unknown) => void,
+): Promise<{ value: T; provider: string; fallbackUsed: boolean }> {
+  try {
+    return { value: await primary(), provider: "Gemini", fallbackUsed: false };
+  } catch (primaryError) {
+    if (!shouldFallback(primaryError)) throw primaryError;
+  }
+
+  for (const fallback of fallbacks) {
+    try {
+      return { value: await fallback.run(), provider: fallback.name, fallbackUsed: true };
+    } catch (error) {
+      onFallbackError?.(fallback.name, error);
+    }
+  }
+  throw new Error("AI providers are temporarily unavailable. Please try again shortly.");
+}
