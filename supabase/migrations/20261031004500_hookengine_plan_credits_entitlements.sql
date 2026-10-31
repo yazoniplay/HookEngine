@@ -724,6 +724,19 @@ begin
     order by user_id
   loop
     perform pg_advisory_xact_lock(hashtextextended('hookengine-user:'||v_user.user_id::text,0));
+    if exists (
+      select 1 from public.hookengine_subscriptions
+      where user_id=v_user.user_id and plan='trial' and credits_balance>0
+        and (trial_ends_at<=now() or credits_balance<=0)
+    ) then
+      insert into public.hookengine_credit_ledger(
+        user_id,entry_type,amount,balance_after,period_started_at,period_ends_at,idempotency_key,metadata
+      )
+      select user_id,'period_expire',-credits_balance,0,credit_period_started_at,credit_period_ends_at,
+        'trial-expire:'||user_id::text,jsonb_build_object('reason','trial_expired','previous_plan','trial')
+      from public.hookengine_subscriptions where user_id=v_user.user_id
+      on conflict (idempotency_key) do nothing;
+    end if;
     update public.hookengine_subscriptions
     set plan='free',status='inactive',trial_started_at=null,trial_ends_at=null,
         credits_balance=0,credit_period_started_at=null,credit_period_ends_at=null,updated_at=now()
@@ -748,6 +761,8 @@ declare
   v_limit integer;
   v_claimed integer;
   v_old_balance integer := 0;
+  v_old_period_started_at timestamptz;
+  v_old_period_ends_at timestamptz;
   v_start timestamptz := date_trunc('month', timezone('UTC',now())) at time zone 'UTC';
   v_end timestamptz := (date_trunc('month', timezone('UTC',now())) + interval '1 month') at time zone 'UTC';
 begin
@@ -762,7 +777,8 @@ begin
     return jsonb_build_object('assigned',false,'reason','sold_out','claimed',v_claimed,'limit',v_limit);
   end if;
 
-  select credits_balance into v_old_balance
+  select credits_balance,credit_period_started_at,credit_period_ends_at
+  into v_old_balance,v_old_period_started_at,v_old_period_ends_at
   from public.hookengine_subscriptions where user_id=p_user_id for update;
   if not found then
     return jsonb_build_object('assigned',false,'reason','account_not_found');
@@ -773,7 +789,7 @@ begin
       user_id,entry_type,amount,balance_after,period_started_at,period_ends_at,idempotency_key,metadata
     )
     values (
-      p_user_id,'period_expire',-v_old_balance,0,v_start,v_end,
+      p_user_id,'period_expire',-v_old_balance,0,v_old_period_started_at,v_old_period_ends_at,
       'lifetime-conversion-expire:'||p_user_id::text,
       jsonb_build_object('reason','plan_conversion','target_plan','lifetime')
     )
