@@ -11,7 +11,7 @@ import {
   type GenerationPreferences,
 } from "./generation-contract.ts";
 import { reservationHttpStatus, reservationLimitReached } from "./reservation-status.ts";
-import { CORS_HEADERS, corsPreflight, jsonReply } from "./http-response.ts";
+import { corsPreflight, jsonReply } from "./http-response.ts";
 
 const GEMINI_MODEL = Deno.env.get("GEMINI_MODEL") || "gemini-3.5-flash-lite";
 const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY") || "";
@@ -399,15 +399,23 @@ async function handleRequest(req: Request): Promise<Response> {
   }
 
   const variationCount = Number(reservation.versions_per_generation) || 1;
-  if (!Number.isInteger(variationCount) || variationCount < 1 || variationCount > 3 ||
+  const expectedCost = payload.actionType === "regeneration" ? 1 : payload.sourceMode === "youtube_video" ? 5 : 1;
+  const validPlan = ["free", "trial", "pro", "lifetime"].includes(reservation.plan);
+  const validGenerationId = typeof reservation.generation_id === "string" &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(reservation.generation_id);
+  if (!validGenerationId || !validPlan ||
+      !Number.isInteger(variationCount) || variationCount < 1 || variationCount > 3 ||
+      reservation.credits_reserved !== expectedCost ||
       !Array.isArray(reservation.allowed_platforms) ||
       !payload.platforms.every((platform) => reservation.allowed_platforms.includes(platform))) {
     console.error("Reservation returned invalid entitlement metadata.");
-    try {
-      await finish(userId, reservation.generation_id, "failed", {}, [], null, null, null, null, 0,
-        "Invalid entitlement metadata.");
-    } catch (error) {
-      console.error("Could not refund invalid entitlement reservation.", safeErrorStatus(error));
+    if (validGenerationId) {
+      try {
+        await finish(userId, reservation.generation_id, "failed", {}, [], null, null, null, null, 0,
+          "Invalid entitlement metadata.");
+      } catch (error) {
+        console.error("Could not refund invalid entitlement reservation.", safeErrorStatus(error));
+      }
     }
     return reply({ error: "Your plan settings could not be verified. Please contact support." }, 503);
   }
