@@ -133,3 +133,14 @@ test("the account sign-in buttons use their own form fields and messages", async
   assert.match(popup, /accountMessage/);
   assert.match(popup, /gateMessage/);
 });
+
+test("the popup delegates session management to the dedicated auth module", async () => {
+  const popup = await readFile(new URL("../sidepanel.js", import.meta.url), "utf8");
+  const auth = await readFile(new URL("../extension/auth.js", import.meta.url), "utf8");
+  assert.match(popup, /from "\.\/extension\/auth\.js"/);
+  assert.match(popup, /restoreSession/);
+  assert.match(popup, /authenticate\(email, password\)/);
+  assert.match(auth, /export async function restoreSession\(\)/);
+  assert.match(auth, /export async function signIn\(email, password\)/);
+  assert.match(auth, /export async function signOut\(\)/);
+});
