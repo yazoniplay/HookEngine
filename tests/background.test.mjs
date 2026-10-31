@@ -144,3 +144,18 @@ test("the popup delegates session management to the dedicated auth module", asyn
   assert.match(auth, /export async function signIn\(email, password\)/);
   assert.match(auth, /export async function signOut\(\)/);
 });
+
+test("YouTube extraction does not run the article parser as a fallback", async () => {
+  const extractor = await readFile(new URL("../content.js", import.meta.url), "utf8");
+  assert.match(extractor, /const text = isYouTube \? selection : \(transcript \|\| selection \|\| articleText\(\)\)/);
+});
+
+test("manual source fields enforce the shared maximum length", async () => {
+  const popup = await readFile(new URL("../popup.html", import.meta.url), "utf8");
+  const sidepanel = await readFile(new URL("../sidepanel.html", import.meta.url), "utf8");
+  const script = await readFile(new URL("../sidepanel.js", import.meta.url), "utf8");
+  assert.match(popup, /id="sourceText"[^>]*maxlength="60000"/);
+  assert.match(sidepanel, /id="sourceText"[^>]*maxlength="60000"/);
+  assert.match(script, /length > MAX_SOURCE_CHARS/);
+  assert.match(script, /length < MIN_SOURCE_CHARS/);
+});
