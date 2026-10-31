@@ -25,3 +25,11 @@ jobs:
         run: node --check account/account.js
       - name: Check background worker JavaScript syntax
         run: node --check background.js
+
+  postgres-migration:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Apply all HookEngine migrations to PostgreSQL and run entitlement tests
+        run: bash tests/run-postgres-migration-tests.sh
