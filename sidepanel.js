@@ -60,6 +60,7 @@ function renderAccount() {
   $("upgradeButton").hidden = accountUsage.plan === "pro";
   $("planSummary").textContent = accountUsage.plan.toUpperCase();
   $("accountPanel").hidden = true;
+  $("accountToggle").setAttribute("aria-expanded", "false");
   $("accountToggle").textContent = signedIn ? "Account" : "Sign in";
   $("accountStrip").classList.toggle("is-signed-in", signedIn);
   $("accountSummary").textContent = signedIn
@@ -83,7 +84,9 @@ function renderAccount() {
   $("proHint").hidden = accountUsage.plan === "pro";
 }
 $("accountToggle").addEventListener("click", () => {
-  $("accountPanel").hidden = !$("accountPanel").hidden;
+  const panel = $("accountPanel");
+  panel.hidden = !panel.hidden;
+  $("accountToggle").setAttribute("aria-expanded", String(!panel.hidden));
 });
 async function loadAccountSession() {
   try {
@@ -412,5 +415,4 @@ $("analyzeVideoBtn").addEventListener("click",()=>{
     generateForSource("youtube_video",tab.url);
   });
 });
-$("accountToggle").addEventListener("keydown",e=>{if(e.key==="Enter")$("accountToggle").click();});
 initTheme();loadAccountSession();restoreLastGeneration();updateSourceMeta();updatePlatformCount();
