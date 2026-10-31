@@ -11,7 +11,7 @@
 ### Request validation and plan enforcement
 - Added a strict generation request contract.
 - Rejects non-object JSON, invalid types, unsupported source modes, malformed URLs, oversized titles/source text, unknown or duplicate platform keys, invalid preference fields/values, invalid action types and malformed regeneration parent IDs.
-- Enforces a 256 KiB request-body ceiling.
+- Enforces a 512 KiB request-body ceiling.
 - Plan/feature entitlement remains authoritative in `hookengine_reserve_generation`; the Edge Function additionally validates the returned plan, platform list, variation count, generation UUID and reserved credit cost before calling a provider.
 - Text generation costs one credit, first full-video analysis costs five, and regeneration costs one; the database remains the source of truth.
 
@@ -20,7 +20,7 @@
 - Added a consistent system instruction for Gemini, Groq and Ollama.
 - Gemini text requests retain structured JSON output and the 6,000-token output ceiling.
 - Provider fallback is deterministic: network/timeouts, provider auth/rate/server errors and malformed model output may fall back to configured Groq then Ollama. A Gemini HTTP 400 is treated as a non-retryable request error.
-- Video analysis remains Gemini-only; Groq/Ollama do not accept the same YouTube video input contract.
+- Video analysis remains Gemini-only; Groq/Ollama do not accept the same YouTube video input contract. The Interactions API receives standard lower-case JSON Schema types with an exact array length for variations; GenerateContent keeps its provider-specific schema casing.
 - Draft variations are now requested as arrays when a plan allows multiple versions. Legacy separator-delimited strings are still accepted, and the database's legacy text columns receive serialized values.
 - Account history now renders array-based variations correctly.
 
