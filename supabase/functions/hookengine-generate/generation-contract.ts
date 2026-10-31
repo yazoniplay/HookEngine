@@ -59,7 +59,7 @@ export function validYouTube(value: string): boolean {
     const id = host === "youtu.be"
       ? url.pathname.split("/").filter(Boolean)[0]
       : url.searchParams.get("v") || url.pathname.match(/^\/(?:shorts|embed|live)\/([^/?]+)/)?.[1];
-    return typeof id === "string" && /^[a-zA-Z0-9_-]{6,20}$/.test(id);
+    return typeof id === "string" && /^[a-zA-Z0-9_-]{11}$/.test(id);
   } catch {
     return false;
   }
