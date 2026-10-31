@@ -429,6 +429,8 @@ async function handleRequest(req: Request): Promise<Response> {
       latencyMs,
     );
     return reply({
+      generationId: reservation.generation_id,
+      sourceHash: reservation.source_hash,
       outputs: result.outputs,
       provider: result.provider,
       fallbackUsed: result.fallbackUsed,
