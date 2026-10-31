@@ -127,7 +127,7 @@ async function showDashboard() {
     if (isAdmin) $("adminPlanMessage").textContent = "";
     const [usage,history]=await Promise.all([
       api("/rest/v1/rpc/hookengine_get_usage",{method:"POST",body:"{}"}),
-      api("/rest/v1/hookengine_generations?select=id,source_type,source_title,source_url,status,x_thread,linkedin_post,tiktok_hooks,outputs,selected_platforms,provider,error_message,created_at,completed_at&order=created_at.desc&limit=100")
+      api("/rest/v1/hookengine_generations?select=id,source_type,source_title,source_url,status,x_thread,linkedin_post,tiktok_hooks,outputs,selected_platforms,provider,error_message,created_at,completed_at,credits_reserved,input_tokens,output_tokens,latency_ms,estimated_provider_cost_usd,model&order=created_at.desc&limit=100")
     ]);
     currentPlan=usage.plan||"free";
     const used=Number(usage.daily_used)||0;
@@ -163,6 +163,20 @@ async function showDashboard() {
     $("usedCount").textContent=used;$("limitCount").textContent="/ "+limit;
     $("usageProgress").style.width=(limit>0?Math.min(100,used/limit*100):0)+"%";
     $("remainingText").textContent=credits+" credits left · "+Math.max(0,limit-used)+" generations left today";
+    const totalTokens=Number(usage.total_tokens)||0;
+    const inputTokens=Number(usage.total_input_tokens)||0;
+    const outputTokens=Number(usage.total_output_tokens)||0;
+    const consumed=Number(usage.credits_consumed)||0;
+    const providerCost=Number(usage.estimated_provider_cost_usd)||0;
+    const completed=Number(usage.total_generations)||0;
+    const latency=Number(usage.average_latency_ms)||0;
+    $("totalTokens").textContent=totalTokens.toLocaleString();
+    $("tokenBreakdown").textContent=inputTokens.toLocaleString()+" input · "+outputTokens.toLocaleString()+" output";
+    $("creditsConsumed").textContent=consumed.toLocaleString();
+    $("providerCost").textContent="$"+providerCost.toFixed(5);
+    $("completedGenerations").textContent=completed.toLocaleString();
+    $("averageLatency").textContent=latency ? "Average "+(latency/1000).toFixed(1)+"s per generation" : "No latency data yet";
+    $("lifetimeSpots").textContent=(Number(usage.lifetime_claimed)||0)+" / "+(Number(usage.lifetime_limit)||50)+" Lifetime spots claimed · "+(Number(usage.lifetime_remaining)||0)+" remaining";
     $("upgradeBtn").hidden=currentPlan==="pro"||currentPlan==="lifetime";
     $("billingMessage").textContent={
       free:"Free: 5 weekly credits · 3 daily generations · 7-day history.",
@@ -194,21 +208,29 @@ function renderHistory(rows) {
 }
 $("refreshBtn").addEventListener("click",()=>showDashboard());
 async function setAdminPlan(plan) {
-  const freeButton=$("adminFreeBtn"),proButton=$("adminProBtn"),status=$("adminPlanMessage");
-  freeButton.disabled=true;proButton.disabled=true;status.textContent="Updating plan…";
+  const buttons=["adminFreeBtn","adminTrialBtn","adminProBtn","adminLifetimeBtn"].map(id=>$(id));
+  const status=$("adminPlanMessage");
+  buttons.forEach(button=>button.disabled=true);
+  status.textContent="Updating plan…";
   try {
     const result=await api("/functions/v1/hookengine-admin-plan",{method:"POST",body:JSON.stringify({plan})});
-    if(!result.ok || result.plan!==plan) throw new Error("The plan update could not be confirmed.");
+    if(!result.ok || result.plan!==plan) throw new Error(result.error||"The plan update could not be confirmed.");
     await showDashboard();
-    $("adminPlanMessage").textContent="Plan switched to "+(plan==="pro"?"Pro":"Free")+".";
+    $("adminPlanMessage").textContent=plan==="trial"
+      ? "A fresh 7-day Pro trial with 40 credits has been granted."
+      : plan==="lifetime"
+        ? "Lifetime assigned. The 50-account cap was enforced."
+        : "Plan switched to "+plan.charAt(0).toUpperCase()+plan.slice(1)+".";
   } catch(err) {
     status.textContent=err.message||"Could not update plan.";
   } finally {
-    freeButton.disabled=false;proButton.disabled=false;
+    buttons.forEach(button=>button.disabled=false);
   }
 }
 $("adminFreeBtn").addEventListener("click",()=>setAdminPlan("free"));
+$("adminTrialBtn").addEventListener("click",()=>setAdminPlan("trial"));
 $("adminProBtn").addEventListener("click",()=>setAdminPlan("pro"));
+$("adminLifetimeBtn").addEventListener("click",()=>setAdminPlan("lifetime"));
 $("upgradeBtn").addEventListener("click",async()=>{
   const button=$("upgradeBtn");button.disabled=true;button.innerHTML="Opening secure checkout…";
   try {
