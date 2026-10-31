@@ -135,7 +135,7 @@ begin
   end if;
 
   update public.hookengine_subscriptions
-  set plan='lifetime',status='active',provider='paypal',provider_subscription_id=null,
+  set plan='lifetime',status='active',provider='manual',provider_subscription_id=null,
       current_period_end=null,lifetime_claimed_at=coalesce(lifetime_claimed_at,now()),
       credits_balance=150,credit_period_started_at=v_start,credit_period_ends_at=v_end,updated_at=now()
   where user_id=p_user_id;
@@ -199,7 +199,7 @@ begin
 
   if p_plan='trial' then
     update public.hookengine_subscriptions
-    set plan='trial',status='trialing',provider=null,provider_subscription_id=null,current_period_end=null,
+    set plan='trial',status='trialing',provider='manual',provider_subscription_id=null,current_period_end=null,
         trial_started_at=v_now,trial_ends_at=v_now+interval '7 days',credits_balance=40,
         credit_period_started_at=v_now,credit_period_ends_at=v_now+interval '7 days',updated_at=v_now
     where user_id=p_user_id;
@@ -212,14 +212,14 @@ begin
     );
   elsif p_plan='pro' then
     update public.hookengine_subscriptions
-    set plan='pro',status='active',provider=null,provider_subscription_id=null,current_period_end=null,
+    set plan='pro',status='active',provider='manual',provider_subscription_id=null,current_period_end=null,
         trial_started_at=null,trial_ends_at=null,credits_balance=0,
         credit_period_started_at=null,credit_period_ends_at=null,updated_at=v_now
     where user_id=p_user_id;
     v_result := public.hookengine_refresh_credit_period(p_user_id);
   else
     update public.hookengine_subscriptions
-    set plan='free',status='inactive',provider=null,provider_subscription_id=null,current_period_end=null,
+    set plan='free',status='inactive',provider='manual',provider_subscription_id=null,current_period_end=null,
         trial_started_at=null,trial_ends_at=null,credits_balance=0,
         credit_period_started_at=null,credit_period_ends_at=null,updated_at=v_now
     where user_id=p_user_id;
@@ -238,6 +238,12 @@ $$;
 revoke all on function public.hookengine_admin_set_plan(uuid,text) from public, anon, authenticated;
 grant execute on function public.hookengine_admin_set_plan(uuid,text) to service_role;
 
+
+-- Distinguish administrator-granted entitlements from PayPal-managed subscriptions.
+alter table public.hookengine_subscriptions
+  drop constraint if exists hookengine_subscriptions_provider_check;
+alter table public.hookengine_subscriptions
+  add constraint hookengine_subscriptions_provider_check check (provider in ('paypal','manual'));
 
 -- PayPal event idempotency and ordered subscription state transitions.
 alter table public.hookengine_subscriptions
