@@ -181,30 +181,56 @@ async function refreshUsage() {
   } catch {}
   renderAccount();
 }
-async function signIn() {
-  const email=($("gateEmail")?.value || $("accountEmail").value).trim(),password=$("gatePassword")?.value || $("accountPassword").value;
-  const message=$("gateMessage") || $("accountMessage");
-  const signInButton=$("gateSignIn") || $("accountSignIn");
-  signInButton.disabled=true;message.textContent="Signing in…";
+async function signIn(source = "account") {
+  const isGate = source === "gate";
+  const emailInput = $(isGate ? "gateEmail" : "accountEmail");
+  const passwordInput = $(isGate ? "gatePassword" : "accountPassword");
+  const message = $(isGate ? "gateMessage" : "accountMessage");
+  const signInButton = $(isGate ? "gateSignIn" : "accountSignIn");
+  const email = emailInput.value.trim();
+  const password = passwordInput.value;
+
+  if (!email || !password) {
+    message.textContent = "Enter your email and password.";
+    return;
+  }
+
+  signInButton.disabled = true;
+  message.textContent = "Signing in…";
   try {
-    const response=await fetch(SUPABASE_URL+"/auth/v1/token?grant_type=password",{
-      method:"POST",headers:{apikey:SUPABASE_KEY,"Content-Type":"application/json"},
-      body:JSON.stringify({email,password})
+    const response = await fetch(SUPABASE_URL + "/auth/v1/token?grant_type=password", {
+      method: "POST",
+      headers: { apikey: SUPABASE_KEY, "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password })
     });
-    const data=await response.json().catch(()=>({}));
-    if(!response.ok) throw new Error(data.msg||data.message||"Check your email and password.");
-    data.expires_at=Math.floor(Date.now()/1000)+(data.expires_in||3600);
-    accountSession=data;accountUser=data.user;
-    await chrome.storage.local.set({[SESSION_KEY]:data});
-    $("accountPassword").value="";if($("gatePassword"))$("gatePassword").value="";message.textContent="";
-    await refreshUsage();renderAccount();
-  } catch(error) {message.textContent=error.message||"Could not sign in.";}
-  finally {signInButton.disabled=false;}
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.msg || data.message || "Check your email and password.");
+
+    data.expires_at = Math.floor(Date.now() / 1000) + (data.expires_in || 3600);
+    accountSession = data;
+    accountUser = data.user || null;
+    await chrome.storage.local.set({ [SESSION_KEY]: data });
+
+    $("accountPassword").value = "";
+    $("gatePassword").value = "";
+    message.textContent = "";
+    await refreshUsage();
+    renderAccount();
+  } catch (error) {
+    message.textContent = error.message || "Could not sign in.";
+  } finally {
+    signInButton.disabled = false;
+  }
 }
-$("accountSignIn").addEventListener("click",signIn);
-$("gateSignIn").addEventListener("click",signIn);
-$("gatePassword").addEventListener("keydown",e=>{if(e.key==="Enter")signIn();});
-$("accountPassword").addEventListener("keydown",e=>{if(e.key==="Enter")signIn();});
+
+$("accountSignIn").addEventListener("click", () => signIn("account"));
+$("gateSignIn").addEventListener("click", () => signIn("gate"));
+$("gatePassword").addEventListener("keydown", event => {
+  if (event.key === "Enter") signIn("gate");
+});
+$("accountPassword").addEventListener("keydown", event => {
+  if (event.key === "Enter") signIn("account");
+});
 $("accountSignOut").addEventListener("click",async()=>{
   if(accountSession?.access_token) fetch(SUPABASE_URL+"/auth/v1/logout",{method:"POST",headers:{apikey:SUPABASE_KEY,Authorization:"Bearer "+accountSession.access_token}}).catch(()=>{});
   accountSession=null;accountUser=null;accountUsage={plan:"free",used:0,limit:5,remaining:5};
