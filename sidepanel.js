@@ -233,7 +233,7 @@ function showUpgradeMoment(title, message) {
 }
 $("upgradeMomentDismiss").addEventListener("click", () => { $("upgradeMoment").hidden = true; });
 async function maybeShowFirstFreeDraftNudge() {
-  if (accountUsage?.plan !== "free" || accountUsage.totalGenerations !== 1) return;
+  if (accountUsage?.plan !== "free") return;
   try {
     const nudgeKey = FIRST_FREE_DRAFT_NUDGE_KEY + ":" + (accountUser?.id || "account");
     const saved = await chrome.storage.local.get(nudgeKey);
