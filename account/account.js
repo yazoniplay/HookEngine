@@ -126,7 +126,7 @@ async function showDashboard() {
     $("adminPlanControls").hidden = !isAdmin;
     if (isAdmin) $("adminPlanMessage").textContent = "";
     const [usage,history]=await Promise.all([
-      api("/rest/v1/rpc/hookengine_get_usage",{method:"POST",body:"{}"}),
+      api("/rest/v1/rpc/hookengine_my_usage",{method:"POST",body:"{}"}),
       api("/rest/v1/hookengine_generations?select=id,source_type,source_title,source_url,status,x_thread,linkedin_post,tiktok_hooks,outputs,selected_platforms,provider,error_message,created_at,completed_at,credits_reserved,input_tokens,output_tokens,latency_ms,estimated_provider_cost_usd,model,refunded_at&order=created_at.desc&limit=100")
     ]);
     currentPlan=usage.plan||"free";
@@ -138,18 +138,20 @@ async function showDashboard() {
     $("planBadge").classList.toggle("pro",currentPlan!=="free");
     $("currentPlan").textContent={free:"Free",pro:"Pro",trial:"Pro Trial",lifetime:"Lifetime"}[currentPlan]||"Free";
     $("planDescription").textContent={
-      free:"5 credits each week, with a maximum of 3 generations per day.",
-      pro:"300 credits each month, with a maximum of 30 generations per day.",
-      trial:"Pro features for 7 days or 40 credits, whichever comes first.",
-      lifetime:"Pro features with 150 credits refreshed each month."
+      free:`${Number(usage.credits_total)||0} credits each UTC week, with a maximum of ${Number(usage.daily_limit)||0} generations per day.`,
+      pro:`${Number(usage.credits_total)||0} credits each UTC month, with a maximum of ${Number(usage.daily_limit)||0} generations per day.`,
+      trial:`Pro features for 7 days or ${Number(usage.credits_total)||0} credits, whichever comes first.`,
+      lifetime:`Pro features with ${Number(usage.credits_total)||0} credits refreshed each UTC month.`
     }[currentPlan]||"Your HookEngine plan.";
-    $("planPrice").textContent={free:"€0",pro:"€4.99",trial:"€0",lifetime:"—"}[currentPlan]||"€0";
-    $("planPricePeriod").textContent={free:"/ month",pro:"/ month",trial:"/ 7 days",lifetime:"price unset"}[currentPlan]||"";
+    $("planPrice").textContent={free:"€0",pro:(usage.price_minor==null?"Not configured":new Intl.NumberFormat("en-IE",{style:"currency",currency:usage.price_currency||"EUR"}).format(Number(usage.price_minor)/100)),trial:"€0",lifetime:(usage.price_minor==null?"Not configured":new Intl.NumberFormat("en-IE",{style:"currency",currency:usage.price_currency||"EUR"}).format(Number(usage.price_minor)/100))}[currentPlan]||"€0";
+    $("planPricePeriod").textContent={free:"/ month",pro:(usage.price_minor==null?"billing not configured":"/ month"),trial:"/ 7 days",lifetime:(usage.price_minor==null?"pricing not configured":"")}[currentPlan]||"";
+    const periodLabel=currentPlan==="free"?"UTC week":currentPlan==="trial"?"trial":"UTC month";
+    const platformNames=(usage.platforms||[]).map(key=>({x_thread:"X",linkedin_post:"LinkedIn",tiktok_hooks:"TikTok",instagram_caption:"Instagram",threads_posts:"Threads",facebook_post:"Facebook"}[key]||key));
     const dashboardPerks={
-      free:["5 credits each UTC week","Up to 3 generations per day","X, LinkedIn and TikTok drafts","1 version and 1 regeneration per source","7-day generation history"],
-      trial:["40 Pro trial credits · 7-day expiry","Up to 30 generations per day","All six supported platforms","3 variations per generation","Video analysis included · unlimited history during trial"],
-      pro:["300 credits each UTC month","Up to 30 generations per day","All six supported platforms","3 variations per generation","Video analysis · unlimited regenerations within credits","Unlimited generation history"],
-      lifetime:["150 credits each UTC month","Up to 30 generations per day","All six supported platforms","3 variations per generation","Video analysis · unlimited regenerations within credits","Unlimited generation history"]
+      free:[`${Number(usage.credits_total)||0} credits each ${periodLabel}`,`Up to ${Number(usage.daily_limit)||0} generations per day`,platformNames.join(", ")+ " drafts",`${Number(usage.versions_per_generation)||1} version · ${Number(usage.regenerations_per_generation)||0} regeneration per source`,`${Number(usage.history_days)||7}-day generation history`],
+      trial:[`${Number(usage.credits_total)||0} Pro trial credits · 7-day expiry`,`Up to ${Number(usage.daily_limit)||0} generations per day`,platformNames.join(", ")+ " drafts",`${Number(usage.versions_per_generation)||1} variations per generation`,usage.video_enabled?"Video analysis included":"Transcript generation available","Unlimited history during trial"],
+      pro:[`${Number(usage.credits_total)||0} credits each ${periodLabel}`,`Up to ${Number(usage.daily_limit)||0} generations per day`,platformNames.join(", ")+ " drafts",`${Number(usage.versions_per_generation)||1} variations per generation`,usage.video_enabled?"Video analysis included":"Video analysis unavailable","Unlimited generation history"],
+      lifetime:[`${Number(usage.credits_total)||0} credits each ${periodLabel}`,`Up to ${Number(usage.daily_limit)||0} generations per day`,platformNames.join(", ")+ " drafts",`${Number(usage.versions_per_generation)||1} variations per generation`,usage.video_enabled?"Video analysis included":"Video analysis unavailable","Unlimited generation history"]
     };
     const perksRoot=$("dashboardPerks");
     perksRoot.replaceChildren(...(dashboardPerks[currentPlan]||dashboardPerks.free).map(item=>{
@@ -180,13 +182,13 @@ async function showDashboard() {
       : "USD · all recorded token usage has a configured rate";
     $("completedGenerations").textContent=completed.toLocaleString();
     $("averageLatency").textContent=latency ? "Average "+(latency/1000).toFixed(1)+"s per generation" : "No latency data yet";
-    $("lifetimeSpots").textContent=(Number(usage.lifetime_claimed)||0)+" / "+(Number(usage.lifetime_limit)||50)+" Lifetime spots claimed · "+(Number(usage.lifetime_remaining)||0)+" remaining";
+    $("lifetimeSpots").textContent="Lifetime allocations are limited to "+(Number(usage.lifetime_limit)||50)+" total.";
     $("upgradeBtn").hidden=currentPlan==="pro"||currentPlan==="lifetime";
     $("billingMessage").textContent={
-      free:"Free: 5 weekly credits · 3 daily generations · 7-day history.",
-      pro:"Pro: 300 monthly credits · 30 daily generations · €4.99/month.",
+      free:`Free: ${Number(usage.credits_total)||0} weekly credits · ${Number(usage.daily_limit)||0} daily generations · ${Number(usage.history_days)||7}-day history.`,
+      pro:`Pro: ${Number(usage.credits_total)||0} monthly credits · ${Number(usage.daily_limit)||0} daily generations.`,
       trial:"Trial ends "+(usage.trial_ends_at?timeLabel(usage.trial_ends_at):"after 7 days or when credits run out")+".",
-      lifetime:"Lifetime: 150 monthly credits · Pro features · 50 spots total. Pricing is not configured."
+      lifetime:`Lifetime: ${Number(usage.credits_total)||0} monthly credits · Pro features · ${Number(usage.lifetime_limit)||50} spots total.`
     }[currentPlan]||"Plan details unavailable.";
     renderHistory(history);
   } catch(err) {
