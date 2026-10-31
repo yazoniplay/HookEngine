@@ -1,3 +1,5 @@
+import { reservationHttpStatus, reservationLimitReached } from "./reservation-status.ts";
+
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 const GEMINI_MODEL = Deno.env.get("GEMINI_MODEL") || "gemini-3.5-flash-lite";
@@ -223,14 +225,13 @@ Deno.serve(async(req:Request)=>{
   const reservation=await reserve(userId,sourceMode==="youtube_video"?"youtube_video":"article",title,sourceUrl,sourceMode==="text"?text.trim():"",platforms,actionType,parentGenerationId);
   if(!reservation?.allowed){
     const reason=String(reservation?.reason||"reservation_denied");
-    const status=["daily_limit_reached","insufficient_credits","too_many_pending"].includes(reason)?429:
-      ["video_not_included","platform_not_included","trial_expired","regeneration_limit_reached"].includes(reason)?403:400;
+    const status=reservationHttpStatus(reason);
     return reply({
       error:reservation?.message||"This request is not available on your current plan.",
       reason,plan:reservation?.plan||"free",creditsBalance:reservation?.credits_balance??null,
       creditsRequired:reservation?.credits_required??null,dailyUsed:reservation?.used??reservation?.daily_used??null,
       dailyLimit:reservation?.daily_limit??null,allowedPlatforms:reservation?.allowed_platforms??null,
-      limitReached:reason==="daily_limit_reached"||reason==="insufficient_credits"
+      resetAt:reservation?.reset_at??null,limitReached:reservationLimitReached(reason)
     },status);
   }
   const variationCount=Number(reservation.versions_per_generation)||1;
