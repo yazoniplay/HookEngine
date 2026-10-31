@@ -17,32 +17,97 @@ function json(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), { status, headers: corsHeaders });
 }
 
+async function writeAudit(input: {
+  actorUserId?: string | null;
+  actorEmail?: string | null;
+  requestedPlan?: string | null;
+  outcome: string;
+  httpStatus: number;
+  details?: Record<string, unknown>;
+}): Promise<boolean> {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) return false;
+  try {
+    const response = await fetch(SUPABASE_URL + "/rest/v1/hookengine_admin_audit", {
+      method: "POST",
+      headers: {
+        apikey: SUPABASE_SERVICE_ROLE_KEY,
+        Authorization: "Bearer " + SUPABASE_SERVICE_ROLE_KEY,
+        "Content-Type": "application/json",
+        Prefer: "return=minimal",
+      },
+      body: JSON.stringify({
+        actor_user_id: input.actorUserId || null,
+        actor_email: input.actorEmail || null,
+        target_user_id: input.actorUserId || null,
+        action: "set_plan",
+        requested_plan: input.requestedPlan || null,
+        outcome: input.outcome,
+        http_status: input.httpStatus,
+        details: input.details || {},
+      }),
+    });
+    if (!response.ok) console.error("Admin audit write failed:", response.status, (await response.text()).slice(0, 200));
+    return response.ok;
+  } catch (error) {
+    console.error("Admin audit write failed:", String(error).slice(0, 200));
+    return false;
+  }
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Method not allowed." }, 405);
 
   const token = (req.headers.get("authorization") || "").match(/^Bearer\s+(.+)$/i)?.[1];
   if (!token || !SUPABASE_URL || !SUPABASE_ANON_KEY || !SUPABASE_SERVICE_ROLE_KEY) {
+    await writeAudit({ outcome: "rejected_missing_token_or_config", httpStatus: 401 });
     return json({ error: "Sign in with the admin account to continue." }, 401);
   }
 
   const authResponse = await fetch(SUPABASE_URL + "/auth/v1/user", {
     headers: { apikey: SUPABASE_ANON_KEY, Authorization: "Bearer " + token },
   });
-  if (!authResponse.ok) return json({ error: "Your session is invalid. Sign in again." }, 401);
+  if (!authResponse.ok) {
+    await writeAudit({ outcome: "rejected_invalid_session", httpStatus: 401 });
+    return json({ error: "Your session is invalid. Sign in again." }, 401);
+  }
   const user = await authResponse.json().catch(() => null);
 
   if (typeof user?.id !== "string" ||
       String(user.email || "").toLowerCase() !== ADMIN_EMAIL ||
       !user.email_confirmed_at) {
+    await writeAudit({
+      actorUserId: typeof user?.id === "string" ? user.id : null,
+      actorEmail: typeof user?.email === "string" ? user.email : null,
+      outcome: "rejected_not_admin",
+      httpStatus: 403,
+    });
     return json({ error: "This account is not authorized to manage plans." }, 403);
   }
 
   let body: { plan?: unknown };
   try { body = await req.json(); } catch { return json({ error: "Invalid request body." }, 400); }
-  const allowedPlans = ["free", "pro", "trial", "lifetime"];
+  const allowedPlans = ["free", "pro", "trial"];
   if (!allowedPlans.includes(String(body?.plan))) {
-    return json({ error: "Choose Free, Pro, Trial or Lifetime." }, 400);
+    await writeAudit({
+      actorUserId: user.id,
+      actorEmail: user.email,
+      requestedPlan: typeof body?.plan === "string" ? body.plan : null,
+      outcome: "rejected_invalid_or_lifetime_plan",
+      httpStatus: 400,
+    });
+    return json({ error: "Choose Free, Pro or Trial. Lifetime spots are reserved for eligible customers." }, 400);
+  }
+
+  const auditReady = await writeAudit({
+    actorUserId: user.id,
+    actorEmail: user.email,
+    requestedPlan: String(body.plan),
+    outcome: "attempted",
+    httpStatus: 202,
+  });
+  if (!auditReady) {
+    return json({ error: "Admin audit service is unavailable; no plan change was made." }, 503);
   }
 
   const update = await fetch(SUPABASE_URL + "/rest/v1/rpc/hookengine_admin_set_plan", {
@@ -57,6 +122,14 @@ Deno.serve(async (req: Request) => {
 
   const result = await update.json().catch(() => null);
   if (!update.ok || !result || result.ok === false || result.assigned === false) {
+    await writeAudit({
+      actorUserId: user.id,
+      actorEmail: user.email,
+      requestedPlan: String(body.plan),
+      outcome: "failed",
+      httpStatus: result?.reason === "sold_out" ? 409 : 500,
+      details: { reason: result?.reason || "rpc_failed" },
+    });
     console.error("Admin plan update failed:", update.status, JSON.stringify(result).slice(0, 300));
     const reason = result?.reason === "sold_out"
       ? "All 50 Lifetime spots have been claimed."
@@ -64,5 +137,12 @@ Deno.serve(async (req: Request) => {
     return json({ error: reason, ...result }, result?.reason === "sold_out" ? 409 : 500);
   }
 
+  await writeAudit({
+    actorUserId: user.id,
+    actorEmail: user.email,
+    requestedPlan: String(body.plan),
+    outcome: "succeeded",
+    httpStatus: 200,
+  });
   return json({ ok: true, plan: body.plan, ...result });
 });
