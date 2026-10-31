@@ -9,7 +9,8 @@
 
 ### Usage and trial visibility
 - The extension now maps the complete `hookengine_my_usage()` response needed by the UI: current/total credits, plan period reset, daily usage/reset, trial expiry, plan entitlements and completed-generation count.
-- The popup account strip uses the shared usage formatter. Free users see remaining weekly sources and the actual UTC reset weekday; Trial users see remaining trial credits and days; Pro/Lifetime users see their monthly balance and reset date.
+- The popup shows a dedicated credit meter with used/total credits and progress. Free users see weekly credits and the actual UTC reset weekday; Trial users see remaining trial credits and days; Pro/Lifetime users see monthly balance and reset date.
+- A separate daily-generation meter shows remaining daily generations and the UTC reset warning.
 - Daily usage shows the remaining daily generations and warns when one remains or the cap has been reached.
 
 ### Non-modal upgrade moments
@@ -30,16 +31,17 @@
 - The account portal now loads history in pages of 100, with a Load more history control.
 - Existing RLS policy still enforces plan retention: Free history remains limited to its configured window; Pro/Trial/Lifetime history can be paged through without a fixed UI cap.
 
-## Explicitly not implemented
-
-### Voice preview and active voice profile
-The database currently exposes only a boolean `voice_enabled` plan entitlement. A read-only schema inspection found no voice-profile table or voice-related profile columns, and the repository has no voice-profile storage, preview generation, or active-profile selection flow. Phase 4 does not pretend this entitlement is already a working feature. A real implementation needs a defined profile model and preview behavior before UI claims can be made.
+## Active writing voice profile
+- The existing Tone, Writing style, Length and Target audience preferences are the active writing profile. They are saved in Chrome sync storage and included in every generation request.
+- Phase 4 adds a live profile summary in Settings, updating as the user changes those preferences. The preview is explicitly a settings preview, not a generated sample.
+- There is no separate named-profile library or audio/voice-cloning feature. The database `voice_enabled` flag is not used to unlock the current writing preferences; it remains reserved until a separately specified advanced voice feature exists.
 
 ## Validation and remaining acceptance tests
 
 - The existing CI workflow checks Edge Function types, generation contract tests, CORS response tests, account JavaScript syntax, popup JavaScript syntax, background worker syntax and PostgreSQL migrations.
 - No production database changes or Edge Function deployment have been made from this branch.
-- Not yet verified in a real Chrome popup: usage display for Free/Trial/Pro, locked tabs, platform upsells, transcript-missing prompt, reset messaging, regeneration success/refusal, and multi-page history.
+- Not yet verified in a real Chrome popup: credit meter and daily usage for Free/Trial/Pro, locked tabs, platform upsells, transcript-missing prompt, reset messaging, regeneration success/refusal, and multi-page history.
+- The Settings profile summary has automated syntax validation but still needs a visual check in Chrome.
 - No real Pro account was used to verify three returned versions or unlimited history paging.
 - Checkout remains unavailable, so upgrade CTAs cannot complete a purchase.
 
@@ -53,6 +55,7 @@ The database currently exposes only a boolean `voice_enabled` plan entitlement. 
 6. Reach a daily/weekly limit in a controlled test account; confirm the exact reset message.
 7. Generate on Pro/Trial; confirm three real versions and regenerate from the same source/platform selection.
 8. In the account portal, page through more than 100 history rows on Pro and confirm older rows load; confirm Free retention remains restricted.
-9. Verify that the manifest remains 1.7.0 and checkout remains disabled.
+9. Change tone/style/length/audience in Settings; confirm the active writing profile preview updates, then save and confirm the settings are applied to the next generation.
+10. Verify that the manifest remains 1.7.0 and checkout remains disabled.
 
-Do not merge or deploy this branch until the acceptance tests and the voice-profile scope are resolved.
+Do not merge or deploy this branch until the manual Chrome acceptance tests are completed.
