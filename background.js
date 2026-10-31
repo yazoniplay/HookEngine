@@ -398,13 +398,17 @@ async function handleGenerationMessage(message) {
   );
   const lastGeneration = {
     outputs,
+    generationId: data.generationId || null,
+    parentGenerationId: originalPayload.actionType === "regeneration"
+      ? (originalPayload.parentGenerationId || null)
+      : (data.generationId || null),
     provider: data.provider || null,
     fallbackUsed: !!data.fallbackUsed,
     usage: data.usage || null,
     generatedAt: new Date().toISOString(),
     title: resolved.payload.title || "",
     sourceUrl: resolved.payload.sourceUrl || "",
-    sourceMode: resolved.payload.sourceMode || "text",
+    sourceMode: originalPayload.sourceMode || resolved.payload.sourceMode || "text",
     transcriptUsed: resolved.transcriptUsed,
     platforms: resolved.payload.platforms
   };
