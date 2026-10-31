@@ -99,3 +99,37 @@ test("the settings page loads the shared-storage module", async () => {
   assert.match(html, /<script type="module" src="settings\.js"><\/script>/);
   assert.match(script, /import \{ STORAGE_KEYS \} from "\.\/extension\/config\.js"/);
 });
+
+test("the public Supabase client key lives in shared extension config", async () => {
+  const config = await readFile(new URL("../extension/config.js", import.meta.url), "utf8");
+  const popup = await readFile(new URL("../sidepanel.js", import.meta.url), "utf8");
+  const match = config.match(/SUPABASE_KEY = "([^"]+)"/);
+  assert.ok(match, "shared config should define the public client key");
+  const payload = JSON.parse(Buffer.from(match[1].split(".")[1], "base64url").toString("utf8"));
+  assert.equal(payload.role, "anon", "the browser key must be the public anon role");
+  assert.match(popup, /SUPABASE_KEY/);
+  assert.match(popup, /from "\.\/extension\/config\.js"/);
+  assert.doesNotMatch(popup, /eyJ[a-zA-Z0-9_-]{20,}\.[a-zA-Z0-9_-]{20,}\./);
+});
+
+test("both extension HTML entry points load the popup application as a module", async () => {
+  const popup = await readFile(new URL("../popup.html", import.meta.url), "utf8");
+  const sidepanel = await readFile(new URL("../sidepanel.html", import.meta.url), "utf8");
+  assert.match(popup, /<script type="module" src="sidepanel\.js"><\/script>/);
+  assert.match(sidepanel, /<script type="module" src="sidepanel\.js"><\/script>/);
+});
+
+test("transient session verification failures preserve the saved login", async () => {
+  const popup = await readFile(new URL("../sidepanel.js", import.meta.url), "utf8");
+  assert.match(popup, /saved session is preserved/);
+  assert.match(popup, /session has been kept/);
+  assert.match(popup, /clearStoredAccountSession/);
+});
+
+test("the account sign-in buttons use their own form fields and messages", async () => {
+  const popup = await readFile(new URL("../sidepanel.js", import.meta.url), "utf8");
+  assert.match(popup, /signIn\("account"\)/);
+  assert.match(popup, /signIn\("gate"\)/);
+  assert.match(popup, /accountMessage/);
+  assert.match(popup, /gateMessage/);
+});
