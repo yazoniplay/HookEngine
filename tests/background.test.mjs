@@ -115,6 +115,7 @@ test("the vendored Readability dependency is pinned and attributed", async () =>
 test("the toolbar popup remains a Manifest V3 action popup", async () => {
   const manifest = JSON.parse(await readFile(new URL("../manifest.json", import.meta.url), "utf8"));
   assert.equal(manifest.manifest_version, 3);
+  assert.equal(manifest.version, "1.7.0");
   assert.equal(manifest.action.default_popup, "popup.html");
   assert.equal(manifest.background.type, "module");
 });
