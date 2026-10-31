@@ -157,6 +157,7 @@ async function refreshUsage() {
       versionsPerGeneration: Number(data.versions_per_generation) || 1,
       regenerationsPerGeneration: data.regenerations_per_generation == null ? null : Number(data.regenerations_per_generation),
       historyDays: data.history_days == null ? null : Number(data.history_days),
+      totalGenerations: Number(data.total_generations) || 0,
       platforms: Array.isArray(data.platforms) ? data.platforms : []
     };
   } catch (error) {
@@ -232,7 +233,7 @@ function showUpgradeMoment(title, message) {
 }
 $("upgradeMomentDismiss").addEventListener("click", () => { $("upgradeMoment").hidden = true; });
 async function maybeShowFirstFreeDraftNudge() {
-  if (accountUsage?.plan !== "free") return;
+  if (accountUsage?.plan !== "free" || accountUsage.totalGenerations !== 1) return;
   try {
     const nudgeKey = FIRST_FREE_DRAFT_NUDGE_KEY + ":" + (accountUser?.id || "account");
     const saved = await chrome.storage.local.get(nudgeKey);
@@ -373,7 +374,7 @@ function renderOutputs(outputs) {
           editor.value = version;
           editor.rows = Math.min(12, Math.max(5, Math.ceil(version.length / 75)));
           const parts = key === "x_thread"
-            ? (version.match(/^\\s*\\d+\\s*(?:\\/|of)\\s*\\d+/gm) || []).length
+            ? (version.match(/^\s*\d+\s*(?:\/|of)\s*\d+/gm) || []).length
             : 0;
           meta.textContent = (parts ? parts + " posts · " : "") +
             version.length.toLocaleString() + " characters";
