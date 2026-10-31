@@ -1,6 +1,6 @@
 # HookEngine Phase 2 — status
 
-**Status:** Phase 2 engineering implementation is prepared for closeout; external end-to-end acceptance tests remain outstanding.  
+**Status:** Phase 2 implementation is merged and deployed; external end-to-end acceptance tests remain outstanding.  
 **Checked:** 2026-10-31  
 **Extension manifest:** 1.7.0 (unchanged)  
 **Production functions:** `hookengine-generate` v19, `hookengine-admin-plan` v5, `hookengine-paypal-webhook` v10 — ACTIVE  
@@ -37,7 +37,7 @@ Checkout remains disabled. Do not begin Phase 3 until the remaining external che
 ## Pull requests
 
 - PR #35 merged: admin audit, Lifetime inventory guard, telemetry metric correction.
-- PR #36 contains final popup usage display, test coverage, PayPal signature/refund handling and verification report. It is awaiting merge.
+- PR #36 merged: final popup usage display, test coverage, PayPal signature/refund handling and verification report.
 - PR #34 remains unmerged, as requested.
 
 See [PHASE2-VERIFICATION-REPORT.md](./PHASE2-VERIFICATION-REPORT.md) for query outputs, raw usage JSON, cron results, detailed privilege tables and the full outstanding-test list. See [PHASE2-DIAGNOSTICS.sql](./PHASE2-DIAGNOSTICS.sql) for repeatable database audit queries.
