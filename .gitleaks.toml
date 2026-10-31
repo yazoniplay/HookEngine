@@ -1,0 +1,9 @@
+# This exact historical finding is the Supabase anon/publishable JWT from a retired
+# browser config. Its payload declares role=anon; it is a public client identifier,
+# not a service-role credential. Keep this exception fingerprint-scoped.
+[[allowlists]]
+description = "Retired Supabase anon JWT in historical browser config (public client key)"
+commits = ["de268dc1cb7a9dadfa3745286d601e2caee32797"]
+paths = ["^extension/config\\.js$"]
+rules = ["jwt"]
+fingerprints = ["de268dc1cb7a9dadfa3745286d601e2caee32797:extension/config.js:jwt:2"]
