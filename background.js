@@ -1,3 +1,12 @@
+import {
+  SUPABASE_URL,
+  SUPABASE_KEY,
+  FUNCTION_URL,
+  STORAGE_KEYS,
+  MAX_SOURCE_CHARS,
+  MIN_SOURCE_CHARS
+} from "./extension/config.js";
+
 function decodeCaptionText(value) {
   return (value || "")
     .replace(/<br\s*\/?\s*>/gi, " ")
@@ -174,12 +183,23 @@ async function getPageCaptionTracks(tabId) {
   }
 }
 
+function getYouTubeVideoId(value) {
+  try {
+    const url = new URL(value);
+    const host = url.hostname.toLowerCase();
+    if (!["youtube.com", "www.youtube.com", "m.youtube.com", "music.youtube.com", "youtu.be"].includes(host)) return "";
+    const id = host === "youtu.be"
+      ? url.pathname.split("/").filter(Boolean)[0]
+      : (url.searchParams.get("v") || url.pathname.match(/^\/(?:shorts|embed|live)\/([^/?]+)/)?.[1]);
+    return /^[a-zA-Z0-9_-]{11}$/.test(id || "") ? id : "";
+  } catch {
+    return "";
+  }
+}
+
 async function fetchYouTubeTranscript(videoUrl) {
   try {
-    const url = new URL(videoUrl);
-    const videoId = url.hostname === "youtu.be"
-      ? url.pathname.split("/").filter(Boolean)[0]
-      : (url.searchParams.get("v") || url.pathname.match(/\/(?:shorts|embed|live)\/([^/?]+)/)?.[1]);
+    const videoId = getYouTubeVideoId(videoUrl);
     if (!videoId) return "";
 
     const response = await fetch("https://www.youtube.com/watch?v=" + encodeURIComponent(videoId), {
