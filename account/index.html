@@ -20,8 +20,8 @@
         <div class="auth-copy">
           <span class="eyebrow">YOUR CREATOR WORKSPACE</span>
           <h1>Make every<br><span>good idea travel.</span></h1>
-          <p>Manage your daily generations, revisit drafts, and upgrade when you need more room to create.</p>
-          <div class="mini-features"><span>✓ Daily usage tracking</span><span>✓ Saved generation history</span><span>✓ One account across devices</span></div>
+          <p>Manage credits, plan entitlements, usage and saved drafts in one place.</p>
+          <div class="mini-features"><span>✓ Daily usage tracking</span><span>✓ 7-day generation history</span><span>✓ One account across devices</span></div>
         </div>
         <div class="auth-card">
           <div class="auth-tabs"><button id="loginTab" class="tab active">Sign in</button><button id="signupTab" class="tab">Create account</button></div>
@@ -35,17 +35,17 @@
         </div>
       </section>
       <section class="pricing-section" aria-labelledby="pricingTitle">
-        <div class="pricing-heading"><span class="eyebrow">SIMPLE, TRANSPARENT PRICING</span><h2 id="pricingTitle">Create more. Keep your momentum.</h2><p class="muted">Start free, then upgrade when you need more daily room.</p></div>
+        <div class="pricing-heading"><span class="eyebrow">SIMPLE, TRANSPARENT PRICING</span><h2 id="pricingTitle">Create more. Keep your momentum.</h2><p class="muted">New accounts start with a 7-day Pro trial or 40 credits, whichever comes first.</p></div>
         <div class="pricing-grid">
           <article class="pricing-card">
             <div class="pricing-card-top"><div><span class="plan-label">FREE</span><h3>Try HookEngine</h3></div><div class="pricing-amount">€0<span>/month</span></div></div>
-            <p class="pricing-description">The essentials for turning content into platform-ready drafts.</p>
-            <ul class="perk-list"><li><span class="perk-check">✓</span>5 generations per day</li><li><span class="perk-check">✓</span>X threads from articles and videos</li><li><span class="perk-check">✓</span>LinkedIn post drafts</li><li><span class="perk-check">✓</span>TikTok hook ideas</li><li><span class="perk-check">✓</span>Saved generation history</li></ul>
+            <p class="pricing-description">A lightweight plan for trying HookEngine.</p>
+            <ul class="perk-list"><li><span class="perk-check">✓</span>5 credits per week · 3 generations per day</li><li><span class="perk-check">✓</span>X threads from article and transcript sources</li><li><span class="perk-check">✓</span>LinkedIn post drafts</li><li><span class="perk-check">✓</span>TikTok hook ideas</li><li><span class="perk-check">✓</span>Saved generation history</li></ul>
           </article>
           <article class="pricing-card pro-pricing-card">
             <div class="pricing-card-top"><div><span class="plan-label pro-label">HOOKENGINE PRO</span><h3>For consistent creators</h3></div><div class="pricing-amount">€4.99<span>/month</span></div></div>
-            <p class="pricing-description">More daily capacity for your content workflow.</p>
-            <ul class="perk-list"><li><span class="perk-check">✓</span><strong>100 generations per day</strong></li><li><span class="perk-check">✓</span>Everything in Free</li><li><span class="perk-check">✓</span>X threads, LinkedIn posts and TikTok hooks</li><li><span class="perk-check">✓</span>Instagram captions, Threads posts and Facebook posts</li><li><span class="perk-check">✓</span>Three variations for every selected platform</li><li><span class="perk-check">✓</span>Custom tone, writing style, length and audience settings</li><li><span class="perk-check">✓</span>Saved history and previous drafts</li><li><span class="perk-check">✓</span>Account usage dashboard</li></ul>
+            <p class="pricing-description">More credits and the complete creator workflow.</p>
+            <ul class="perk-list"><li><span class="perk-check">✓</span><strong>300 credits per month · 30 generations per day</strong></li><li><span class="perk-check">✓</span>Everything in Free</li><li><span class="perk-check">✓</span>X threads, LinkedIn posts and TikTok hooks</li><li><span class="perk-check">✓</span>Instagram captions, Threads posts and Facebook posts</li><li><span class="perk-check">✓</span>Three variations per generation</li><li><span class="perk-check">✓</span>Custom tone, writing style, length and audience settings</li><li><span class="perk-check">✓</span>Unlimited generation history</li><li><span class="perk-check">✓</span>Voice and video entitlements</li><li><span class="perk-check">✓</span>Text/transcript: 1 credit · video: 5 credits · regeneration: 1 credit</li><li><span class="perk-check">✓</span>Account usage dashboard</li></ul>
             <p class="pricing-note">Subscription checkout availability depends on billing setup.</p>
           </article>
         </div>
@@ -55,17 +55,17 @@
         <div class="welcome-row"><div><span class="eyebrow">WORKSPACE OVERVIEW</span><h1>Your account<span class="period">.</span></h1><p id="accountEmail" class="muted"></p></div><span id="planBadge" class="plan-badge">FREE PLAN</span></div>
         <div class="overview-grid">
           <article class="panel usage-panel">
-            <div class="panel-head"><div><span class="eyebrow">TODAY</span><h2>Daily generations</h2></div><span class="usage-icon">↗</span></div>
-            <div class="usage-number"><strong id="usedCount">—</strong><span id="limitCount">/ 5</span></div>
+            <div class="panel-head"><div><span class="eyebrow">TODAY</span><h2>Daily generation limit</h2></div><span class="usage-icon">↗</span></div>
+            <div class="usage-number"><strong id="usedCount">—</strong><span id="limitCount">/ 3</span></div>
             <div class="progress"><span id="usageProgress"></span></div>
             <div class="usage-foot"><span id="remainingText">Loading allowance…</span><span>Resets at midnight UTC</span></div>
           </article>
           <article class="panel plan-panel">
             <div class="panel-head"><div><span class="eyebrow">YOUR PLAN</span><h2 id="currentPlan">Free</h2></div><span class="plan-icon">✳</span></div>
-            <p id="planDescription" class="muted">5 generations every day.</p>
+            <p id="planDescription" class="muted">5 credits each week, with a maximum of 3 generations per day.</p>
             <div class="plan-price"><strong id="planPrice">€0</strong><span>/ month</span></div>
             <button id="upgradeBtn" class="button primary full">Get Pro <span>→</span></button>
-            <p id="billingMessage" class="fine-print">Pro: 100 generations per day · €4.99/month.</p>
+            <p id="billingMessage" class="fine-print">Pro: 300 monthly credits · 30 daily generations · €4.99/month.</p>
             <div id="adminPlanControls" hidden style="margin-top:18px;padding-top:16px;border-top:1px solid var(--border)">
               <div class="eyebrow" style="margin-bottom:10px">ADMIN CONTROLS</div>
               <p class="fine-print" style="margin:0 0 12px">Switch your account between Free and Pro. No checkout required.</p>
