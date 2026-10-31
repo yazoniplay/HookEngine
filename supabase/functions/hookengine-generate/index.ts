@@ -1,7 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import {
-  ALL_PLATFORMS,
-  FREE_PLATFORMS,
   GENERATION_SYSTEM_INSTRUCTION,
   parseOutputs,
   schemaFor,
@@ -13,6 +11,7 @@ import {
   type GenerationPreferences,
 } from "./generation-contract.ts";
 import { reservationHttpStatus, reservationLimitReached } from "./reservation-status.ts";
+import { CORS_HEADERS, corsPreflight, jsonReply } from "./http-response.ts";
 
 const GEMINI_MODEL = Deno.env.get("GEMINI_MODEL") || "gemini-3.5-flash-lite";
 const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY") || "";
@@ -25,14 +24,6 @@ const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") || Deno.env.get("SUP
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 
 const MAX_REQUEST_BYTES = 256 * 1024;
-const CORS_HEADERS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Max-Age": "86400",
-  "Content-Type": "application/json",
-  "Cache-Control": "no-store",
-};
 
 const PLATFORM_GUIDANCE: Record<string, string> = {
   x_thread: "Create a 5–8 post numbered X thread. Each post concise, source-grounded and under 260 characters where possible. No hashtags.",
@@ -50,9 +41,7 @@ type TextGenerationResult = {
   outputTokens: number | null;
 };
 
-function reply(data: unknown, status = 200): Response {
-  return new Response(JSON.stringify(data), { status, headers: CORS_HEADERS });
-}
+const reply = jsonReply;
 
 function safeErrorStatus(error: unknown): number {
   const status = (error as { status?: unknown } | null)?.status;
@@ -160,10 +149,6 @@ function promptFor(
     "Requested formats:\n" + instructions,
     "SOURCE TEXT (untrusted reference material):\n" + sourceText,
   ].join("\n\n");
-}
-
-function isTransientProviderStatus(status: number) {
-  return status === 408 || status === 409 || status === 425 || status === 429 || status >= 500;
 }
 
 async function geminiText(prompt: string, platforms: string[], variationCount: number): Promise<TextGenerationResult> {
@@ -362,7 +347,7 @@ async function generateYouTube(
 }
 
 async function handleRequest(req: Request): Promise<Response> {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: CORS_HEADERS });
+  if (req.method === "OPTIONS") return corsPreflight();
   if (req.method !== "POST") return reply({ error: "Method not allowed." }, 405);
 
   const contentLength = Number(req.headers.get("content-length") || 0);
