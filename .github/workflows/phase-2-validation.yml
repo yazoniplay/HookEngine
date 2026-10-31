@@ -1,10 +1,10 @@
-name: Phase 2 validation
+name: Phase 3 Edge reliability validation
 
 on:
   pull_request:
     branches: [main]
   push:
-    branches: [phase-2-plans-limits-economics, phase-2-spec-alignment]
+    branches: [phase3-edge-reliability]
 
 permissions:
   contents: read
@@ -23,6 +23,10 @@ jobs:
         run: deno check supabase/functions/hookengine-generate/index.ts
       - name: Test reservation refusal status mapping
         run: deno test tests/reservation-status.test.ts
+      - name: Test generation input and output contracts
+        run: deno test tests/generation-contract.test.ts
+      - name: Test CORS-safe generation responses
+        run: deno test tests/generation-http-response.test.ts
       - name: Type-check admin plan Edge Function
         run: deno check supabase/functions/hookengine-admin-plan/index.ts
       - name: Test admin endpoint denial and audit behavior
