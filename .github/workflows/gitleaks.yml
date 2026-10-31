@@ -37,5 +37,24 @@ jobs:
           sudo install /tmp/gitleaks /usr/local/bin/gitleaks
           gitleaks version
 
-      - name: Scan every reachable commit
-        run: gitleaks detect --source . --log-opts=--all --redact --exit-code 1
+      - name: Scan every reachable commit and print redacted finding metadata
+        shell: bash
+        run: |
+          set -uo pipefail
+          scan_status=0
+          gitleaks detect \
+            --source . \
+            --log-opts=--all \
+            --report-format json \
+            --report-path /tmp/gitleaks-report.json \
+            --redact \
+            --exit-code 1 || scan_status=$?
+
+          if [ -s /tmp/gitleaks-report.json ]; then
+            echo "Redacted finding metadata (fingerprint, file, rule, line, commit):"
+            jq -r '.[] | [.Fingerprint, .File, .RuleID, (.StartLine|tostring), .Commit] | @tsv' /tmp/gitleaks-report.json
+          else
+            echo "Gitleaks produced no JSON report."
+          fi
+
+          exit "$scan_status"
