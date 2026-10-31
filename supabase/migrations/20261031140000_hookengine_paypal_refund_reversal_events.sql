@@ -83,7 +83,7 @@ begin
     'credits_balance',(select credits_balance from public.hookengine_subscriptions where user_id=v_sub.user_id)
   );
 end;
-$function$
+$function$;
 
 revoke all on function public.hookengine_apply_paypal_event(text,text,text,timestamp with time zone,timestamp with time zone) from public, anon, authenticated;
 grant execute on function public.hookengine_apply_paypal_event(text,text,text,timestamp with time zone,timestamp with time zone) to service_role;
