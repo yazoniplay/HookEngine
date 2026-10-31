@@ -14,56 +14,6 @@
     return box.value;
   }
 
-  function findEmbeddedCaptionTrack() {
-    const sources = [...document.scripts].map(s => s.textContent || "").concat(document.documentElement?.innerHTML || "");
-    for (const source of sources) {
-      let offset = 0;
-      while ((offset = source.indexOf("ytInitialPlayerResponse", offset)) !== -1) {
-        const start = source.indexOf("{", offset + "ytInitialPlayerResponse".length);
-        if (start < 0 || start - offset > 120) { offset += 24; continue; }
-        let depth = 0, inString = false, escaped = false;
-        for (let i = start; i < source.length; i++) {
-          const ch = source[i];
-          if (inString) {
-            if (escaped) escaped = false;
-            else if (ch === "\\") escaped = true;
-            else if (ch === '"') inString = false;
-          } else if (ch === '"') inString = true;
-          else if (ch === "{") depth++;
-          else if (ch === "}") {
-            if (--depth === 0) {
-              try {
-                const data = JSON.parse(source.slice(start, i + 1));
-                const tracks = data?.captions?.playerCaptionsTracklistRenderer?.captionTracks || [];
-                const track = tracks.find(t => /^en(-|$)/i.test(t.languageCode || "")) || tracks[0];
-                if (track?.baseUrl) return track.baseUrl;
-              } catch {}
-              break;
-            }
-          }
-        }
-        offset += 24;
-      }
-    }
-    return "";
-  }
-
-  function youtubeTranscript() {
-    const selectors = [
-      "ytd-transcript-renderer #segments-container",
-      "ytd-transcript-renderer .segment-text",
-      "ytd-transcript-segment-renderer .segment-text",
-      "[data-purpose='transcript-segment']"
-    ];
-    for (const selector of selectors) {
-      const nodes = [...document.querySelectorAll(selector)];
-      const text = clean(nodes.map(node => node.innerText || node.textContent).join(" "));
-      if (text.length > 120) return text;
-    }
-    return "";
-  }
-
-
   function nativeVideoTranscript() {
     const pieces = [];
     for (const video of document.querySelectorAll("video")) {
@@ -226,7 +176,8 @@
       });
       return;
     }
-    const transcript = (isYouTube ? youtubeTranscript() : "") || nativeVideoTranscript();
+    // YouTube transcript retrieval is owned by background.js. Keep this content script focused on DOM text and selections.
+    const transcript = isYouTube ? "" : nativeVideoTranscript();
     const text = transcript || selection || articleText();
     const usable = text.length >= 80;
     sendResponse({
@@ -235,7 +186,6 @@
       url: location.href,
       sourceType: transcript ? (isYouTube ? "youtube-transcript" : "video-captions") : (selection ? "selected-text" : (isYouTube ? "youtube-page" : "article")),
       needsTranscript: isYouTube && !transcript && !selection,
-      captionTrackUrl: isYouTube && !transcript && !selection ? findEmbeddedCaptionTrack() : "",
       extractionFailed: !usable
     });
   });
