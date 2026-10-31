@@ -159,6 +159,27 @@ begin
     raise exception 'Could not finalize Pro video generation';
   end if;
 
+  -- A failed 5-credit video analysis must restore all five reserved credits.
+  v_result := public.hookengine_reserve_generation(
+    v_video_user,'youtube_video','Failed video refund','https://www.youtube.com/watch?v=failed-video-test','',
+    'generation',null,array['x_thread']::text[]
+  );
+  if not coalesce((v_result->>'allowed')::boolean,false)
+     or (v_result->>'credits_reserved')::integer <> 5 then
+    raise exception 'Video failure refund test did not reserve five credits: %',v_result;
+  end if;
+  v_video_root := (v_result->>'generation_id')::uuid;
+  select credits_balance into v_balance from public.hookengine_subscriptions where user_id=v_video_user;
+  if not public.hookengine_finish_generation(
+    p_generation_id=>v_video_root,p_user_id=>v_video_user,p_status=>'failed',p_error_message=>'forced video failure test'
+  ) then
+    raise exception 'Could not finalize failed video reservation';
+  end if;
+  if (select credits_balance from public.hookengine_subscriptions where user_id=v_video_user) <> v_balance + 5
+     or (select refunded_at from public.hookengine_generations where id=v_video_root) is null then
+    raise exception 'Failed 5-credit video reservation was not fully refunded';
+  end if;
+
   v_result := public.hookengine_reserve_generation(
     v_video_user,'youtube_video','Video root','https://www.youtube.com/watch?v=integration-test','',
     'regeneration',v_video_root,array['x_thread']::text[]
@@ -210,6 +231,23 @@ begin
      or (v_result->>'credits_consumed')::bigint <> 6
      or (v_result->>'estimated_provider_cost_usd')::numeric <= 0 then
     raise exception 'Usage RPC did not return token, credit and provider cost metrics: %',v_result;
+  end if;
+
+  -- Zero-token telemetry with no model must not be counted as an unpriced generation.
+  v_result := public.hookengine_reserve_generation(
+    v_video_user,'article','Zero-token telemetry test','',v_source,'generation',null,array['x_thread']::text[]
+  );
+  v_root := (v_result->>'generation_id')::uuid;
+  if not public.hookengine_finish_generation(
+    p_generation_id=>v_root,p_user_id=>v_video_user,p_status=>'completed',
+    p_outputs=>'{"x_thread":"zero token test"}'::jsonb,p_selected_platforms=>array['x_thread']::text[],
+    p_provider=>'Gemini',p_model=>null,p_input_tokens=>0,p_output_tokens=>0,p_latency_ms=>1
+  ) then
+    raise exception 'Could not finalize zero-token telemetry test';
+  end if;
+  v_result := public.hookengine_my_usage();
+  if (v_result->>'unpriced_generations')::integer <> 0 then
+    raise exception 'Zero-token row incorrectly counted as unpriced: %',v_result;
   end if;
 
   -- PayPal activation grants the Pro period once; duplicates and out-of-order events are ignored.
