@@ -1,19 +1,17 @@
+import {
+  SUPABASE_URL,
+  SUPABASE_KEY,
+  FUNCTION_URL,
+  STORAGE_KEYS,
+  VARIATION_SEPARATOR,
+  PLATFORM_LABELS
+} from "./extension/config.js";
+
 const $ = id => document.getElementById(id);
-const SUPABASE_URL = "https://ppaknwuwiublxogclqdw.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBwYWtud3V3aXVibHhvZ2NscWR3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE5NzkxNzQsImV4cCI6MjEwNzU1NTE3NH0.mlJayLmT_xCRfGjyrA7j8bqKQVhQrjhCBD5e3czVfr0";
-const FUNCTION_URL = SUPABASE_URL + "/functions/v1/hookengine-generate";
-const SESSION_KEY = "hookengine-account-session";
-const THEME_KEY = "hookengine-theme";
-const WRITING_PREFS_KEY = "hookengine-writing-preferences";
-const VARIATION_SEPARATOR = "\\n\\n---HOOKENGINE-VARIATION---\\n\\n";
-const PLATFORM_LABELS = {
-  x_thread: "X thread",
-  linkedin_post: "LinkedIn post",
-  tiktok_hooks: "TikTok hooks",
-  instagram_caption: "Instagram caption",
-  threads_posts: "Threads posts",
-  facebook_post: "Facebook post"
-};
+const SESSION_KEY = STORAGE_KEYS.session;
+const THEME_KEY = STORAGE_KEYS.theme;
+const WRITING_PREFS_KEY = STORAGE_KEYS.writingPreferences;
+
 let accountSession = null;
 let accountUser = null;
 let accountUsage = { plan:"free", used:0, limit:5, remaining:5 };
