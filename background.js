@@ -261,7 +261,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         return;
       }
       if (message.type === "HOOKENGINE_EXTRACT_SELECTION") {
-        await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ["content.js"] });
+        await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ["vendor/readability.js", "content.js"] });
         const selected = await chrome.tabs.sendMessage(tab.id, { type: "HOOKENGINE_EXTRACT", selectionOnly: true });
         sendResponse({ ok: true, ...selected });
         return;
@@ -279,7 +279,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       }
       let result = null;
       try {
-        await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ["content.js"] });
+        await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ["vendor/readability.js", "content.js"] });
         result = await chrome.tabs.sendMessage(tab.id, { type: "HOOKENGINE_EXTRACT" });
       } catch (error) {
         console.warn("HookEngine: normal page extraction failed; trying direct visible-text fallback", error);
