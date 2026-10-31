@@ -173,7 +173,7 @@ async function refreshUsage() {
       dailyLimit: Number(data.daily_limit) || 0,
       remainingDaily: Number(data.remaining_daily) || 0,
       resetAt: data.reset_at || null,
-      resetAtDay: data.next_daily_reset_at || null,
+      resetAtDay: data.daily_reset_at || null,
       trialEndsAt: data.trial_ends_at || null,
       platforms: Array.isArray(data.platforms) ? data.platforms : []
     };
