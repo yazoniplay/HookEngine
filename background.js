@@ -86,6 +86,18 @@ function extractPlayerResponse(html) {
   return null;
 }
 
+function normalizeCaptionUrl(value) {
+  try {
+    const url = new URL(value);
+    if (url.protocol !== "https:" ||
+        !["youtube.com", "www.youtube.com"].includes(url.hostname.toLowerCase()) ||
+        url.pathname !== "/api/timedtext") return "";
+    return url.toString();
+  } catch {
+    return "";
+  }
+}
+
 async function fetchCaptionTracks(tracks) {
   if (!Array.isArray(tracks) || !tracks.length) return "";
   const ranked = [...tracks].sort((a, b) => {
@@ -95,11 +107,12 @@ async function fetchCaptionTracks(tracks) {
   });
   let best = "";
   for (const track of ranked.slice(0, 8)) {
-    if (!track?.baseUrl) continue;
-    const attempts = [track.baseUrl];
+    const baseUrl = normalizeCaptionUrl(track?.baseUrl);
+    if (!baseUrl) continue;
+    const attempts = [baseUrl];
     for (const fmt of ["json3", "srv3", "vtt"]) {
       try {
-        const candidate = new URL(track.baseUrl);
+        const candidate = new URL(baseUrl);
         candidate.searchParams.set("fmt", fmt);
         attempts.push(candidate.toString());
       } catch {}
