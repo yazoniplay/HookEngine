@@ -15,7 +15,7 @@ export function usageMainLine(usage, now = Date.now()) {
       ? reset.toLocaleDateString("en-US", { weekday: "long", timeZone: "UTC" })
       : "Monday";
     return usage.credits + " of " + usage.creditsTotal +
-      " sources left this week · resets " + resetDay;
+      " credits left this week · resets " + resetDay;
   }
   const periodLabel = ["month", "monthly"].includes(usage.period) ? "this month" : "this period";
   const reset = usage.resetAt ? new Date(usage.resetAt) : null;
@@ -36,4 +36,19 @@ export function dailyLimitLine(usage) {
     return "Daily limit reached (" + usage.dailyUsed + "/" + usage.dailyLimit + ") · resets at " + resetTime + " UTC";
   }
   return "Daily limit nearly reached (" + usage.dailyUsed + "/" + usage.dailyLimit + ") · resets at " + resetTime + " UTC";
+}
+
+export function creditUsagePercent(usage) {
+  const total = Number(usage?.creditsTotal);
+  const remaining = Number(usage?.credits);
+  if (!Number.isFinite(total) || total <= 0 || !Number.isFinite(remaining)) return 0;
+  return Math.min(100, Math.max(0, ((total - remaining) / total) * 100));
+}
+
+export function creditUsageLabel(usage) {
+  const total = Math.max(0, Number(usage?.creditsTotal) || 0);
+  const remaining = Math.min(total, Math.max(0, Number(usage?.credits) || 0));
+  const used = total - remaining;
+  const period = usage?.plan === "free" ? "this week" : usage?.plan === "trial" ? "in your trial" : "this month";
+  return used + " of " + total + " credits used " + period;
 }
