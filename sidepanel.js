@@ -234,10 +234,11 @@ $("upgradeMomentDismiss").addEventListener("click", () => { $("upgradeMoment").h
 async function maybeShowFirstFreeDraftNudge() {
   if (accountUsage?.plan !== "free") return;
   try {
-    const saved = await chrome.storage.local.get(FIRST_FREE_DRAFT_NUDGE_KEY);
-    if (saved[FIRST_FREE_DRAFT_NUDGE_KEY]) return;
+    const nudgeKey = FIRST_FREE_DRAFT_NUDGE_KEY + ":" + (accountUser?.id || "account");
+    const saved = await chrome.storage.local.get(nudgeKey);
+    if (saved[nudgeKey]) return;
     showUpgradeMoment("Your first drafts are ready.", "Free gives you one version per platform. Pro adds three variations, all six platforms and unlimited history.");
-    await chrome.storage.local.set({ [FIRST_FREE_DRAFT_NUDGE_KEY]: true });
+    await chrome.storage.local.set({ [nudgeKey]: true });
   } catch {
     showUpgradeMoment("Your first drafts are ready.", "Pro adds three variations, all six platforms and unlimited history.");
   }
@@ -517,4 +518,10 @@ $("analyzeVideoBtn").addEventListener("click",()=>{
     generateForSource("youtube_video",tab.url);
   });
 });
-initTheme();loadAccountSession();restoreLastGeneration();updateSourceMeta();updatePlatformCount();
+initTheme();
+(async () => {
+  await loadAccountSession();
+  await restoreLastGeneration();
+  updateSourceMeta();
+  updatePlatformCount();
+})();
