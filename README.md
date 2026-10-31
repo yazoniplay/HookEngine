@@ -27,7 +27,7 @@ Apply the new migration under `supabase/migrations` before deploying the updated
 
 ## Extension popup
 
-Current extension manifest version: `1.8.0`.
+Current extension manifest version: `1.7.0`.
 HookEngine opens as a toolbar popup, not a Chrome side panel.
 
 1. Open `chrome://extensions`.
