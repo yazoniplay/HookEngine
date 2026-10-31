@@ -235,3 +235,19 @@ export async function runWithProviderFallback<T>(
   }
   throw new Error("AI providers are temporarily unavailable. Please try again shortly.");
 }
+
+
+export function interactionsSchemaFor(platforms: string[], variationCount: number) {
+  const properties: Record<string, unknown> = {};
+  for (const platform of platforms) {
+    properties[platform] = variationCount > 1
+      ? { type: "array", items: { type: "string" }, minItems: variationCount, maxItems: variationCount }
+      : { type: "string" };
+  }
+  return {
+    type: "object",
+    properties,
+    required: platforms,
+    additionalProperties: false,
+  };
+}
