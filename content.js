@@ -85,7 +85,25 @@
     return found.sort((a, b) => b.length - a.length)[0] || "";
   }
 
+  function readabilityArticleText() {
+    if (typeof Readability !== "function") return "";
+    try {
+      const parsed = new Readability(document.cloneNode(true), {
+        charThreshold: 120,
+        maxElemsToParse: 25000,
+        keepClasses: false
+      }).parse();
+      return clean(parsed?.textContent || "");
+    } catch (error) {
+      console.warn("HookEngine: Readability extraction failed; using the fallback extractor", error);
+      return "";
+    }
+  }
+
   function articleText() {
+    const readable = readabilityArticleText();
+    if (readable.length >= 120) return readable.slice(0, 60000);
+
     const selectors = [
       "[itemprop='articleBody']","article","main","[role='main']","[itemprop='text']",
       "[class*='article-body' i]","[class*='article-content' i]","[class*='story-body' i]",
