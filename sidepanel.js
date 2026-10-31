@@ -89,8 +89,7 @@ async function loadAccountSession() {
     const saved = await chrome.storage.local.get(SESSION_KEY);
     accountSession = saved[SESSION_KEY] || null;
     if (!accountSession?.access_token) {
-      accountSession = null;
-      accountUser = null;
+      await clearStoredAccountSession();
     } else if (accountSession.expires_at && accountSession.expires_at * 1000 < Date.now() + 30000) {
       if (!accountSession.refresh_token) {
         await clearStoredAccountSession();
