@@ -2,27 +2,59 @@ name: Full-history secret scan
 
 on:
   pull_request:
+  push:
+    branches:
+      - "audit/**"
   schedule:
     - cron: "17 3 * * 6"
   workflow_dispatch:
 
 permissions:
   contents: read
-  pull-requests: read
 
 jobs:
   gitleaks:
-    name: Gitleaks (all Git history)
+    name: Gitleaks (all reachable Git history)
     runs-on: ubuntu-latest
     steps:
       - name: Check out complete repository history
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
-      - name: Scan every reachable commit
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          args: detect --source . --log-opts=--all --redact --exit-code 1
+      - name: Install pinned Gitleaks release
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="8.30.1"
+          archive="gitleaks_${version}_linux_x64.tar.gz"
+          url="https://github.com/gitleaks/gitleaks/releases/download/v${version}/${archive}"
+          expected_sha256="551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb"
+
+          curl --fail --silent --show-error --location "$url" --output "/tmp/$archive"
+          echo "$expected_sha256  /tmp/$archive" | sha256sum --check -
+          tar -xzf "/tmp/$archive" -C /tmp gitleaks
+          sudo install /tmp/gitleaks /usr/local/bin/gitleaks
+          gitleaks version
+
+      - name: Scan every reachable commit and print redacted finding metadata
+        shell: bash
+        run: |
+          set -uo pipefail
+          scan_status=0
+          gitleaks detect \
+            --source . \
+            --log-opts=--all \
+            --report-format json \
+            --report-path /tmp/gitleaks-report.json \
+            --redact \
+            --exit-code 1 || scan_status=$?
+
+          if [ -s /tmp/gitleaks-report.json ]; then
+            echo "Redacted finding metadata (fingerprint, file, rule, line, commit):"
+            jq -r '.[] | [.Fingerprint, .File, .RuleID, (.StartLine|tostring), .Commit] | @tsv' /tmp/gitleaks-report.json
+          else
+            echo "Gitleaks produced no JSON report."
+          fi
+
+          exit "$scan_status"
