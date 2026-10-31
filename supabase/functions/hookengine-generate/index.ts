@@ -205,19 +205,20 @@ Deno.serve(async(req:Request)=>{
   if(!userId)return reply({error:"Sign in to HookEngine to use your daily allowance."},401);
   if(!SUPABASE_SERVICE_ROLE_KEY)return reply({error:"Usage service is not configured."},503);
   let body:any;try{body=await req.json();}catch{return reply({error:"Request body must be valid JSON."},400);}
-  const {text="",title="",sourceUrl="",sourceMode="text",preferences={}}=body||{};
+  const payload=body&&typeof body==="object"&&!Array.isArray(body)?body:{};
+  const {text="",title="",sourceUrl="",sourceMode="text",preferences={}}=payload;
   if(typeof text!=="string"||typeof title!=="string"||typeof sourceUrl!=="string"||typeof sourceMode!=="string")
     return reply({error:"Title, source URL and source text must be strings."},400);
-  const requestedPlatforms:unknown[]=Array.isArray(body?.platforms)?body.platforms:FREE_PLATFORMS;
+  const requestedPlatforms:unknown[]=Array.isArray(payload.platforms)?payload.platforms:FREE_PLATFORMS;
   const platforms:string[]=[...new Set(requestedPlatforms.filter((p):p is string=>typeof p==="string"))];
   if(!platforms.length||platforms.some((p:string)=>!ALL_PLATFORMS.includes(p)))return reply({error:"Choose one or more supported platforms."},400);
   if(sourceMode==="youtube_video"&&!validYouTube(sourceUrl))return reply({error:"Open a public YouTube video and try again."},400);
   if(sourceMode!=="youtube_video"&&sourceMode!=="text")return reply({error:"Unsupported source mode."},400);
   if(sourceMode==="text"&&(text.trim().length<80||text.length>60000))return reply({error:"Source text must contain 80–60,000 characters."},400);
 
-  const actionType=body.actionType==="regeneration"?"regeneration":"generation";
-  const parentGenerationId=typeof body.parentGenerationId==="string"?body.parentGenerationId:null;
-  if(body.actionType!==undefined&&body.actionType!=="generation"&&body.actionType!=="regeneration")
+  const actionType=payload.actionType==="regeneration"?"regeneration":"generation";
+  const parentGenerationId=typeof payload.parentGenerationId==="string"?payload.parentGenerationId:null;
+  if(payload.actionType!==undefined&&payload.actionType!=="generation"&&payload.actionType!=="regeneration")
     return reply({error:"Unsupported generation action."},400);
   const reservation=await reserve(userId,sourceMode==="youtube_video"?"youtube_video":"article",title,sourceUrl,sourceMode==="text"?text.trim():"",platforms,actionType,parentGenerationId);
   if(!reservation?.allowed){
