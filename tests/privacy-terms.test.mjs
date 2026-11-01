@@ -37,8 +37,8 @@ function assertWaitlistDisclosure(html) {
   assert.match(html, /does not store an IP address/i);
   assert.match(html, /not available through public read access/i);
 }
-function assertNoPurchaseCTA(landing, accountHtml, accountJs, landingJs) {
-  const publicCopy = [landing, accountHtml, accountJs].join("\\n");
+function assertNoPurchaseCTA(landing, accountHtml, accountJs, landingJs, popupHtml) {
+  const publicCopy = [landing, accountHtml, accountJs, popupHtml].join("\\n");
   assert.doesNotMatch(publicCopy, /Get Pro|Opening secure checkout|hookengine-create-subscription/i, "purchase action must use the waitlist");
   assert.match(landing, /id="waitlistForm"/);
   assert.match(landing, /href="#waitlist">Join waitlist/);
@@ -185,13 +185,16 @@ test("privacy policy discloses waitlist fields and controls", async () => {
 });
 
 test("purchase CTAs are replaced with waitlist links while checkout is off", async () => {
-  const [landing, accountHtml, accountJs, landingJs] = await Promise.all([
-    read("../index.html"), read("../account/index.html"), read("../account/account.js"), read("../landing.js")
+  const [landing, accountHtml, accountJs, landingJs, popupHtml] = await Promise.all([
+    read("../index.html"), read("../account/index.html"), read("../account/account.js"), read("../landing.js"), read("../popup.html")
   ]);
-  assertNoPurchaseCTA(landing, accountHtml, accountJs, landingJs);
+  assertNoPurchaseCTA(landing, accountHtml, accountJs, landingJs, popupHtml);
   const mutated = accountHtml.replace("Join waitlist", "Get Pro");
   assert.notEqual(mutated, accountHtml, "mutation must restore the dead purchase label");
-  assert.throws(() => assertNoPurchaseCTA(landing, mutated, accountJs, landingJs), /purchase action must use the waitlist/);
+  assert.throws(() => assertNoPurchaseCTA(landing, mutated, accountJs, landingJs, popupHtml), /purchase action must use the waitlist/);
+  const mutatedPopup = popupHtml.replace("Join Pro waitlist", "Upgrade to Pro");
+  assert.notEqual(mutatedPopup, popupHtml, "mutation must restore the extension purchase label");
+  assert.throws(() => assertNoPurchaseCTA(landing, accountHtml, accountJs, landingJs, mutatedPopup), /purchase action must use the waitlist/);
 });
 
 test("JSON-LD contains no purchasable Pro offer while checkout is disabled", async () => {
