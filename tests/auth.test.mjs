@@ -56,27 +56,21 @@ test("simultaneous session restores share one refresh request", async () => {
   store.set("hookengine-account-session", savedSession());
   const previousFetch = globalThis.fetch;
   let refreshCalls = 0;
-  const pending = [];
   globalThis.fetch = async url => {
     if (String(url).includes("grant_type=refresh_token")) {
       refreshCalls++;
-      return new Promise(resolve => pending.push(resolve));
-    }
-    return jsonResponse({ id: "user-1", email: "user@example.com" });
-  };
-  try {
-    const first = restoreSession();
-    const second = restoreSession();
-    await new Promise(resolve => setTimeout(resolve, 0));
-    for (const resolve of pending) {
-      resolve(jsonResponse({
+      await new Promise(resolve => setTimeout(resolve, 10));
+      return jsonResponse({
         access_token: "rotated-access-token",
         refresh_token: "rotated-refresh-token",
         expires_in: 3600,
         user: { id: "user-1", email: "user@example.com" }
-      }));
+      });
     }
-    const results = await Promise.all([first, second]);
+    return jsonResponse({ id: "user-1", email: "user@example.com" });
+  };
+  try {
+    const results = await Promise.all([restoreSession(), restoreSession()]);
     assert.equal(refreshCalls, 1, "concurrent restores must make one refresh request");
     assert.equal(results[0].session.access_token, "rotated-access-token");
     assert.equal(results[1].session.access_token, "rotated-access-token");
