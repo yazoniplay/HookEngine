@@ -84,21 +84,32 @@ async function performRefresh(expectedRefreshToken) {
         body: JSON.stringify({ refresh_token: session.refresh_token })
       });
     } catch {
+      const current = await getStoredSession();
+      if (current?.refresh_token !== session.refresh_token) {
+        return { session: current, warning: null, cleared: !current };
+      }
       return {
-        session,
+        session: current,
         warning: "Couldn't reach sign-in. Your saved session is preserved; check your connection and retry.",
         cleared: false
       };
     }
 
     const data = await response.json().catch(() => ({}));
+    const current = await getStoredSession();
+    // Sign-out or a new sign-in may happen while the network request is pending.
+    // Never let this stale refresh overwrite or clear the newer local auth state.
+    if (current?.refresh_token !== session.refresh_token) {
+      return { session: current, warning: null, cleared: !current };
+    }
+
     if (!response.ok) {
       if ([400, 401, 403].includes(response.status)) {
         await clearStoredSession();
         return { session: null, warning: null, cleared: true };
       }
       return {
-        session,
+        session: current,
         warning: "Sign-in is temporarily unavailable. Your saved session is preserved.",
         cleared: false
       };
@@ -106,7 +117,7 @@ async function performRefresh(expectedRefreshToken) {
 
     if (!data.access_token) {
       return {
-        session,
+        session: current,
         warning: "The sign-in service returned an invalid refresh response. Your saved session is preserved.",
         cleared: false
       };
@@ -129,7 +140,6 @@ async function performRefresh(expectedRefreshToken) {
 // The persisted lock protects against worker restarts while a refresh is pending.
 export async function refreshSessionInServiceWorker(options = {}) {
   if (refreshInFlight) return refreshInFlight;
-  // MUTATION: single-flight guard intentionally removed for regression proof.
   refreshInFlight = performRefresh(options.expectedRefreshToken || null);
   try {
     return await refreshInFlight;
