@@ -43,7 +43,7 @@ function assertWaitlistInputPolicy(sql) {
     "both waitlist validation paths must enforce the six-character minimum");
   assert.equal((sql.match(/char_length\(v_email\)\s*>\s*254/gi) || []).length, 2,
     "both waitlist validation paths must enforce the 254-character maximum");
-  const emailPattern = "^[A-Za-z0-9.!#$%&''*+/=?^_`{|}~-]+@[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+$";
+  const emailPattern = "^[A-Za-z0-9.!#$%&''*+/=?^_`{|}~-]+@[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?(\\.[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+$";
   assert.equal(sql.split(emailPattern).length - 1, 2,
     "both waitlist validation paths must use the expected email format regex");
 }
