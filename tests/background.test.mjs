@@ -504,8 +504,9 @@ test("fallback extractor filters long junk lines and joins content with real new
   };
   vm.runInNewContext(brokenSource, brokenContext, { filename: "background-mutated.test.js" });
   const brokenResult = await runFallback(brokenContext);
-  assert.ok(
-    brokenResult.text.includes(junkLine),
-    "with the regex re-broken, the regression assertion must go red because junk leaks into output"
+  assert.throws(
+    () => assert.doesNotMatch(brokenResult.text, /Share this article on social media/i),
+    /The input was expected to not match the regular expression/,
+    "re-breaking the regex must make the exact junk-filter assertion fail"
   );
 });
