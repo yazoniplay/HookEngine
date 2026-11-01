@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
+import { runInNewContext } from "node:vm";
 
 const read = async path => await readFile(new URL(path, import.meta.url), "utf8");
 const PRIVACY_PATH = "../account/privacy.html";
@@ -8,6 +9,25 @@ const TERMS_PATH = "../account/terms.html";
 const RESERVATION_MIGRATION = "../supabase/migrations/20261031120000_hookengine_phase2_spec_alignment.sql";
 const PLAN_MIGRATION = "../supabase/migrations/20261031004500_hookengine_plan_credits_entitlements.sql";
 const GENERATE_FUNCTION = "../supabase/functions/hookengine-generate/index.ts";
+const PUBLIC_POLICY_PATHS = [PRIVACY_PATH, TERMS_PATH];
+
+function assertNoBannedPrivacyClaims(text) {
+  const banned = /\b(?:never|always|guarantee(?:d|s)?|GDPR|encrypted|anonymous|train(?:ing|ed|s)?|sell|sold)\b|\bdeleted\s+after\s+\d+\s+days?\b/i;
+  assert.doesNotMatch(text, banned, "public privacy copy contains a banned or unsupported claim");
+}
+function latestReservationFunction(sql) {
+  const start = sql.lastIndexOf("create function public.hookengine_reserve_generation(");
+  assert.notEqual(start, -1, "latest reservation function must exist in the migration");
+  const bodyStart = sql.indexOf("as $function$", start);
+  assert.notEqual(bodyStart, -1, "reservation function body delimiter must exist");
+  const end = sql.indexOf("$function$;", bodyStart + "as $function$".length);
+  assert.notEqual(end, -1, "reservation function must terminate cleanly");
+  return sql.slice(start, end + "$function$;".length);
+}
+function assertReservationDoesNotPersistSourceText(fn) {
+  assert.match(fn, /insert into public\.hookengine_generations\s*\([\s\S]*?source_text[\s\S]*?\)\s*values\s*\([\s\S]*?null\s*,\s*v_source_hash\s*,\s*v_source_length\s*,\s*'reserved'/i,
+    "reservation insert must write NULL to source_text and persist only the hash and length");
+}
 
 function assertPrivacyDisclosure(html) {
   assert.match(html, /Generated drafts are stored/i, "privacy page must plainly disclose generated draft storage");
@@ -33,10 +53,39 @@ test("privacy policy accurately discloses source processing and draft storage", 
   assert.match(reservation, /v_source_hash\s*:=\s*encode\(extensions\.digest\(convert_to\(v_source_text,'UTF8'\),'sha256'\),'hex'\)/i);
   assert.match(reservation, /v_source_length\s*:=\s*char_length\(v_source_text\)/i);
   assert.match(reservation, /null,v_source_hash,v_source_length,'reserved'/i);
+  assertReservationDoesNotPersistSourceText(latestReservationFunction(reservation));
   assert.match(generate, /p_source_text:\s*payload\.sourceMode\s*===\s*"text"\s*\?\s*payload\.text\.trim\(\)/);
   assert.match(generate, /SOURCE TEXT \(untrusted reference material\)/);
   assert.match(reservation, /outputs=case when p_status='completed' then coalesce\(p_outputs,'\{\}'::jsonb\) else '\{\}'::jsonb end/i);
   assert.match(privacy, /raw source text is not retained in HookEngine's generation records/i);
+});
+
+test("latest reservation function null source_text mutation proof", async () => {
+  const migration = await read(RESERVATION_MIGRATION);
+  const fn = latestReservationFunction(migration);
+  assertReservationDoesNotPersistSourceText(fn);
+  const mutated = fn.replace("null,v_source_hash,v_source_length,'reserved'", "v_source_text,v_source_hash,v_source_length,'reserved'");
+  assert.notEqual(mutated, fn);
+  assert.throws(() => assertReservationDoesNotPersistSourceText(mutated), /must write NULL to source_text/);
+});
+
+test("public privacy pages reject every banned claim category", async () => {
+  const [privacy, terms, landing] = await Promise.all([...PUBLIC_POLICY_PATHS.map(read), read("../index.html")]);
+  for (const page of [privacy, terms]) assertNoBannedPrivacyClaims(page);
+  const faq = landing.match(/<section class="section" id="faq">[\s\S]*?<\/section>/i)?.[0];
+  assert.ok(faq, "public FAQ section must exist");
+  assertNoBannedPrivacyClaims(faq);
+  for (const claim of ["never", "always", "guarantee", "GDPR", "encrypted", "anonymous", "train", "training", "sell", "deleted after 90 days"]) {
+    assert.throws(() => assertNoBannedPrivacyClaims(privacy + "\n<p>" + claim + "</p>"), /banned or unsupported claim/, "must reject: " + claim);
+  }
+});
+
+test("older Free records are described as stored but hidden", async () => {
+  const [privacy, landing] = await Promise.all([read(PRIVACY_PATH), read("../index.html")]);
+  for (const page of [privacy, landing]) {
+    assert.match(page, /Older Free-plan records remain stored[\s\S]{0,160}hidden/i);
+    assert.match(page, /visibility cutoff does not delete them/i);
+  }
 });
 
 test("privacy policy mutation proof rejects a false no-draft-storage claim", async () => {
@@ -119,9 +168,55 @@ test("support address is defined once and is not fabricated", async () => {
   for (const html of [index, privacy, terms]) {
     assert.match(html, /data-support-email/);
     assert.doesNotMatch(html, /example\.com/i);
+    assert.doesNotMatch(html, /Support contact not configured/i);
   }
+  assert.match(support, /link\.textContent = ""/);
+  assert.match(support, /container\.hidden = true/);
+  assert.match(index, /<details data-support-faq>/);
+  assert.match(privacy, /<section data-support-section>/);
+  assert.match(terms, /<section data-support-section>/);
   assert.match(accountHtml, /terms\.html/);
   assert.doesNotMatch(index, /support@example\.com/i);
+});
+
+test("empty support configuration hides FAQ, policy and footer contact surfaces", async () => {
+  const source = await read("../support.js");
+  const targets = [
+    { container: { hidden: false } },
+    { container: { hidden: false } },
+    { container: { hidden: false } },
+    { container: null }
+  ];
+  const links = targets.map(({ container }) => ({
+    textContent: "placeholder",
+    href: "mailto:placeholder",
+    hidden: false,
+    removeAttribute(name) { if (name === "href") delete this.href; },
+    closest() { return container; }
+  }));
+  runInNewContext(source.replace("export const SUPPORT_EMAIL", "const SUPPORT_EMAIL"), {
+    document: { querySelectorAll: () => links }
+  });
+  assert.ok(targets.slice(0, 3).every(item => item.container.hidden));
+  assert.equal(links[3].hidden, true);
+  assert.ok(links.every(link => link.textContent === ""));
+  assert.ok(links.every(link => !("href" in link)));
+});
+
+test("privacy policy discloses extension local and Chrome sync storage", async () => {
+  const [privacy, background, settings, config] = await Promise.all([
+    read(PRIVACY_PATH), read("../background.js"), read("../settings.js"), read("../extension/config.js")
+  ]);
+  assert.match(privacy, /chrome\.storage\.local/i);
+  assert.match(privacy, /chrome\.storage\.sync/i);
+  assert.match(privacy, /saved sign-in session/i);
+  assert.match(privacy, /most recent generation result/i);
+  assert.match(privacy, /writing preferences/i);
+  assert.match(background, /chrome\.storage\.local\.set\(\{ \[STORAGE_KEYS\.lastGeneration\]/);
+  assert.match(settings, /chrome\.storage\.sync\.set/);
+  assert.match(config, /session: "hookengine-account-session"/);
+  assert.match(config, /lastGeneration: "hookengine-last-generation"/);
+  assert.match(config, /writingPreferences: "hookengine-writing-preferences"/);
 });
 
 test("landing FAQ has no internal audit notes and links to draft terms", async () => {

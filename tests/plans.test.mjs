@@ -95,6 +95,16 @@ function assertNoHardcodedPlanNumbers(html, filePath = "static HTML") {
   assert.doesNotMatch(customerMarkup, planPrice, filePath + " must not hardcode plan prices");
 }
 
+function assertNoStaleFreeDailyCopy(html) {
+  assert.doesNotMatch(html, /5 generations per day/i, "landing copy must not retain the retired Free daily limit");
+}
+function assertAccountPricingRendersAtStartup(source) {
+  assert.match(source, /renderPlanCards\(\);\s*\$\("trialPlanSummary"\)\.textContent/, "account pricing cards must render in the startup initialization block");
+}
+function assertNoPositionBasedAssertions(source) {
+  assert.doesNotMatch(source, /htmlFiles\s*\[\s*\d+\s*\]/, "plan tests must identify files by path, not array position");
+}
+
 test("shared catalog matches the published plan contract", () => {
   assert.deepEqual({credits:PLAN_CATALOG.free.credits,daily:PLAN_CATALOG.free.dailyGenerations,platforms:PLAN_CATALOG.free.platforms.length,history:PLAN_CATALOG.free.historyDays},{credits:5,daily:3,platforms:3,history:7});
   assert.deepEqual({credits:PLAN_CATALOG.trial.credits,days:PLAN_CATALOG.trial.trialDays,daily:PLAN_CATALOG.trial.dailyGenerations,variations:PLAN_CATALOG.trial.variations},{credits:40,days:7,daily:30,variations:3});
@@ -171,6 +181,31 @@ test("landing, account portal and popup use the shared catalog", async () => {
   assert.doesNotMatch(accountHtml,/7-day Pro trial or 40 credits/);
   assert.match(landingJs,/schemaNode/);
   assert.equal(planSummary("free"),"5 credits per UTC week · up to 3 generations per UTC day · 3 platforms · 7-day history");
+});
+
+test("mutation proof rejects stale Free daily-limit copy", async () => {
+  const landing = await readFile(new URL("../index.html", import.meta.url), "utf8");
+  assertNoStaleFreeDailyCopy(landing);
+  const mutated = landing.replace('<section class="section" id="faq">', '5 generations per day<section class="section" id="faq">');
+  assert.notEqual(mutated, landing);
+  assert.throws(() => assertNoStaleFreeDailyCopy(mutated), /retired Free daily limit/);
+});
+
+test("mutation proof rejects missing startup account pricing render", async () => {
+  const account = await readFile(new URL("../account/account.js", import.meta.url), "utf8");
+  assertAccountPricingRendersAtStartup(account);
+  const mutated = account.replace(/renderPlanCards\(\);\s*(?=\$\("trialPlanSummary"\)\.textContent)/, "// render removed by mutation\\n");
+  assert.notEqual(mutated, account);
+  assert.throws(() => assertAccountPricingRendersAtStartup(mutated), /startup initialization block/);
+});
+
+test("mutation proof rejects position-based plan test assertions", async () => {
+  const source = await readFile(new URL(import.meta.url), "utf8");
+  assertNoPositionBasedAssertions(source);
+  const indexAssertion = "htmlFiles" + "[0]";
+  const mutated = source + "\nconst regression = " + indexAssertion + ";\n";
+  assert.notEqual(mutated, source);
+  assert.throws(() => assertNoPositionBasedAssertions(mutated), /identify files by path/);
 });
 
 test("landing loads plan rendering from a local module", async () => {

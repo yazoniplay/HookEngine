@@ -141,17 +141,17 @@ The useful idea: even when a planet is too far away to study directly, its effec
 <div class="faq-list">
 <details><summary>What information does HookEngine save?</summary><p>Generated drafts are stored in your HookEngine database and shown in your account history, alongside related generation records. Records can include the source title and URL, selected platforms, generation status, provider and model, and available usage and timing metadata. Raw source text is sent to the generation provider but is not stored in the HookEngine generation record; the database stores a SHA-256 hash and character length instead. See the <a href="/HookEngine/account/privacy.html">privacy policy</a> for details.</p></details>
 <details><summary>Which AI providers process my content?</summary><p>Text generation uses Google Gemini first, with Groq and Ollama Cloud as configured fallback providers. YouTube video analysis uses Google Gemini. The source material and generation instructions needed for the requested task are sent to the provider that handles that request.</p></details>
-<details><summary>How long is generation history available?</summary><p>Free history follows the Free plan's configured history window. Paid-plan history has no automatic age-based expiry in the database and remains associated with your account until account deletion. The current account portal does not provide a self-service history deletion control.</p></details>
+<details><summary>How long is generation history available?</summary><p>Free history follows the Free plan's configured history window. Older Free-plan records remain stored in the HookEngine database but are hidden from the Free history view; the visibility cutoff does not delete them. Paid-plan history has no automatic age-based expiry in the database and remains associated with your account until account deletion. The current account portal does not provide a self-service history deletion control.</p></details>
 <details><summary>Does HookEngine post to my social accounts?</summary><p>No. HookEngine generates drafts for you to review, copy and publish yourself.</p></details>
 <details><summary>Does Pro checkout work?</summary><p>No. Checkout is currently disabled, so you cannot purchase Pro through HookEngine at this time.</p></details>
 <details><summary>Which browsers are supported?</summary><p>The extension manifest targets Chrome 116 and later. Other browsers have not been verified by this project.</p></details>
-<details><summary>How can I contact support?</summary><p><a data-support-email>Support contact not configured</a>. The project owner must configure a monitored support address before publishing one.</p></details>
+<details data-support-faq><summary>How can I contact support?</summary><p><a data-support-email></a></p></details>
 </div></div></div></section>
 <section class="final-band"><div class="wrap final-inner"><h2>Got an article? You’ve got your next draft.</h2><a class="button pink" href="https://chromewebstore.google.com/detail/hookengine-%E2%80%94-content-repu/ikalaemjdindfenbbaecekkocbbocjma">Add to Chrome — it’s free ↗</a></div></section>
 </main>
 <footer class="wrap footer">
 <a class="brand" href="/HookEngine/"><span class="mark">H</span>HookEngine</a>
-<nav class="footlinks" aria-label="Footer"><a href="/HookEngine/account/privacy.html">Privacy</a><a href="/HookEngine/account/terms.html">Terms (draft)</a><a href="/HookEngine/account/">Account</a><a href="https://chromewebstore.google.com/detail/hookengine-%E2%80%94-content-repu/ikalaemjdindfenbbaecekkocbbocjma">Chrome Web Store</a><a data-support-email>Support contact not configured</a></nav>
+<nav class="footlinks" aria-label="Footer"><a href="/HookEngine/account/privacy.html">Privacy</a><a href="/HookEngine/account/terms.html">Terms (draft)</a><a href="/HookEngine/account/">Account</a><a href="https://chromewebstore.google.com/detail/hookengine-%E2%80%94-content-repu/ikalaemjdindfenbbaecekkocbbocjma">Chrome Web Store</a><a data-support-email></a></nav>
 <p class="footnote">© <span id="year"></span> HookEngine</p>
 </footer>
 <script>

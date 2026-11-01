@@ -7,7 +7,9 @@ for (const link of document.querySelectorAll("[data-support-email]")) {
     link.textContent = SUPPORT_EMAIL;
   } else {
     link.removeAttribute("href");
-    link.textContent = "Support contact not configured";
-    link.setAttribute("aria-disabled", "true");
+    link.textContent = "";
+    const container = link.closest("[data-support-faq], [data-support-section], [data-support-line]");
+    if (container) container.hidden = true;
+    else link.hidden = true;
   }
 }

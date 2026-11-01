@@ -29,17 +29,22 @@ The project owner reports that a production check found **zero rows with non-NUL
 
 ## Retention wording
 
-- Free: the database enforces seven-day history visibility.
+- Free: the database enforces the configured history visibility window. Older Free-plan generation records remain stored in the database but are hidden from the Free history view; the visibility cutoff does not delete those rows.
 - Pro and Lifetime: the plan seed has `history_days = NULL`, and the policy treats a null cutoff as no age-based history filter. No paid generated-draft expiry period is claimed.
+- The extension stores its sign-in session, latest generation result and theme in `chrome.storage.local`; writing preferences (tone, style, length and audience) use `chrome.storage.sync`.
 - The source-text cleanup job clears legacy raw source text only. It is not a generated-draft retention job.
 - The account portal currently exposes no self-service delete control. Generation rows are linked to the authentication account and cascade when that account is deleted.
 
 ## Contact and legal status
 
-- The only support address definition is `SUPPORT_EMAIL` in `support.js`, intentionally empty and marked `TODO(owner)`. No address was invented.
+- The only support address definition is `SUPPORT_EMAIL` in `support.js`, intentionally empty and marked `TODO(owner)`. Empty configuration hides support links, the contact FAQ item and contact sections without showing placeholder text. The Phase 6 release workflow blocks publication while the value is empty; no address was invented.
 - `account/terms.html` is explicitly labeled a draft requiring qualified legal review before publication or use as binding terms.
 - The terms draft's statement that checkout is disabled is supported by the disabled account upgrade control (`account/account.js:190-194`).
 
 ## Test evidence
 
-The new `tests/privacy-terms.test.mjs` checks privacy wording against the migration and Edge Function source. Its first mutation inserts the false statement “We do not store your drafts.” and verifies that the privacy assertion throws. Its second mutation changes paid history to an invented 90-day expiry and verifies that the retention assertion throws.
+The five Phase 0.2 mutation cases are covered: SQL seed drift (`5→6`), a hardcoded `3 variations in Pro` claim, stale `5 generations per day` copy, removal of the account's startup pricing render, and reintroduction of array-position-based assertions. Phase 0.3 also proves that a false no-draft-storage claim and an invented 90-day paid-history expiry are rejected.
+
+A Node test extracts the latest reservation function body from the migration and proves that changing its insert from `NULL` to `v_source_text` is rejected. The banned-claims test checks all requested terms and the `deleted after N days` pattern. The Phase 6 workflow blocks a release while the support address is empty.
+
+GitHub Actions is the test execution environment; tests are not claimed as locally run.
