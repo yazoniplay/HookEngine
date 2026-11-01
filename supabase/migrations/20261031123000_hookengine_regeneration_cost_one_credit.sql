@@ -160,7 +160,7 @@ begin
   )
   values (
     p_user_id,p_source_type,left(coalesce(p_source_title,''),300),left(coalesce(p_source_url,''),2000),
-    null,v_source_hash,v_source_length,'reserved',p_action_type,p_parent_generation_id,
+    v_source_text,v_source_hash,v_source_length,'reserved',p_action_type,p_parent_generation_id,
     v_cost,0,v_now+interval '5 minutes',v_selected,v_sub.credit_period_started_at,v_sub.credit_period_ends_at
   )
   returning id into v_generation_id;

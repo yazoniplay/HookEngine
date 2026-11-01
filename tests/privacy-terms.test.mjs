@@ -1,11 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 import { runInNewContext } from "node:vm";
 
 const read = async path => await readFile(new URL(path, import.meta.url), "utf8");
 const PRIVACY_PATH = "../account/privacy.html";
 const TERMS_PATH = "../account/terms.html";
+const MIGRATIONS_DIRECTORY = new URL("../supabase/migrations/", import.meta.url);
 const RESERVATION_MIGRATION = "../supabase/migrations/20261031120000_hookengine_phase2_spec_alignment.sql";
 const PLAN_MIGRATION = "../supabase/migrations/20261031004500_hookengine_plan_credits_entitlements.sql";
 const GENERATE_FUNCTION = "../supabase/functions/hookengine-generate/index.ts";
@@ -15,18 +16,70 @@ function assertNoBannedPrivacyClaims(text) {
   const banned = /\b(?:never|always|guarantee(?:d|s)?|GDPR|encrypted|anonymous|train(?:ing|ed|s)?|sell|sold)\b|\bdeleted\s+after\s+\d+\s+days?\b/i;
   assert.doesNotMatch(text, banned, "public privacy copy contains a banned or unsupported claim");
 }
-function latestReservationFunction(sql) {
-  const start = sql.lastIndexOf("create function public.hookengine_reserve_generation(");
-  assert.notEqual(start, -1, "latest reservation function must exist in the migration");
-  const bodyStart = sql.indexOf("as $function$", start);
-  assert.notEqual(bodyStart, -1, "reservation function body delimiter must exist");
-  const end = sql.indexOf("$function$;", bodyStart + "as $function$".length);
-  assert.notEqual(end, -1, "reservation function must terminate cleanly");
-  return sql.slice(start, end + "$function$;".length);
+function matchingParenEnd(source, openIndex) {
+  let depth = 0;
+  let quote = false;
+  for (let i = openIndex; i < source.length; i++) {
+    const ch = source[i];
+    if (ch === "'" && source[i + 1] === "'" && quote) { i++; continue; }
+    if (ch === "'") { quote = !quote; continue; }
+    if (quote) continue;
+    if (ch === "(") depth++;
+    if (ch === ")" && --depth === 0) return i;
+  }
+  throw new Error("Unclosed SQL parenthesis");
+}
+function splitSqlList(source) {
+  const parts = [];
+  let start = 0, depth = 0, quote = false;
+  for (let i = 0; i < source.length; i++) {
+    const ch = source[i];
+    if (ch === "'" && source[i + 1] === "'" && quote) { i++; continue; }
+    if (ch === "'") { quote = !quote; continue; }
+    if (quote) continue;
+    if (ch === "(") depth++;
+    else if (ch === ")") depth--;
+    else if (ch === "," && depth === 0) { parts.push(source.slice(start, i).trim()); start = i + 1; }
+  }
+  parts.push(source.slice(start).trim());
+  return parts;
 }
 function assertReservationDoesNotPersistSourceText(fn) {
-  assert.match(fn, /insert into public\.hookengine_generations\s*\([\s\S]*?source_text[\s\S]*?\)\s*values\s*\([\s\S]*?null\s*,\s*v_source_hash\s*,\s*v_source_length\s*,\s*'reserved'/i,
-    "reservation insert must write NULL to source_text and persist only the hash and length");
+  const insert = fn.match(/insert\s+into\s+public\.hookengine_generations\s*\(/i);
+  assert.ok(insert, "reservation function must insert a generation row");
+  const columnsOpen = fn.indexOf("(", insert.index);
+  const columnsClose = matchingParenEnd(fn, columnsOpen);
+  const valuesMatch = /\bvalues\s*\(/ig;
+  valuesMatch.lastIndex = columnsClose + 1;
+  const values = valuesMatch.exec(fn);
+  assert.ok(values, "generation insert must have a VALUES clause");
+  const valuesOpen = fn.indexOf("(", values.index);
+  const valuesClose = matchingParenEnd(fn, valuesOpen);
+  const columns = splitSqlList(fn.slice(columnsOpen + 1, columnsClose)).map(value => value.replace(/"/g, "").toLowerCase());
+  const insertedValues = splitSqlList(fn.slice(valuesOpen + 1, valuesClose));
+  const sourceTextIndex = columns.indexOf("source_text");
+  assert.notEqual(sourceTextIndex, -1, "generation insert must name source_text");
+  assert.equal(insertedValues.length, columns.length, "generation insert column and value counts must match");
+  assert.equal(insertedValues[sourceTextIndex].trim().toLowerCase(), "null",
+    "the current reservation definition must insert NULL into source_text");
+}
+async function latestReservationDefinition() {
+  const filenames = (await readdir(MIGRATIONS_DIRECTORY)).filter(name => name.endsWith(".sql")).sort();
+  let latest = null;
+  for (const filename of filenames) {
+    const sql = await readFile(new URL(filename, MIGRATIONS_DIRECTORY), "utf8");
+    const declaration = /create\s+(?:or\s+replace\s+)?function\s+public\.hookengine_reserve_generation\s*\(/ig;
+    let match;
+    while ((match = declaration.exec(sql)) !== null) {
+      const bodyStart = sql.indexOf("as $function$", match.index);
+      assert.notEqual(bodyStart, -1, filename + ": reservation function body delimiter must exist");
+      const end = sql.indexOf("$function$;", bodyStart + "as $function$".length);
+      assert.notEqual(end, -1, filename + ": reservation function must terminate cleanly");
+      latest = { filename, functionSql: sql.slice(match.index, end + "$function$;".length) };
+    }
+  }
+  assert.ok(latest, "a migration must define hookengine_reserve_generation");
+  return latest;
 }
 
 function assertPrivacyDisclosure(html) {
@@ -53,20 +106,18 @@ test("privacy policy accurately discloses source processing and draft storage", 
   assert.match(reservation, /v_source_hash\s*:=\s*encode\(extensions\.digest\(convert_to\(v_source_text,'UTF8'\),'sha256'\),'hex'\)/i);
   assert.match(reservation, /v_source_length\s*:=\s*char_length\(v_source_text\)/i);
   assert.match(reservation, /null,v_source_hash,v_source_length,'reserved'/i);
-  assertReservationDoesNotPersistSourceText(latestReservationFunction(reservation));
+  const latest = await latestReservationDefinition();
+  assertReservationDoesNotPersistSourceText(latest.functionSql);
   assert.match(generate, /p_source_text:\s*payload\.sourceMode\s*===\s*"text"\s*\?\s*payload\.text\.trim\(\)/);
   assert.match(generate, /SOURCE TEXT \(untrusted reference material\)/);
   assert.match(reservation, /outputs=case when p_status='completed' then coalesce\(p_outputs,'\{\}'::jsonb\) else '\{\}'::jsonb end/i);
   assert.match(privacy, /raw source text is not retained in HookEngine's generation records/i);
 });
 
-test("latest reservation function null source_text mutation proof", async () => {
-  const migration = await read(RESERVATION_MIGRATION);
-  const fn = latestReservationFunction(migration);
-  assertReservationDoesNotPersistSourceText(fn);
-  const mutated = fn.replace("null,v_source_hash,v_source_length,'reserved'", "v_source_text,v_source_hash,v_source_length,'reserved'");
-  assert.notEqual(mutated, fn);
-  assert.throws(() => assertReservationDoesNotPersistSourceText(mutated), /must write NULL to source_text/);
+test("latest sorted migration reservation definition inserts NULL into source_text", async () => {
+  const latest = await latestReservationDefinition();
+  assert.equal(latest.filename, "20261031123000_hookengine_regeneration_cost_one_credit.sql");
+  assertReservationDoesNotPersistSourceText(latest.functionSql);
 });
 
 test("public privacy pages reject every banned claim category", async () => {
