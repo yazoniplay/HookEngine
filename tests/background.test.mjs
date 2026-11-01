@@ -445,20 +445,18 @@ test("all manifest icon assets are valid PNGs at their declared dimensions", asy
 });
 
 
-test("fallback extractor filters noise blocks and joins content with real newlines", async () => {
+test("fallback extractor filters long junk lines and joins content with real newlines", async () => {
   const paragraph = "This is a meaningful article paragraph with enough words to survive extraction.";
-  const candidate = {
+  const secondParagraph = "A second meaningful paragraph with enough detail to remain in the extracted article.";
+  const junkLine = "Share this article on social media";
+  const makeCandidate = () => ({
     id: "article",
     className: "article-content",
     getClientRects() { return [{}]; },
     getAttribute() { return null; },
     cloneNode() {
-      const blocks = [
-        { innerText: "Share", textContent: "Share" },
-        { innerText: paragraph, textContent: paragraph },
-        { innerText: "Read more", textContent: "Read more" },
-        { innerText: "A second meaningful paragraph with enough detail to remain in the extracted article.", textContent: "A second meaningful paragraph with enough detail to remain in the extracted article." }
-      ];
+      const blocks = [junkLine, paragraph, "Read more about this topic", secondParagraph]
+        .map(value => ({ innerText: value, textContent: value }));
       return {
         querySelectorAll(selector) {
           if (selector.startsWith("script,")) return [];
@@ -470,17 +468,44 @@ test("fallback extractor filters noise blocks and joins content with real newlin
         textContent: blocks.map(block => block.textContent).join(" ")
       };
     }
-  };
-  context.chrome.scripting.executeScript = async ({ func }) => [{
-    result: vm.runInNewContext("(" + func.toString() + ")()", {
-      document: { querySelectorAll() { return [candidate]; }, title: "Test article" },
-      location: { href: "https://example.test/article" }
-    })
-  }];
+  });
 
-  const result = await context.fallbackReadPage(1);
+  const runFallback = async (workerContext) => {
+    workerContext.chrome.scripting.executeScript = async ({ func }) => [{
+      result: vm.runInNewContext("(" + func.toString() + ")()", {
+        document: { querySelectorAll() { return [makeCandidate()]; }, title: "Test article" },
+        location: { href: "https://example.test/article" }
+      })
+    }];
+    return workerContext.fallbackReadPage(1);
+  };
+
+  const result = await runFallback(context);
   assert.ok(result.text.includes(paragraph));
-  assert.doesNotMatch(result.text, /^(share|read more)$/im);
-  assert.ok(result.text.includes(paragraph + "\n\n"));
-  assert.equal(result.text.includes("\\n"), false);
+  assert.ok(result.text.includes(secondParagraph));
+  assert.ok(result.text.includes(paragraph + "\\n\\n" + secondParagraph));
+  assert.doesNotMatch(result.text, /Share this article on social media/i);
+  assert.doesNotMatch(result.text, /Read more about this topic/i);
+  assert.equal(result.text.includes("\\\\n"), false);
+
+  // Mutation check: deliberately restore the historical double-escaped word boundary.
+  // The same behavioral assertion above must fail against this broken implementation.
+  const brokenSource = source.replace(
+    /pull requests\?\)\\\\b\/i\.test\(value\)/,
+    "pull requests?)\\\\\\\\b/i.test(value)"
+  );
+  assert.notEqual(brokenSource, source, "the regex mutation must actually be applied");
+  const brokenContext = {
+    ...context,
+    chrome: {
+      ...context.chrome,
+      scripting: { async executeScript() { return [{ result: null }]; } }
+    }
+  };
+  vm.runInNewContext(brokenSource, brokenContext, { filename: "background-mutated.test.js" });
+  const brokenResult = await runFallback(brokenContext);
+  assert.ok(
+    brokenResult.text.includes(junkLine),
+    "with the regex re-broken, the regression assertion must go red because junk leaks into output"
+  );
 });
