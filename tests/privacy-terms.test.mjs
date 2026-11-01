@@ -37,13 +37,13 @@ function assertWaitlistSecurity(sql) {
   assert.match(sql, /grant execute on function public\.hookengine_join_waitlist\(text\) to anon/i);
 }
 function assertWaitlistInputPolicy(sql) {
-  assert.equal((sql.match(/attempt_count\\s*>=\\s*3/gi) || []).length, 1,
+  assert.equal((sql.match(/attempt_count\s*>=\s*3/gi) || []).length, 1,
     "waitlist rate limit must remain three attempts");
-  assert.equal((sql.match(/char_length\\(v_email\\)\\s*<\\s*6/gi) || []).length, 2,
+  assert.equal((sql.match(/char_length\(v_email\)\s*<\s*6/gi) || []).length, 2,
     "both waitlist validation paths must enforce the six-character minimum");
-  assert.equal((sql.match(/char_length\\(v_email\\)\\s*>\\s*254/gi) || []).length, 2,
+  assert.equal((sql.match(/char_length\(v_email\)\s*>\s*254/gi) || []).length, 2,
     "both waitlist validation paths must enforce the 254-character maximum");
-  const emailPattern = "^[A-Za-z0-9.!#$%&''*+/=?^_`{|}~-]+@[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?(\\.[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+$";
+  const emailPattern = "^[A-Za-z0-9.!#$%&''*+/=?^_`{|}~-]+@[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+$";
   assert.equal(sql.split(emailPattern).length - 1, 2,
     "both waitlist validation paths must use the expected email format regex");
 }
