@@ -244,8 +244,8 @@ async function fallbackReadPage(tabId) {
           const blocks = [...clone.querySelectorAll("h1,h2,h3,h4,p,li,blockquote,pre,figcaption,dd,dt")]
             .map(node => clean(node.innerText || node.textContent))
             .filter(value => value.length >= 18 &&
-              !/^(share|read more|sign in|subscribe|advertisement|related articles?|cookie settings|pull requests?)\\b/i.test(value));
-          const text = clean(blocks.join("\\n\\n") || clone.innerText || clone.textContent);
+              !/^(share|read more|sign in|subscribe|advertisement|related articles?|cookie settings|pull requests?)\b/i.test(value));
+          const text = clean(blocks.join("\n\n") || clone.innerText || clone.textContent);
           if (text.length < 80) continue;
           const links = [...clone.querySelectorAll("a")].reduce((n, a) => n + clean(a.innerText || a.textContent).length, 0);
           const hint = [el.id, typeof el.className === "string" ? el.className : "", el.getAttribute("itemprop") || ""].join(" ").toLowerCase();
