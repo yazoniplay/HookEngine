@@ -526,6 +526,9 @@ declare
   v_result jsonb;
   v_count integer;
 begin
+  if not (select relrowsecurity from pg_catalog.pg_class where oid='public.hookengine_waitlist'::regclass) then
+    raise exception 'Waitlist table must have RLS enabled';
+  end if;
   if not has_table_privilege('anon','public.hookengine_waitlist','INSERT') then
     raise exception 'anon must be able to submit waitlist entries';
   end if;
@@ -564,8 +567,16 @@ begin
   end;
 
   begin
-    perform public.hookengine_join_waitlist('bad');
-    raise exception 'Expected invalid email to be rejected';
+    perform public.hookengine_join_waitlist('not-an-email-address');
+    raise exception 'Expected malformed email to be rejected';
+  exception when others then
+    if sqlerrm not like '%invalid_email%' then raise; end if;
+  end;
+
+
+  begin
+    perform public.hookengine_join_waitlist(repeat('a',243) || '@example.com');
+    raise exception 'Expected email longer than 254 characters to be rejected';
   exception when others then
     if sqlerrm not like '%invalid_email%' then raise; end if;
   end;
