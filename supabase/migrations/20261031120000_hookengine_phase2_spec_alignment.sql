@@ -76,7 +76,7 @@ create index if not exists hookengine_generations_source_hash_idx
 -- server-owned plan/source rules; callers cannot undercharge.
 drop function if exists public.hookengine_reserve_generation(uuid,text,text,text,text,text,uuid,text[]);
 
-create function public.hookengine_reserve_generation(
+create or replace function public.hookengine_reserve_generation(
   p_user_id uuid,
   p_source_type text,
   p_source_title text,
