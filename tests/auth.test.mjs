@@ -198,3 +198,37 @@ test("sign-out clears local credentials even if the network is unavailable", asy
     globalThis.fetch = previousFetch;
   }
 });
+
+
+test("a refresh completing after sign-out cannot restore the cleared session", async () => {
+  store.set("hookengine-account-session", savedSession());
+  const previousFetch = globalThis.fetch;
+  let refreshStarted;
+  let releaseRefresh;
+  const started = new Promise(resolve => { refreshStarted = resolve; });
+  const pendingResponse = new Promise(resolve => { releaseRefresh = resolve; });
+  globalThis.fetch = async url => {
+    if (String(url).includes("grant_type=refresh_token")) {
+      refreshStarted();
+      return pendingResponse;
+    }
+    return jsonResponse({});
+  };
+  try {
+    const restoring = restoreSession();
+    await started;
+    await signOut();
+    releaseRefresh(jsonResponse({
+      access_token: "late-access-token",
+      refresh_token: "late-refresh-token",
+      expires_in: 3600,
+      user: { id: "user-1", email: "user@example.com" }
+    }));
+    const result = await restoring;
+    assert.equal(store.has("hookengine-account-session"), false,
+      "a completed refresh must not recreate credentials after sign-out");
+    assert.equal(result.session, null);
+  } finally {
+    globalThis.fetch = previousFetch;
+  }
+});
