@@ -39,11 +39,14 @@ function assertWaitlistDisclosure(html) {
 }
 function assertNoPurchaseCTA(landing, accountHtml, accountJs, landingJs, popupHtml) {
   const publicCopy = [landing, accountHtml, accountJs, popupHtml].join("\\n");
-  assert.doesNotMatch(publicCopy, /Get Pro|Opening secure checkout|hookengine-create-subscription/i, "purchase action must use the waitlist");
+  assert.doesNotMatch(publicCopy, /Get Pro|Upgrade to Pro|Opening secure checkout|hookengine-create-subscription/i, "purchase action must use the waitlist");
   assert.match(landing, /id="waitlistForm"/);
   assert.match(landing, /href="#waitlist">Join waitlist/);
   assert.match(accountHtml, /href="\.\.\/#waitlist">Join waitlist/);
   assert.match(accountJs, /link\.textContent="Join waitlist"/);
+  assert.match(popupHtml, /href="https:\/\/yazoniplay\.github\.io\/HookEngine\/#waitlist"/);
+  assert.match(popupHtml, /Join Pro waitlist/);
+  assert.doesNotMatch(popupHtml, /Upgrade to Pro|Get Pro/i);
   assert.doesNotMatch(accountJs, /upgradeBtn|hookengine-create-subscription/i);
   assert.match(landingJs, /extension\/plans\.js/);
 }
