@@ -4,7 +4,8 @@ import { readFile } from "node:fs/promises";
 import vm from "node:vm";
 
 const source = (await readFile(new URL("../background.js", import.meta.url), "utf8"))
-  .replace(/^import \{[\s\S]*?\} from "\.\/extension\/config\.js";\s*/, "");
+  .replace(/^import \{[\s\S]*?\} from "\.\/extension\/config\.js";\s*/, "")
+  .replace(/^import \{[\s\S]*?\} from "\.\/extension\/session\.js";\s*/, "");
 const storage = new Map();
 const context = {
   URL,
@@ -33,6 +34,36 @@ context.chrome = {
   },
   tabs: { async query() { return []; } },
   scripting: { async executeScript() { return [{ result: null }]; } }
+};
+context.getStoredSession = async () => storage.get("hookengine-account-session") || null;
+context.clearStoredSession = async () => { storage.delete("hookengine-account-session"); };
+context.refreshSessionInServiceWorker = async ({ expectedRefreshToken } = {}) => {
+  const session = storage.get("hookengine-account-session") || null;
+  if (!session?.refresh_token) {
+    await context.clearStoredSession();
+    return { session: null, warning: null, cleared: true };
+  }
+  if (expectedRefreshToken && session.refresh_token !== expectedRefreshToken) {
+    return { session, warning: null, cleared: false };
+  }
+  const response = await context.fetch(
+    context.SUPABASE_URL + "/auth/v1/token?grant_type=refresh_token",
+    { method: "POST", body: JSON.stringify({ refresh_token: session.refresh_token }) }
+  );
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    if ([400, 401, 403].includes(response.status)) {
+      await context.clearStoredSession();
+      return { session: null, warning: null, cleared: true };
+    }
+    return { session, warning: "Sign-in is temporarily unavailable. Your saved session is preserved.", cleared: false };
+  }
+  const refreshed = {
+    ...session, ...data,
+    expires_at: Math.floor(Date.now() / 1000) + (data.expires_in || 3600)
+  };
+  storage.set("hookengine-account-session", refreshed);
+  return { session: refreshed, warning: null, cleared: false };
 };
 context.fetch = async () => { throw new Error("Unexpected fetch in test"); };
 vm.runInNewContext(source, context, { filename: "background.js" });
