@@ -3,6 +3,7 @@ import {
   GENERATION_SYSTEM_INSTRUCTION,
   interactionsSchemaFor,
   parseOutputs,
+  reservationCredits,
   runWithProviderFallback,
   schemaFor,
   serializeOutput,
@@ -385,13 +386,13 @@ async function handleRequest(req: Request): Promise<Response> {
   }
 
   const variationCount = Number(reservation.versions_per_generation) || 1;
-  const expectedCost = payload.actionType === "regeneration" ? 1 : payload.sourceMode === "youtube_video" ? 5 : 1;
+  const reservedCredits = reservationCredits(reservation);
   const validPlan = ["free", "trial", "pro", "lifetime"].includes(reservation.plan);
   const validGenerationId = typeof reservation.generation_id === "string" &&
     /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(reservation.generation_id);
   if (!validGenerationId || !validPlan ||
       !Number.isInteger(variationCount) || variationCount < 1 || variationCount > 3 ||
-      reservation.credits_reserved !== expectedCost ||
+      reservedCredits === null ||
       !Array.isArray(reservation.allowed_platforms) ||
       !payload.platforms.every((platform) => reservation.allowed_platforms.includes(platform))) {
     console.error("Reservation returned invalid entitlement metadata.");
@@ -434,7 +435,7 @@ async function handleRequest(req: Request): Promise<Response> {
       fallbackUsed: result.fallbackUsed,
       usage: {
         plan: reservation.plan,
-        creditsReserved: reservation.credits_reserved,
+        creditsReserved: reservedCredits,
         creditsBalance: reservation.credits_balance,
         dailyUsed: reservation.daily_used,
         dailyLimit: reservation.daily_limit,
