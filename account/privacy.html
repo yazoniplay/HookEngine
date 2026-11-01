@@ -46,7 +46,9 @@
   <p>The content needed to complete a request is sent to the provider that processes it. Each provider handles requests under its own terms and privacy practices; review those provider policies if you need details about their processing or retention.</p>
 
   <h2>Pro waitlist</h2>
-  <p>If you join the Pro waitlist, HookEngine stores the email address you submit, the first submission time, the most recent submission time and a counter used to limit repeated submissions. The address is used to prevent duplicate entries and to apply a limit of three submissions per 24 hours for the same email address. The waitlist feature does not store an IP address. Waitlist records are not available through public read access, and the current database migration does not configure an automatic expiry period for them.</p>
+  <p>If you join the Pro waitlist, HookEngine stores the email address you submit, the first submission time, the most recent submission time and a counter used to limit repeated submissions. The address is intended for Pro availability notices and related launch updates. It is also used to prevent duplicate entries and to apply a limit of three submissions per 24 hours for the same email address. The waitlist feature does not store an IP address. Waitlist records are not available through public read access, and the current database migration does not configure an automatic expiry period for them.</p>
+  <p>Submitting the form does not send an email to that address. HookEngine will contact a waitlist address about launch updates only after the address owner completes a separate confirmation step. That confirmation step is not part of the current waitlist flow, so no waitlist email is sent by the current implementation.</p>
+  <p>A server operator can remove a waitlist entry using the restricted <code>hookengine_remove_waitlist_entry</code> function. The removal function is not available to anonymous or signed-in browser users.</p>
 
   <h2>How long information remains available</h2>
   <ul>

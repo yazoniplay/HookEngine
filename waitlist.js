@@ -33,9 +33,7 @@ if (form && status) {
         }
         throw new Error("The waitlist could not be reached. Try again later.");
       }
-      status.textContent = result.status === "already_joined"
-        ? "That email is already on the list."
-        : "You're on the list. We'll email you when Pro is available.";
+      status.textContent = "Your request was received. No email has been sent.";
       form.reset();
     } catch (error) {
       status.textContent = error.message || "The waitlist could not be reached. Try again later.";

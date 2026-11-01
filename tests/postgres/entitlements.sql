@@ -524,6 +524,8 @@ $hookengine_paypal_events$;
 do $hookengine_waitlist_security$
 declare
   v_result jsonb;
+  v_first_result jsonb;
+  v_removed boolean;
   v_count integer;
 begin
   if not (select relrowsecurity from pg_catalog.pg_class where oid='public.hookengine_waitlist'::regclass) then
@@ -544,19 +546,25 @@ begin
   if not has_function_privilege('anon','public.hookengine_join_waitlist(text)','EXECUTE') then
     raise exception 'anon must be able to execute the waitlist submission RPC';
   end if;
+  if has_function_privilege('anon','public.hookengine_remove_waitlist_entry(text)','EXECUTE')
+     or has_function_privilege('authenticated','public.hookengine_remove_waitlist_entry(text)','EXECUTE')
+     or not has_function_privilege('service_role','public.hookengine_remove_waitlist_entry(text)','EXECUTE') then
+    raise exception 'Waitlist removal must be restricted to the service role';
+  end if;
 
   set local role anon;
   v_result := public.hookengine_join_waitlist('Waitlist-Test@example.com');
-  if v_result->>'status' is distinct from 'joined' then
-    raise exception 'First waitlist submission did not join: %',v_result;
+  if v_result->>'status' is distinct from 'submitted' then
+    raise exception 'First waitlist submission returned an unexpected response: %',v_result;
+  end if;
+  v_first_result := v_result;
+  v_result := public.hookengine_join_waitlist('waitlist-test@example.com');
+  if v_result is distinct from v_first_result then
+    raise exception 'New and existing waitlist emails must receive identical responses: first %, duplicate %',v_first_result,v_result;
   end if;
   v_result := public.hookengine_join_waitlist('waitlist-test@example.com');
-  if v_result->>'status' is distinct from 'already_joined' then
-    raise exception 'Duplicate waitlist submission was not deduplicated: %',v_result;
-  end if;
-  v_result := public.hookengine_join_waitlist('waitlist-test@example.com');
-  if v_result->>'status' is distinct from 'already_joined' then
-    raise exception 'Second duplicate waitlist submission was not accepted: %',v_result;
+  if v_result is distinct from v_first_result then
+    raise exception 'Repeated waitlist submissions must receive the same response: %',v_result;
   end if;
 
   begin
@@ -588,6 +596,18 @@ begin
    where email in ('waitlist-test@example.com','direct-insert@example.com');
   if v_count <> 2 then
     raise exception 'Waitlist must store one row per normalized email; found %',v_count;
+  end if;
+
+  set local role service_role;
+  v_removed := public.hookengine_remove_waitlist_entry('WAITLIST-TEST@example.com');
+  reset role;
+  if not coalesce(v_removed,false) then
+    raise exception 'Service-role removal path did not remove the waitlist entry';
+  end if;
+  select count(*) into v_count from public.hookengine_waitlist
+   where email='waitlist-test@example.com';
+  if v_count <> 0 then
+    raise exception 'Removed waitlist entry is still present';
   end if;
 end;
 $hookengine_waitlist_security$;

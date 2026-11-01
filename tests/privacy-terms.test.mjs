@@ -10,6 +10,7 @@ const MIGRATIONS_DIRECTORY = new URL("../supabase/migrations/", import.meta.url)
 const RESERVATION_MIGRATION = "../supabase/migrations/20261031120000_hookengine_phase2_spec_alignment.sql";
 const PLAN_MIGRATION = "../supabase/migrations/20261031004500_hookengine_plan_credits_entitlements.sql";
 const WAITLIST_MIGRATION = "../supabase/migrations/20261101100000_hookengine_waitlist.sql";
+const WAITLIST_CONTRACT_MIGRATION = "../supabase/migrations/20261101110000_hookengine_waitlist_contract.sql";
 const GENERATE_FUNCTION = "../supabase/functions/hookengine-generate/index.ts";
 const PUBLIC_POLICY_PATHS = [PRIVACY_PATH, TERMS_PATH];
 
@@ -35,6 +36,17 @@ function assertWaitlistSecurity(sql) {
   assert.match(sql, /on conflict \(email\) do nothing/i);
   assert.match(sql, /grant execute on function public\.hookengine_join_waitlist\(text\) to anon/i);
 }
+function assertWaitlistInputPolicy(sql) {
+  assert.equal((sql.match(/attempt_count\\s*>=\\s*3/gi) || []).length, 1,
+    "waitlist rate limit must remain three attempts");
+  assert.equal((sql.match(/char_length\\(v_email\\)\\s*<\\s*6/gi) || []).length, 2,
+    "both waitlist validation paths must enforce the six-character minimum");
+  assert.equal((sql.match(/char_length\\(v_email\\)\\s*>\\s*254/gi) || []).length, 2,
+    "both waitlist validation paths must enforce the 254-character maximum");
+  const emailPattern = "^[A-Za-z0-9.!#$%&''*+/=?^_`{|}~-]+@[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?(\\\\.[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+$";
+  assert.equal(sql.split(emailPattern).length - 1, 2,
+    "both waitlist validation paths must use the expected email format regex");
+}
 function assertWaitlistDisclosure(html) {
   assert.match(html, /Pro waitlist/i);
   assert.match(html, /the email address you submit/i, "waitlist must disclose the submitted email address");
@@ -43,6 +55,11 @@ function assertWaitlistDisclosure(html) {
   assert.match(html, /three submissions per 24 hours/i);
   assert.match(html, /does not store an IP address/i);
   assert.match(html, /not available through public read access/i);
+  assert.match(html, /intended for Pro availability notices and related launch updates/i);
+  assert.match(html, /does not send an email to that address/i);
+  assert.match(html, /only after the address owner completes a separate confirmation step/i);
+  assert.match(html, /no waitlist email is sent by the current implementation/i);
+  assert.match(html, /hookengine_remove_waitlist_entry/i);
 }
 function assertNoPurchaseCTA(landing, accountHtml, accountJs, landingJs, popupHtml) {
   const publicCopy = [landing, accountHtml, accountJs, popupHtml].join("\\n");
@@ -192,9 +209,57 @@ test("waitlist migration restricts anonymous access and validates submissions", 
   }
 });
 
+test("waitlist SQL policy constants are parsed and each mutation is rejected", async () => {
+  const sql = await read(WAITLIST_MIGRATION);
+  assertWaitlistInputPolicy(sql);
+  const rateMutation = sql.replace("attempt_count >= 3", "attempt_count >= 4");
+  assert.notEqual(rateMutation, sql, "rate-limit mutation must change the threshold");
+  assert.throws(() => assertWaitlistInputPolicy(rateMutation), /rate limit must remain three attempts/);
+  const minimumMutation = sql.replaceAll("char_length(v_email) < 6", "char_length(v_email) < 5");
+  assert.notEqual(minimumMutation, sql, "minimum-length mutation must change both checks");
+  assert.throws(() => assertWaitlistInputPolicy(minimumMutation), /six-character minimum/);
+  const maximumMutation = sql.replaceAll("char_length(v_email) > 254", "char_length(v_email) > 253");
+  assert.notEqual(maximumMutation, sql, "maximum-length mutation must change both checks");
+  assert.throws(() => assertWaitlistInputPolicy(maximumMutation), /254-character maximum/);
+  const regexMutation = sql.replaceAll("A-Za-z0-9-]{0,61}", "A-Za-z0-9-]{0,60}");
+  assert.notEqual(regexMutation, sql, "email-regex mutation must change both regexes");
+  assert.throws(() => assertWaitlistInputPolicy(regexMutation), /expected email format regex/);
+});
+
+test("waitlist contract migration returns one response and restricts removal", async () => {
+  const sql = await read(WAITLIST_CONTRACT_MIGRATION);
+  assert.match(sql, /on conflict \(email\) do nothing[\s\S]*?return pg_catalog\.jsonb_build_object\('status', 'submitted'\)/i);
+  assert.doesNotMatch(sql, /already_joined|status', 'joined'/i);
+  assert.match(sql, /create or replace function public\.hookengine_remove_waitlist_entry\(p_email text\)[\s\S]*?security definer/i);
+  assert.match(sql, /revoke all on function public\.hookengine_remove_waitlist_entry\(text\) from public, anon, authenticated/i);
+  assert.match(sql, /grant execute on function public\.hookengine_remove_waitlist_entry\(text\) to service_role/i);
+  for (const role of ["anon", "authenticated"]) {
+    const mutated = sql.replace(
+      "revoke all on function public.hookengine_remove_waitlist_entry(text) from public, anon, authenticated;",
+      "grant execute on function public.hookengine_remove_waitlist_entry(text) to " + role + ";"
+    );
+    assert.throws(() => {
+      assert.match(mutated, /revoke all on function public\.hookengine_remove_waitlist_entry\(text\) from public, anon, authenticated/i);
+    });
+  }
+});
+
+test("PostgreSQL runner applies every migration in sorted filename order", async () => {
+  const runner = await read("../tests/run-postgres-migration-tests.sh");
+  assert.match(runner, /find supabase\/migrations -maxdepth 1 -type f -name '\*\.sql' -print \| LC_ALL=C sort/);
+  assert.match(runner, /for migration in "\$\{migrations\[@\]\}"; do/);
+  assert.doesNotMatch(runner, /migrations=\(/, "runner must not maintain a hardcoded migration list");
+});
+
 test("privacy policy discloses waitlist fields and controls", async () => {
   const privacy = await read(PRIVACY_PATH);
   assertWaitlistDisclosure(privacy);
+  const waitlistSection = privacy.match(/<h2>Pro waitlist<\\/h2>[\\s\\S]*?<\\/section>/i)?.[0] || privacy.slice(privacy.indexOf("<h2>Pro waitlist</h2>"), privacy.indexOf("<h2>How long information"));
+  assert.ok(waitlistSection.length > 0, "waitlist privacy section must exist");
+  assertNoBannedPrivacyClaims(waitlistSection);
+  for (const claim of ["never", "always", "guarantee", "encrypted", "anonymous", "train", "sell"]) {
+    assert.throws(() => assertNoBannedPrivacyClaims(waitlistSection + " " + claim), /banned or unsupported claim/);
+  }
   const mutated = privacy.replace("the email address you submit", "no information is collected");
   assert.notEqual(mutated, privacy, "mutation must remove the email collection disclosure");
   assert.throws(() => assertWaitlistDisclosure(mutated), /waitlist must disclose the submitted email address/);
@@ -227,6 +292,8 @@ test("public privacy pages reject every banned claim category", async () => {
   const [privacy, terms, landing] = await Promise.all([...PUBLIC_POLICY_PATHS.map(read), read("../index.html")]);
   for (const page of [privacy, terms]) assertNoBannedPrivacyClaims(page);
   assertWaitlistDisclosure(privacy);
+  const waitlistSection = privacy.slice(privacy.indexOf("<h2>Pro waitlist</h2>"), privacy.indexOf("<h2>How long information"));
+  assertNoBannedPrivacyClaims(waitlistSection);
   const faq = landing.match(/<section class="section" id="faq">[\s\S]*?<\/section>/i)?.[0];
   assert.ok(faq, "public FAQ section must exist");
   assertNoBannedPrivacyClaims(faq);
