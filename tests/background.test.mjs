@@ -483,16 +483,16 @@ test("fallback extractor filters long junk lines and joins content with real new
   const result = await runFallback(context);
   assert.ok(result.text.includes(paragraph));
   assert.ok(result.text.includes(secondParagraph));
-  assert.ok(result.text.includes(paragraph + "\\n\\n" + secondParagraph));
+  assert.ok(result.text.includes(paragraph + "\n\n" + secondParagraph));
   assert.doesNotMatch(result.text, /Share this article on social media/i);
   assert.doesNotMatch(result.text, /Read more about this topic/i);
-  assert.equal(result.text.includes("\\\\n"), false);
+  assert.equal(result.text.includes("\\n"), false);
 
   // Mutation check: deliberately restore the historical double-escaped word boundary.
   // The same behavioral assertion above must fail against this broken implementation.
   const brokenSource = source.replace(
-    /pull requests\?\)\\\\b\/i\.test\(value\)/,
-    "pull requests?)\\\\\\\\b/i.test(value)"
+    /pull requests\?\)\\b\/i\.test\(value\)/,
+    "pull requests?)\\\\b/i.test(value)"
   );
   assert.notEqual(brokenSource, source, "the regex mutation must actually be applied");
   const brokenContext = {
