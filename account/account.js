@@ -1,4 +1,5 @@
 import { PLAN_CATALOG, formatPlanPrice, formatPlanPeriod, planSummary, planFeatures } from "../extension/plans.js";
+import { PLATFORM_LABELS } from "../extension/config.js";
 
 const SUPABASE_URL = "https://ppaknwuwiublxogclqdw.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBwYWtud3V3aXVibHhvZ2NscWR3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE5NzkxNzQsImV4cCI6MjEwNzU1NTE3NH0.mlJayLmT_xCRfGjyrA7j8bqKQVhQrjhCBD5e3czVfr0";
@@ -201,7 +202,7 @@ function renderHistory(rows) {
     const title=row.source_title||"Untitled source";
     const type=row.source_type==="youtube_video"?"YouTube video":"Article / text";
     const completed=row.status==="completed";
-    const labels={x_thread:"X THREAD",linkedin_post:"LINKEDIN",tiktok_hooks:"TIKTOK HOOKS",instagram_caption:"INSTAGRAM",threads_posts:"THREADS",facebook_post:"FACEBOOK"};const saved=row.outputs&&typeof row.outputs==="object"?row.outputs:{x_thread:row.x_thread,linkedin_post:row.linkedin_post,tiktok_hooks:row.tiktok_hooks};const draft=Object.entries(saved).filter(([key,value])=>labels[key]&&value).map(([key,value])=>{const versions=Array.isArray(value)?value:[value];return labels[key]+"\n"+versions.map((version,index)=>"Version "+(index+1)+"\n"+String(version)).join("\n\n");}).join("\n\n────────────────────\n\n");
+    const labels=Object.fromEntries(Object.entries(PLATFORM_LABELS).map(([key,label])=>[key,label.toUpperCase()]));const saved=row.outputs&&typeof row.outputs==="object"?row.outputs:{x_thread:row.x_thread,linkedin_post:row.linkedin_post,tiktok_hooks:row.tiktok_hooks};const draft=Object.entries(saved).filter(([key,value])=>labels[key]&&value).map(([key,value])=>{const versions=Array.isArray(value)?value:[value];return labels[key]+"\n"+versions.map((version,index)=>"Version "+(index+1)+"\n"+String(version)).join("\n\n");}).join("\n\n────────────────────\n\n");
     const usageMeta=[];
     if(Number(row.credits_reserved)>0)usageMeta.push(Number(row.credits_reserved)+" credit"+(Number(row.credits_reserved)===1?"":"s")+(row.refunded_at?" refunded":""));
     const tokens=(Number(row.input_tokens)||0)+(Number(row.output_tokens)||0);
