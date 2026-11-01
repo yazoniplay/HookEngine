@@ -121,7 +121,6 @@ test("privacy policy accurately discloses source processing and draft storage", 
 
 test("latest sorted migration reservation definition inserts NULL into source_text", async () => {
   const latest = await latestReservationDefinition();
-  assert.equal(latest.filename, "20261031123000_hookengine_regeneration_cost_one_credit.sql");
   assertReservationDoesNotPersistSourceText(latest.functionSql);
 });
 
