@@ -3,6 +3,7 @@ export const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdX
 export const FUNCTION_URL = SUPABASE_URL + "/functions/v1/hookengine-generate";
 export const STORAGE_KEYS = Object.freeze({
   session: "hookengine-account-session",
+  sessionRefreshLock: "hookengine-session-refresh-lock",
   theme: "hookengine-theme",
   writingPreferences: "hookengine-writing-preferences",
   lastGeneration: "hookengine-last-generation"
