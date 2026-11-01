@@ -409,9 +409,9 @@ begin
   if v_result->>'reason' is distinct from 'daily_cap' then
     raise exception 'Fourth daily generation must return daily_cap: %',v_result;
   end if;
-  if position('Daily cap reached (3/3). Resets at ' in coalesce(v_result->>'message',''))=0
-     or v_result->>'reset_at' is null then
-    raise exception 'Daily cap must include its name and exact reset timestamp: %',v_result;
+  if (v_result->>'reset_at')::timestamptz is distinct from
+       (date_trunc('day',timezone('UTC',now())) + interval '1 day') at time zone 'UTC' then
+    raise exception 'Daily cap must return the exact next UTC midnight reset timestamp: %',v_result;
   end if;
 end;
 $hookengine_phase2_contract$;
