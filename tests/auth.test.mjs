@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { restoreSession, signIn, signOut } from "../extension/auth.js";
+import { refreshSession } from "../extension/session.js";
 
 const store = new Map();
 globalThis.chrome = {
@@ -24,6 +25,31 @@ const savedSession = () => ({
   refresh_token: "refresh-token",
   expires_at: Math.floor(Date.now() / 1000) - 60,
   user: { id: "user-1", email: "user@example.com" }
+});
+
+test("extension pages route refreshes through the service worker", async () => {
+  const previousDocument = globalThis.document;
+  const previousRuntime = globalThis.chrome.runtime;
+  let request = null;
+  globalThis.document = {};
+  globalThis.chrome.runtime = {
+    async sendMessage(message) {
+      request = message;
+      return { session: { access_token: "worker-access" }, warning: null };
+    }
+  };
+  try {
+    const result = await refreshSession({ expectedRefreshToken: "previous-refresh" });
+    assert.deepEqual(request, {
+      type: "HOOKENGINE_REFRESH_SESSION",
+      expectedRefreshToken: "previous-refresh"
+    });
+    assert.equal(result.session.access_token, "worker-access");
+  } finally {
+    if (previousDocument === undefined) delete globalThis.document;
+    else globalThis.document = previousDocument;
+    globalThis.chrome.runtime = previousRuntime;
+  }
 });
 
 test("simultaneous session restores share one refresh request", async () => {
@@ -54,6 +80,7 @@ test("simultaneous session restores share one refresh request", async () => {
     assert.equal(refreshCalls, 1, "concurrent restores must make one refresh request");
     assert.equal(results[0].session.access_token, "rotated-access-token");
     assert.equal(results[1].session.access_token, "rotated-access-token");
+    assert.equal(store.has("hookengine-session-refresh-lock"), false, "refresh lock must be released after completion");
   } finally {
     globalThis.fetch = previousFetch;
   }

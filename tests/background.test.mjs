@@ -181,7 +181,8 @@ test("transient session verification failures preserve the saved login", async (
   const auth = await readFile(new URL("../extension/auth.js", import.meta.url), "utf8");
   assert.match(auth, /session is preserved/);
   assert.match(auth, /session has been kept/);
-  assert.match(auth, /writeStoredSession\(null\)/);
+  assert.match(auth, /clearStoredSession\(\)/);
+  assert.match(auth, /from "\.\/session\.js"/);
 });
 
 test("the account sign-in buttons use their own form fields and messages", async () => {
