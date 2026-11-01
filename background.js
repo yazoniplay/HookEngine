@@ -4,7 +4,8 @@ import {
   FUNCTION_URL,
   STORAGE_KEYS,
   MAX_SOURCE_CHARS,
-  MIN_SOURCE_CHARS
+  MIN_SOURCE_CHARS,
+  ALL_PLATFORMS
 } from "./extension/config.js";
 import { getStoredSession, clearStoredSession, refreshSessionInServiceWorker } from "./extension/session.js";
 
@@ -369,7 +370,7 @@ async function handleGenerationMessage(message) {
   const resolved = await resolveYouTubeGenerationSource(originalPayload);
   const data = await generateWithStoredSession(resolved.payload);
   const outputs = data.outputs || Object.fromEntries(
-    ["x_thread", "linkedin_post", "tiktok_hooks", "instagram_caption", "threads_posts", "facebook_post"]
+    ALL_PLATFORMS
       .filter(key => typeof data[key] === "string")
       .map(key => [key, data[key]])
   );
