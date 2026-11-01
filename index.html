@@ -28,7 +28,7 @@
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation:none!important;transition:none!important}.step:hover,.button:hover,.copy-btn:hover{transform:none}}
 </style>
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"SoftwareApplication","name":"HookEngine","applicationCategory":"BrowserApplication","operatingSystem":"Chrome 116+","description":"Turn articles, selected text and YouTube videos into editable social drafts for X, LinkedIn and TikTok, with additional Pro platforms.","offers":[{"@type":"Offer","name":"Free","price":"0","priceCurrency":"EUR"},{"@type":"Offer","name":"Pro","price":"4.99","priceCurrency":"EUR","priceSpecification":{"@type":"UnitPriceSpecification","price":"4.99","priceCurrency":"EUR","unitCode":"MON"}}]}
+{"@context":"https://schema.org","@type":"SoftwareApplication","name":"HookEngine","applicationCategory":"BrowserApplication","operatingSystem":"Chrome 116+","description":"Turn articles, selected text and YouTube videos into editable social drafts for X, LinkedIn and TikTok, with additional Pro platforms."}
 </script>
 </head>
 <body>
@@ -49,7 +49,7 @@
 <!-- Alternate headline 2: Your source goes in. Platform-ready social drafts come out. -->
 <p class="hero-copy">HookEngine reads the page you’re on and drafts for each platform. You edit, copy and post.</p>
 <div class="hero-actions"><a class="button pink" href="https://chromewebstore.google.com/detail/hookengine-%E2%80%94-content-repu/ikalaemjdindfenbbaecekkocbbocjma">Add to Chrome — it’s free <span aria-hidden="true">↗</span></a><a class="text-link" href="#examples">See a real example ↓</a></div>
-<p class="trust">5 free generations a day · no card</p>
+<p class="trust"><span data-plan-summary="free"></span> · no card</p>
 </div>
 <div class="hero-art" aria-label="Preview of the HookEngine example below">
 <span class="sticker hero-sticker">NEW: 3 variations in Pro</span>
@@ -134,17 +134,14 @@ The useful idea: even when a planet is too far away to study directly, its effec
 <section class="section pricing" id="pricing"><div class="wrap">
 <div class="section-title"><span class="eyebrow">SIMPLE PRICING</span><h2>Start free. Upgrade if you need more.</h2><p>No made-up tiers. The limits and platforms are listed plainly.</p></div>
 <div class="pricing-grid">
-<article class="price-card"><h3>Free</h3><div class="price">€0 <small>/ month</small></div><p>Try the full basic workflow.</p><ul><li>5 generations per day</li><li>X threads</li><li>LinkedIn posts</li><li>TikTok hooks</li><li>Editable drafts</li></ul><a class="button" href="https://chromewebstore.google.com/detail/hookengine-%E2%80%94-content-repu/ikalaemjdindfenbbaecekkocbbocjma">Add to Chrome</a></article>
-<article class="price-card pro"><span class="popular">MOST POPULAR</span><h3>HookEngine Pro</h3><div class="price">€4.99 <small>/ month</small></div><p>More platforms and more room to work.</p><ul><li>100 generations per day</li><li>Everything in Free</li><li>Instagram, Threads and Facebook</li><li>3 variations per platform</li><li>Tone, style, length and audience controls</li></ul><a class="button pink" href="/HookEngine/account/">Get Pro</a></article>
-</div>
-<!-- TODO: Add a monthly/annual toggle only after annual pricing is decided. -->
-<!-- <div class="billing-toggle" hidden>Monthly / Annual</div> -->
-</div></section>
+<article class="price-card"><h3>Free</h3><div class="price"><span data-plan-price="free"></span> <small data-plan-period="free"></small></div><p data-plan-summary="free"></p><ul data-plan-features="free"></ul><a class="button" href="https://chromewebstore.google.com/detail/hookengine-%E2%80%94-content-repu/ikalaemjdindfenbbaecekkocbbocjma">Add to Chrome</a></article>
+<article class="price-card pro"><span class="popular">MOST POPULAR</span><h3>HookEngine Pro</h3><div class="price"><span data-plan-price="pro"></span> <small data-plan-period="pro"></small></div><p data-plan-summary="pro"></p><ul data-plan-features="pro"></ul><a class="button pink" href="/HookEngine/account/">View account</a></article>
+</div></div></section>
 <section class="section" id="faq"><div class="wrap"><div class="section-title"><span class="eyebrow">FAQ</span><h2>Fair questions.</h2></div>
 <div class="faq-list">
 <details><summary>Where does my data go?</summary><p>Text from the page or selected text is sent to HookEngine’s server and processed by AI providers to create drafts. Account and usage data are handled by the service infrastructure. Read the <a href="/HookEngine/account/privacy.html">privacy policy</a>. The current policy does not clearly explain how long source text or generated drafts are retained. <!-- TODO: Clarify source-text and generated-output retention in the privacy policy before making a stronger promise. --></p></details>
 <details><summary>Does it work on paywalled or logged-in pages?</summary><p>HookEngine reads the content visible in your tab; it cannot promise access to content hidden behind a paywall or login. The page text you submit is sent for processing. The privacy policy does not clearly state a retention period for submitted source text. <!-- TODO: Confirm retention and update privacy policy. --></p></details>
-<details><summary>What happens when I hit the daily limit?</summary><p>Free includes 5 generations per day. Pro includes 100. When your plan’s allowance is used, the server rejects further generations until the daily allowance resets. You can review your plan in the <a href="/HookEngine/account/">account portal</a>.</p></details>
+<details><summary>What happens when I hit the daily limit?</summary><p>Free includes up to <span data-plan-daily="free"></span> generations per UTC day. Pro includes up to <span data-plan-daily="pro"></span>. When your plan’s allowance is used, the server rejects further generations until the UTC daily allowance resets. You can review your plan in the <a href="/HookEngine/account/">account portal</a>.</p></details>
 <details><summary>Does it work for YouTube videos without captions?</summary><p>YouTube video analysis is handled by Gemini, but the current product documentation does not establish whether every video without captions can be processed. <!-- TODO: Test videos with disabled or missing captions and state the supported behavior. --></p></details>
 <details><summary>Can I cancel Pro?</summary><p>Pro billing is connected to PayPal. The current public account page does not clearly document the cancellation steps. <!-- TODO: Confirm cancellation flow and add exact instructions here. Do not promise cancellation terms until verified. --></p></details>
 <details><summary>Which browsers?</summary><p>The extension manifest requires Chrome 116 or later. Other browsers are not currently verified. <!-- TODO: Test Chromium-based browsers before claiming support. --></p></details>
@@ -171,4 +168,5 @@ document.querySelectorAll("[data-copy]").forEach(button=>button.addEventListener
 document.querySelectorAll(".pro-pills button").forEach(button=>button.addEventListener("click",()=>{document.querySelectorAll(".pro-pills button").forEach(b=>b.setAttribute("aria-pressed",String(b===button)));}));
 if(!matchMedia("(prefers-reduced-motion: reduce)").matches){const target=document.querySelector("#panel-x .draft-text");const full=target.textContent;target.textContent="";let i=0;const reveal=()=>{if(i>=full.length)return;target.textContent+=full.charAt(i++);setTimeout(reveal,7);};setTimeout(reveal,180);}
 </script>
+<script type="module" src="landing.js"></script>
 </body></html>
