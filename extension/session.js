@@ -128,6 +128,7 @@ async function performRefresh(expectedRefreshToken) {
 // All extension-page refreshes are routed through the one MV3 service worker.
 // The persisted lock protects against worker restarts while a refresh is pending.
 export async function refreshSessionInServiceWorker(options = {}) {
+  if (refreshInFlight) return refreshInFlight;
   // MUTATION: single-flight guard intentionally removed for regression proof.
   refreshInFlight = performRefresh(options.expectedRefreshToken || null);
   try {
