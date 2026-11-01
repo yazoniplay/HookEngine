@@ -26,6 +26,69 @@ const savedSession = () => ({
   user: { id: "user-1", email: "user@example.com" }
 });
 
+test("simultaneous session restores share one refresh request", async () => {
+  store.set("hookengine-account-session", savedSession());
+  const previousFetch = globalThis.fetch;
+  let refreshCalls = 0;
+  const pending = [];
+  globalThis.fetch = async url => {
+    if (String(url).includes("grant_type=refresh_token")) {
+      refreshCalls++;
+      return new Promise(resolve => pending.push(resolve));
+    }
+    return jsonResponse({ id: "user-1", email: "user@example.com" });
+  };
+  try {
+    const first = restoreSession();
+    const second = restoreSession();
+    await new Promise(resolve => setTimeout(resolve, 0));
+    for (const resolve of pending) {
+      resolve(jsonResponse({
+        access_token: "rotated-access-token",
+        refresh_token: "rotated-refresh-token",
+        expires_in: 3600,
+        user: { id: "user-1", email: "user@example.com" }
+      }));
+    }
+    const results = await Promise.all([first, second]);
+    assert.equal(refreshCalls, 1, "concurrent restores must make one refresh request");
+    assert.equal(results[0].session.access_token, "rotated-access-token");
+    assert.equal(results[1].session.access_token, "rotated-access-token");
+  } finally {
+    globalThis.fetch = previousFetch;
+  }
+});
+
+test("refresh server errors preserve the stored session", async () => {
+  const session = savedSession();
+  store.set("hookengine-account-session", session);
+  const previousFetch = globalThis.fetch;
+  globalThis.fetch = async () => jsonResponse({ message: "temporarily unavailable" }, 503);
+  try {
+    const result = await restoreSession();
+    assert.equal(result.session.refresh_token, session.refresh_token);
+    assert.equal(store.get("hookengine-account-session").refresh_token, session.refresh_token);
+    assert.match(result.warning, /preserved/i);
+  } finally {
+    globalThis.fetch = previousFetch;
+  }
+});
+
+test("invalid refresh statuses clear the expired session", async () => {
+  const previousFetch = globalThis.fetch;
+  try {
+    for (const status of [400, 401, 403]) {
+      store.set("hookengine-account-session", savedSession());
+      globalThis.fetch = async () => jsonResponse({ message: "refresh token invalid" }, status);
+      const result = await restoreSession();
+      assert.equal(result.session, null, "status " + status + " must clear the session");
+      assert.equal(store.has("hookengine-account-session"), false, "status " + status + " must remove stored credentials");
+    }
+  } finally {
+    globalThis.fetch = previousFetch;
+  }
+});
+
 test("network failure during refresh preserves the stored session", async () => {
   const session = savedSession();
   store.set("hookengine-account-session", session);
