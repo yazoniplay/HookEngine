@@ -443,3 +443,44 @@ test("all manifest icon assets are valid PNGs at their declared dimensions", asy
     assert.equal(png.readUInt32BE(20), size);
   }
 });
+
+
+test("fallback extractor filters noise blocks and joins content with real newlines", async () => {
+  const paragraph = "This is a meaningful article paragraph with enough words to survive extraction.";
+  const candidate = {
+    id: "article",
+    className: "article-content",
+    getClientRects() { return [{}]; },
+    getAttribute() { return null; },
+    cloneNode() {
+      const blocks = [
+        { innerText: "Share", textContent: "Share" },
+        { innerText: paragraph, textContent: paragraph },
+        { innerText: "Read more", textContent: "Read more" },
+        { innerText: "A second meaningful paragraph with enough detail to remain in the extracted article.", textContent: "A second meaningful paragraph with enough detail to remain in the extracted article." }
+      ];
+      return {
+        querySelectorAll(selector) {
+          if (selector.startsWith("script,")) return [];
+          if (selector === "h1,h2,h3,h4,p,li,blockquote,pre,figcaption,dd,dt") return blocks;
+          if (selector === "a") return [];
+          return [];
+        },
+        innerText: blocks.map(block => block.innerText).join(" "),
+        textContent: blocks.map(block => block.textContent).join(" ")
+      };
+    }
+  };
+  context.chrome.scripting.executeScript = async ({ func }) => [{
+    result: vm.runInNewContext("(" + func.toString() + ")()", {
+      document: { querySelectorAll() { return [candidate]; }, title: "Test article" },
+      location: { href: "https://example.test/article" }
+    })
+  }];
+
+  const result = await context.fallbackReadPage(1);
+  assert.ok(result.text.includes(paragraph));
+  assert.doesNotMatch(result.text, /^(share|read more)$/im);
+  assert.match(result.text, /paragraph.*\\n\\n.*second paragraph/s);
+  assert.doesNotMatch(result.text, /\\\\n/);
+});
