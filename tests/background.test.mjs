@@ -481,6 +481,6 @@ test("fallback extractor filters noise blocks and joins content with real newlin
   const result = await context.fallbackReadPage(1);
   assert.ok(result.text.includes(paragraph));
   assert.doesNotMatch(result.text, /^(share|read more)$/im);
-  assert.match(result.text, /paragraph.*\\n\\n.*second paragraph/s);
-  assert.doesNotMatch(result.text, /\\\\n/);
+  assert.ok(result.text.includes(paragraph + "\n\n"));
+  assert.equal(result.text.includes("\\n"), false);
 });
