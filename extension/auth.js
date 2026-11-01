@@ -1,5 +1,44 @@
 import { SUPABASE_URL, SUPABASE_KEY } from "./config.js";
-import { getStoredSession, saveStoredSession, clearStoredSession, refreshSession } from "./session.js";
+import {
+  getStoredSession,
+  saveStoredSession,
+  clearStoredSession,
+  refreshSession
+} from "./session.js";
+
+async function parseResponse(response) {
+  return response.json().catch(() => ({}));
+}
+
+function cachedIdentity(session, warning) {
+  return {
+    session,
+    user: session?.user || null,
+    warning
+  };
+}
+
+export async function signIn(email, password) {
+  const response = await fetch(SUPABASE_URL + "/auth/v1/token?grant_type=password", {
+    method: "POST",
+    headers: {
+      apikey: SUPABASE_KEY,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ email: email.trim(), password })
+  });
+  const data = await parseResponse(response);
+  if (!response.ok) {
+    throw new Error(data.msg || data.message || "Check your email and password.");
+  }
+  if (!data.access_token || !data.user) {
+    throw new Error("The sign-in service returned an incomplete session.");
+  }
+
+  data.expires_at = Math.floor(Date.now() / 1000) + (data.expires_in || 3600);
+  await saveStoredSession(data);
+  return { session: data, user: data.user };
+}
 
 export async function restoreSession() {
   let session = await getStoredSession();
@@ -54,3 +93,20 @@ export async function restoreSession() {
   return { session, user, warning: null };
 }
 
+export async function signOut() {
+  const session = await getStoredSession();
+  await clearStoredSession();
+  if (!session?.access_token) return;
+
+  try {
+    await fetch(SUPABASE_URL + "/auth/v1/logout", {
+      method: "POST",
+      headers: {
+        apikey: SUPABASE_KEY,
+        Authorization: "Bearer " + session.access_token
+      }
+    });
+  } catch {
+    // Local sign-out is immediate even when the network is unavailable.
+  }
+}
