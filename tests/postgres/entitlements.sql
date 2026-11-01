@@ -381,9 +381,10 @@ begin
   if v_result->>'reason' is distinct from 'weekly_limit' then
     raise exception 'Free credit exhaustion must return weekly_limit: %',v_result;
   end if;
-  if position('Weekly pool exhausted. Resets at ' in coalesce(v_result->>'message',''))=0
-     or v_result->>'reset_at' is null then
-    raise exception 'Weekly limit must include its name and exact reset timestamp: %',v_result;
+  if (v_result->>'reset_at')::timestamptz is distinct from (
+       select credit_period_ends_at from public.hookengine_subscriptions where user_id=v_user
+     ) then
+    raise exception 'Weekly limit must return the exact credit-period reset timestamp: %',v_result;
   end if;
 
   update public.hookengine_subscriptions set credits_balance=5 where user_id=v_user;
