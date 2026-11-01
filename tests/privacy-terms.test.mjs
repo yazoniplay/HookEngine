@@ -16,10 +16,17 @@ const PUBLIC_POLICY_PATHS = [PRIVACY_PATH, TERMS_PATH];
 function assertWaitlistSecurity(sql) {
   assert.match(sql, /alter table public\.hookengine_waitlist enable row level security/i);
   assert.match(sql, /create policy[\s\S]{0,180}for insert[\s\S]{0,100}to anon[\s\S]{0,80}with check \(true\)/i);
-  assert.match(sql, /grant insert on table public\.hookengine_waitlist to anon/i);
-  assert.doesNotMatch(sql, /grant select on table public\.hookengine_waitlist to anon/i, "anon must not read waitlist rows");
-  assert.doesNotMatch(sql, /grant update on table public\.hookengine_waitlist to anon/i, "anon must not update waitlist rows");
-  assert.doesNotMatch(sql, /grant delete on table public\.hookengine_waitlist to anon/i, "anon must not delete waitlist rows");
+  const grants = [...sql.matchAll(/grant\s+([^;]+?)\s+on table public\.hookengine_waitlist\s+to\s+(public|anon|authenticated)/ig)]
+    .map(match => ({ privileges: match[1].split(",").map(value => value.trim().toLowerCase()), role: match[2].toLowerCase() }));
+  assert.ok(grants.some(grant => grant.role === "anon" && grant.privileges.includes("insert")), "anon must be able to submit waitlist entries");
+  for (const grant of grants.filter(item => item.role === "anon" || item.role === "public")) {
+    for (const forbidden of ["select", "update", "delete", "all"]) {
+      assert.ok(!grant.privileges.includes(forbidden), "anon must not receive " + forbidden.toUpperCase() + " through " + grant.role);
+    }
+  }
+  assert.match(sql, /revoke select on table public\.hookengine_waitlist from anon, authenticated/i);
+  assert.match(sql, /revoke update on table public\.hookengine_waitlist from anon, authenticated/i);
+  assert.match(sql, /revoke delete on table public\.hookengine_waitlist from anon, authenticated/i);
   assert.match(sql, /create or replace function public\.hookengine_join_waitlist\(p_email text\)[\s\S]*?security definer/i);
   assert.match(sql, /char_length\(v_email\) < 6[\s\S]*?char_length\(v_email\) > 254[\s\S]*?invalid_email/i);
   assert.match(sql, /v_email !~ /i);
@@ -171,12 +178,18 @@ test("latest sorted migration reservation definition inserts NULL into source_te
 test("waitlist migration restricts anonymous access and validates submissions", async () => {
   const sql = await read(WAITLIST_MIGRATION);
   assertWaitlistSecurity(sql);
-  const mutated = sql.replace(
-    "revoke select on table public.hookengine_waitlist from anon, authenticated;",
-    "grant select on table public.hookengine_waitlist to anon;"
-  );
-  assert.notEqual(mutated, sql, "mutation must grant anonymous read access");
-  assert.throws(() => assertWaitlistSecurity(mutated), /anon must not read waitlist rows/);
+  for (const privilege of ["select", "update", "delete"]) {
+    const mutated = sql.replace(
+      "revoke " + privilege + " on table public.hookengine_waitlist from anon, authenticated;",
+      "grant " + privilege + " on table public.hookengine_waitlist to anon;"
+    );
+    assert.notEqual(mutated, sql, "mutation must grant anonymous " + privilege.toUpperCase());
+    assert.throws(
+      () => assertWaitlistSecurity(mutated),
+      new RegExp("anon must not receive " + privilege.toUpperCase()),
+      "granting anon " + privilege.toUpperCase() + " must fail"
+    );
+  }
 });
 
 test("privacy policy discloses waitlist fields and controls", async () => {
