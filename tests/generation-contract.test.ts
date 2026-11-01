@@ -174,11 +174,11 @@ Deno.test("Edge Function consumes the reservation RPC cost without recomputing i
   const definitions = [];
   for (const name of migrations) {
     const sql = await Deno.readTextFile(new URL(migrationDirectory + "/" + name, import.meta.url));
-    if (/create\\s+(?:or\\s+replace\\s+)?function\\s+public\\.hookengine_reserve_generation/i.test(sql)) {
+    if (/create\s+(?:or\s+replace\s+)?function\s+public\.hookengine_reserve_generation/i.test(sql)) {
       definitions.push({ name, sql });
     }
   }
   assertEquals(definitions.length > 0, true);
   const latest = definitions[definitions.length - 1].sql;
-  assertEquals(/'credits_reserved'\\s*,\\s*v_cost/i.test(latest), true);
+  assertEquals(/'credits_reserved'\s*,\s*v_cost/i.test(latest), true);
 });
