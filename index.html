@@ -139,28 +139,26 @@ The useful idea: even when a planet is too far away to study directly, its effec
 </div></div></section>
 <section class="section" id="faq"><div class="wrap"><div class="section-title"><span class="eyebrow">FAQ</span><h2>Fair questions.</h2></div>
 <div class="faq-list">
-<details><summary>Where does my data go?</summary><p>Text from the page or selected text is sent to HookEngine’s server and processed by AI providers to create drafts. Account and usage data are handled by the service infrastructure. Read the <a href="/HookEngine/account/privacy.html">privacy policy</a>. The current policy does not clearly explain how long source text or generated drafts are retained. <!-- TODO: Clarify source-text and generated-output retention in the privacy policy before making a stronger promise. --></p></details>
-<details><summary>Does it work on paywalled or logged-in pages?</summary><p>HookEngine reads the content visible in your tab; it cannot promise access to content hidden behind a paywall or login. The page text you submit is sent for processing. The privacy policy does not clearly state a retention period for submitted source text. <!-- TODO: Confirm retention and update privacy policy. --></p></details>
-<details><summary>What happens when I hit the daily limit?</summary><p>Free includes up to <span data-plan-daily="free"></span> generations per UTC day. Pro includes up to <span data-plan-daily="pro"></span>. When your plan’s allowance is used, the server rejects further generations until the UTC daily allowance resets. You can review your plan in the <a href="/HookEngine/account/">account portal</a>.</p></details>
-<details><summary>Does it work for YouTube videos without captions?</summary><p>YouTube video analysis is handled by Gemini, but the current product documentation does not establish whether every video without captions can be processed. <!-- TODO: Test videos with disabled or missing captions and state the supported behavior. --></p></details>
-<details><summary>Can I cancel Pro?</summary><p>Pro billing is connected to PayPal. The current public account page does not clearly document the cancellation steps. <!-- TODO: Confirm cancellation flow and add exact instructions here. Do not promise cancellation terms until verified. --></p></details>
-<details><summary>Which browsers?</summary><p>The extension manifest requires Chrome 116 or later. Other browsers are not currently verified. <!-- TODO: Test Chromium-based browsers before claiming support. --></p></details>
-<details><summary>Who makes HookEngine?</summary><p>HookEngine is an independent project. For support, use the email address configured in the page source: <a id="support-link" href="mailto:support@example.com">support@example.com</a>. <!-- TODO: Replace the support email constant before launch. --></p></details>
-</div></div></section>
+<details><summary>What information does HookEngine save?</summary><p>Generated drafts are stored in your HookEngine database and shown in your account history, alongside related generation records. Records can include the source title and URL, selected platforms, generation status, provider and model, and available usage and timing metadata. Raw source text is sent to the generation provider but is not stored in the HookEngine generation record; the database stores a SHA-256 hash and character length instead. See the <a href="/HookEngine/account/privacy.html">privacy policy</a> for details.</p></details>
+<details><summary>Which AI providers process my content?</summary><p>Text generation uses Google Gemini first, with Groq and Ollama Cloud as configured fallback providers. YouTube video analysis uses Google Gemini. The source material and generation instructions needed for the requested task are sent to the provider that handles that request.</p></details>
+<details><summary>How long is generation history available?</summary><p>Free history follows the Free plan's configured history window. Paid-plan history has no automatic age-based expiry in the database and remains associated with your account until account deletion. The current account portal does not provide a self-service history deletion control.</p></details>
+<details><summary>Does HookEngine post to my social accounts?</summary><p>No. HookEngine generates drafts for you to review, copy and publish yourself.</p></details>
+<details><summary>Does Pro checkout work?</summary><p>No. Checkout is currently disabled, so you cannot purchase Pro through HookEngine at this time.</p></details>
+<details><summary>Which browsers are supported?</summary><p>The extension manifest targets Chrome 116 and later. Other browsers have not been verified by this project.</p></details>
+<details><summary>How can I contact support?</summary><p><a data-support-email>Support contact not configured</a>. The project owner must configure a monitored support address before publishing one.</p></details>
+</div></div></div></section>
 <section class="final-band"><div class="wrap final-inner"><h2>Got an article? You’ve got your next draft.</h2><a class="button pink" href="https://chromewebstore.google.com/detail/hookengine-%E2%80%94-content-repu/ikalaemjdindfenbbaecekkocbbocjma">Add to Chrome — it’s free ↗</a></div></section>
 </main>
 <footer class="wrap footer">
 <a class="brand" href="/HookEngine/"><span class="mark">H</span>HookEngine</a>
-<nav class="footlinks" aria-label="Footer"><a href="/HookEngine/account/privacy.html">Privacy</a><!-- TODO: Create a terms page before adding a link. --><a href="/HookEngine/account/">Account</a><a href="https://chromewebstore.google.com/detail/hookengine-%E2%80%94-content-repu/ikalaemjdindfenbbaecekkocbbocjma">Chrome Web Store</a><a id="support-footer" href="mailto:support@example.com">Support</a></nav>
+<nav class="footlinks" aria-label="Footer"><a href="/HookEngine/account/privacy.html">Privacy</a><a href="/HookEngine/account/terms.html">Terms (draft)</a><a href="/HookEngine/account/">Account</a><a href="https://chromewebstore.google.com/detail/hookengine-%E2%80%94-content-repu/ikalaemjdindfenbbaecekkocbbocjma">Chrome Web Store</a><a data-support-email>Support contact not configured</a></nav>
 <p class="footnote">© <span id="year"></span> HookEngine</p>
 </footer>
 <script>
-const SUPPORT_EMAIL = "support@example.com"; // TODO: Replace with a monitored support address.
 const testimonials = []; // Add only real, permission-approved creator testimonials.
 const quoteGrid=document.getElementById("quote-grid");
 if(testimonials.length){document.querySelector(".testimonials").classList.add("has-quotes");for(const item of testimonials){const card=document.createElement("article");card.className="quote";const quote=document.createElement("blockquote");quote.textContent=item.quote;const cite=document.createElement("cite");cite.textContent=item.name+(item.role?" · "+item.role:"");card.append(quote,cite);quoteGrid.append(card);}}
 document.getElementById("year").textContent=new Date().getFullYear();
-for(const el of [document.getElementById("support-link"),document.getElementById("support-footer")]){el.href="mailto:"+SUPPORT_EMAIL;el.textContent=SUPPORT_EMAIL;}
 const tabs=[...document.querySelectorAll('[role="tab"]')];
 function activateTab(tab,focus=true){tabs.forEach(t=>{const active=t===tab;t.setAttribute("aria-selected",String(active));t.tabIndex=active?0:-1;document.getElementById(t.getAttribute("aria-controls")).hidden=!active;});if(focus)tab.focus();}
 tabs.forEach((tab,index)=>{tab.addEventListener("click",()=>activateTab(tab,false));tab.addEventListener("keydown",event=>{if(!["ArrowRight","ArrowLeft","Home","End"].includes(event.key))return;event.preventDefault();let next=index;if(event.key==="ArrowRight")next=(index+1)%tabs.length;if(event.key==="ArrowLeft")next=(index-1+tabs.length)%tabs.length;if(event.key==="Home")next=0;if(event.key==="End")next=tabs.length-1;activateTab(tabs[next]);});});
@@ -169,4 +167,5 @@ document.querySelectorAll(".pro-pills button").forEach(button=>button.addEventLi
 if(!matchMedia("(prefers-reduced-motion: reduce)").matches){const target=document.querySelector("#panel-x .draft-text");const full=target.textContent;target.textContent="";let i=0;const reveal=()=>{if(i>=full.length)return;target.textContent+=full.charAt(i++);setTimeout(reveal,7);};setTimeout(reveal,180);}
 </script>
 <script type="module" src="landing.js"></script>
+<script type="module" src="support.js"></script>
 </body></html>
