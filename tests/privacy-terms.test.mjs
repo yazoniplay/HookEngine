@@ -43,7 +43,7 @@ function assertWaitlistInputPolicy(sql) {
     "both waitlist validation paths must enforce the six-character minimum");
   assert.equal((sql.match(/char_length\\(v_email\\)\\s*>\\s*254/gi) || []).length, 2,
     "both waitlist validation paths must enforce the 254-character maximum");
-  const emailPattern = "^[A-Za-z0-9.!#$%&''*+/=?^_`{|}~-]+@[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?(\\\\.[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+$";
+  const emailPattern = "^[A-Za-z0-9.!#$%&''*+/=?^_`{|}~-]+@[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?(\\.[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+$";
   assert.equal(sql.split(emailPattern).length - 1, 2,
     "both waitlist validation paths must use the expected email format regex");
 }
@@ -254,7 +254,7 @@ test("PostgreSQL runner applies every migration in sorted filename order", async
 test("privacy policy discloses waitlist fields and controls", async () => {
   const privacy = await read(PRIVACY_PATH);
   assertWaitlistDisclosure(privacy);
-  const waitlistSection = privacy.match(/<h2>Pro waitlist<\\/h2>[\\s\\S]*?<\\/section>/i)?.[0] || privacy.slice(privacy.indexOf("<h2>Pro waitlist</h2>"), privacy.indexOf("<h2>How long information"));
+  const waitlistSection = privacy.slice(privacy.indexOf("<h2>Pro waitlist</h2>"), privacy.indexOf("<h2>How long information"));
   assert.ok(waitlistSection.length > 0, "waitlist privacy section must exist");
   assertNoBannedPrivacyClaims(waitlistSection);
   for (const claim of ["never", "always", "guarantee", "encrypted", "anonymous", "train", "sell"]) {
