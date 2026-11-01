@@ -28,7 +28,7 @@
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation:none!important;transition:none!important}.step:hover,.button:hover,.copy-btn:hover{transform:none}}
 </style>
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"SoftwareApplication","name":"HookEngine","applicationCategory":"BrowserApplication","operatingSystem":"Chrome 116+","description":"Turn articles, selected text and YouTube videos into editable social drafts for X, LinkedIn and TikTok, with additional Pro platforms."}
+{"@context":"https://schema.org","@type":"SoftwareApplication","name":"HookEngine","applicationCategory":"BrowserApplication","operatingSystem":"Chrome 116+","description":"Turn articles, selected text and YouTube videos into editable social drafts for X, LinkedIn and TikTok."}
 </script>
 </head>
 <body>
@@ -52,7 +52,7 @@
 <p class="trust"><span data-plan-summary="free"></span> · no card</p>
 </div>
 <div class="hero-art" aria-label="Preview of the HookEngine example below">
-<span class="sticker hero-sticker">NEW: Multiple variations in Pro</span>
+<a class="sticker hero-sticker" href="#waitlist">PRO COMING SOON · JOIN WAITLIST</a>
 <div class="mini-window"><div class="windowbar"><i></i><i></i><i></i><span class="window-label">HOOKENGINE · DRAFT PREVIEW</span></div><p class="demo-kicker">SOURCE → SOCIAL</p><h2>One article. Three formats.</h2><div class="mini-tabs"><span>X thread</span><span>LinkedIn</span><span>TikTok hooks</span></div><div class="mini-draft"><p>Webb can study a planet’s atmosphere by reading the starlight that passes through it. Here’s the clever part: the missing colors reveal which molecules are present.</p></div></div>
 </div>
 </div>
@@ -132,18 +132,29 @@ The useful idea: even when a planet is too far away to study directly, its effec
 </div></div></section>
 <section class="section testimonials" id="testimonials" aria-labelledby="testimonials-title"><div class="wrap"><div class="section-title"><span class="eyebrow">REAL WORDS</span><h2 id="testimonials-title">What creators say</h2></div><div class="quote-grid" id="quote-grid"></div></div></section>
 <section class="section pricing" id="pricing"><div class="wrap">
-<div class="section-title"><span class="eyebrow">SIMPLE PRICING</span><h2>Start free. Upgrade if you need more.</h2><p>No made-up tiers. The limits and platforms are listed plainly.</p></div>
+<div class="section-title"><span class="eyebrow">SIMPLE PRICING</span><h2>Start free. Pro is coming soon.</h2><p>No made-up tiers. The limits and platforms are listed plainly.</p></div>
 <div class="pricing-grid">
 <article class="price-card"><h3>Free</h3><div class="price"><span data-plan-price="free"></span> <small data-plan-period="free"></small></div><p data-plan-summary="free"></p><ul data-plan-features="free"></ul><a class="button" href="https://chromewebstore.google.com/detail/hookengine-%E2%80%94-content-repu/ikalaemjdindfenbbaecekkocbbocjma">Add to Chrome</a></article>
-<article class="price-card pro"><span class="popular">MOST POPULAR</span><h3>HookEngine Pro</h3><div class="price"><span data-plan-price="pro"></span> <small data-plan-period="pro"></small></div><p data-plan-summary="pro"></p><ul data-plan-features="pro"></ul><a class="button pink" href="/HookEngine/account/">View account</a></article>
+<article class="price-card pro"><span class="popular">MOST POPULAR</span><h3>HookEngine Pro</h3><div class="price">Coming soon</div><p data-plan-summary="pro"></p><ul data-plan-features="pro"></ul><a class="button pink" href="#waitlist">Join waitlist</a></article>
 </div></div></section>
+<section class="section" id="waitlist">
+  <div class="wrap">
+    <div class="section-title"><span class="eyebrow">PRO · COMING SOON</span><h2>Get notified when Pro is ready.</h2><p>Leave your email address and we’ll send a launch update. Joining the list does not start a subscription or payment.</p></div>
+    <form id="waitlistForm" class="waitlist-form">
+      <label for="waitlistEmail">Email address</label>
+      <div class="waitlist-controls"><input id="waitlistEmail" name="email" type="email" autocomplete="email" maxlength="254" required placeholder="you@example.com"><button class="button pink" type="submit">Join waitlist</button></div>
+      <p id="waitlistStatus" role="status" aria-live="polite"></p>
+    </form>
+    <p class="pro-note">One address can submit up to three times in a 24-hour period. Duplicate entries are combined.</p>
+  </div>
+</section>
 <section class="section" id="faq"><div class="wrap"><div class="section-title"><span class="eyebrow">FAQ</span><h2>Fair questions.</h2></div>
 <div class="faq-list">
 <details><summary>What information does HookEngine save?</summary><p>Generated drafts are stored in your HookEngine database and shown in your account history, alongside related generation records. Records can include the source title and URL, selected platforms, generation status, provider and model, and available usage and timing metadata. Raw source text is sent to the generation provider but is not stored in the HookEngine generation record; the database stores a SHA-256 hash and character length instead. See the <a href="/HookEngine/account/privacy.html">privacy policy</a> for details.</p></details>
 <details><summary>Which AI providers process my content?</summary><p>Text generation uses Google Gemini first, with Groq and Ollama Cloud as configured fallback providers. YouTube video analysis uses Google Gemini. The source material and generation instructions needed for the requested task are sent to the provider that handles that request.</p></details>
 <details><summary>How long is generation history available?</summary><p>Free history follows the Free plan's configured history window. Older Free-plan records remain stored in the HookEngine database but are hidden from the Free history view; the visibility cutoff does not delete them. Paid-plan history has no automatic age-based expiry in the database and remains associated with your account until account deletion. The current account portal does not provide a self-service history deletion control.</p></details>
 <details><summary>Does HookEngine post to my social accounts?</summary><p>No. HookEngine generates drafts for you to review, copy and publish yourself.</p></details>
-<details><summary>Does Pro checkout work?</summary><p>No. Checkout is currently disabled, so you cannot purchase Pro through HookEngine at this time.</p></details>
+<details><summary>When will Pro be available?</summary><p>Pro is coming soon. Checkout is not available yet; join the waitlist above to receive a launch update.</p></details>
 <details><summary>Which browsers are supported?</summary><p>The extension manifest targets Chrome 116 and later. Other browsers have not been verified by this project.</p></details>
 <details data-support-faq><summary>How can I contact support?</summary><p><a data-support-email></a></p></details>
 </div></div></div></section>
@@ -167,5 +178,6 @@ document.querySelectorAll(".pro-pills button").forEach(button=>button.addEventLi
 if(!matchMedia("(prefers-reduced-motion: reduce)").matches){const target=document.querySelector("#panel-x .draft-text");const full=target.textContent;target.textContent="";let i=0;const reveal=()=>{if(i>=full.length)return;target.textContent+=full.charAt(i++);setTimeout(reveal,7);};setTimeout(reveal,180);}
 </script>
 <script type="module" src="landing.js"></script>
+<script type="module" src="waitlist.js"></script>
 <script type="module" src="support.js"></script>
 </body></html>

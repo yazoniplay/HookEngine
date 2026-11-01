@@ -518,3 +518,65 @@ begin
   end if;
 end;
 $hookengine_paypal_events$;
+
+
+-- Anonymous waitlist submissions are insert-only, validated, throttled and deduplicated.
+do $hookengine_waitlist_security$
+declare
+  v_result jsonb;
+  v_count integer;
+begin
+  if not has_table_privilege('anon','public.hookengine_waitlist','INSERT') then
+    raise exception 'anon must be able to submit waitlist entries';
+  end if;
+  if has_table_privilege('anon','public.hookengine_waitlist','SELECT') then
+    raise exception 'anon must not read waitlist rows';
+  end if;
+  if has_table_privilege('anon','public.hookengine_waitlist','UPDATE') then
+    raise exception 'anon must not update waitlist rows';
+  end if;
+  if has_table_privilege('anon','public.hookengine_waitlist','DELETE') then
+    raise exception 'anon must not delete waitlist rows';
+  end if;
+  if not has_function_privilege('anon','public.hookengine_join_waitlist(text)','EXECUTE') then
+    raise exception 'anon must be able to execute the waitlist submission RPC';
+  end if;
+
+  set local role anon;
+  v_result := public.hookengine_join_waitlist('Waitlist-Test@example.com');
+  if v_result->>'status' is distinct from 'joined' then
+    raise exception 'First waitlist submission did not join: %',v_result;
+  end if;
+  v_result := public.hookengine_join_waitlist('waitlist-test@example.com');
+  if v_result->>'status' is distinct from 'already_joined' then
+    raise exception 'Duplicate waitlist submission was not deduplicated: %',v_result;
+  end if;
+  v_result := public.hookengine_join_waitlist('waitlist-test@example.com');
+  if v_result->>'status' is distinct from 'already_joined' then
+    raise exception 'Second duplicate waitlist submission was not accepted: %',v_result;
+  end if;
+
+  begin
+    perform public.hookengine_join_waitlist('waitlist-test@example.com');
+    raise exception 'Expected waitlist rate limit to reject the fourth submission';
+  exception when others then
+    if sqlerrm not like '%waitlist_rate_limited%' then raise; end if;
+  end;
+
+  begin
+    perform public.hookengine_join_waitlist('bad');
+    raise exception 'Expected invalid email to be rejected';
+  exception when others then
+    if sqlerrm not like '%invalid_email%' then raise; end if;
+  end;
+
+  insert into public.hookengine_waitlist(email) values ('direct-insert@example.com');
+  reset role;
+
+  select count(*) into v_count from public.hookengine_waitlist
+   where email in ('waitlist-test@example.com','direct-insert@example.com');
+  if v_count <> 2 then
+    raise exception 'Waitlist must store one row per normalized email; found %',v_count;
+  end if;
+end;
+$hookengine_waitlist_security$;

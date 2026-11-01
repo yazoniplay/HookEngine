@@ -126,10 +126,10 @@ function renderPlanCards(){
   const top=document.createElement("div");top.className="pricing-card-top";const heading=document.createElement("div"),label=document.createElement("span"),title=document.createElement("h3");
   label.className="plan-label"+(key==="pro"?" pro-label":"");label.textContent=key==="lifetime"?"LIFETIME · 50 SPOTS":plan.label.toUpperCase();
   title.textContent=({free:"Try HookEngine",trial:"7-day Pro access",pro:"For consistent creators",lifetime:"Lifetime entitlement"})[key];heading.append(label,title);
-  const amount=document.createElement("div");amount.className="pricing-amount";amount.textContent=formatPlanPrice(key);const period=document.createElement("span");period.textContent=formatPlanPeriod(key);amount.append(period);top.append(heading,amount);
+  const amount=document.createElement("div");amount.className="pricing-amount";amount.textContent=key==="pro"?"Coming soon":formatPlanPrice(key);const period=document.createElement("span");period.textContent=key==="pro"?"":formatPlanPeriod(key);amount.append(period);top.append(heading,amount);
   const desc=document.createElement("p");desc.className="pricing-description";desc.textContent=planSummary(key);
   const list=document.createElement("ul");list.className="perk-list";for(const feature of planFeatures(key)){const li=document.createElement("li"),check=document.createElement("span");check.className="perk-check";check.textContent="✓";li.append(check,document.createTextNode(feature));list.append(li);}
-  card.append(top,desc,list);if(key==="lifetime"){const note=document.createElement("p");note.className="pricing-note";note.textContent="Not available for purchase. Price has not been set.";card.append(note);}return card;
+  card.append(top,desc,list);if(key==="pro"){const link=document.createElement("a");link.className="button primary full";link.href="../#waitlist";link.textContent="Join waitlist";card.append(link);}if(key==="lifetime"){const note=document.createElement("p");note.className="pricing-note";note.textContent="Not available for purchase. Price has not been set.";card.append(note);}return card;
  }));
 }
 async function showDashboard() {
@@ -187,11 +187,7 @@ async function showDashboard() {
     $("completedGenerations").textContent=completed.toLocaleString();
     $("averageLatency").textContent=latency ? "Average "+(latency/1000).toFixed(1)+"s per generation" : "No latency data yet";
     $("lifetimeSpots").textContent="Lifetime allocations are limited to "+PLAN_CATALOG.lifetime.lifetimeSpots+" total.";
-    $("upgradeBtn").hidden=currentPlan==="pro"||currentPlan==="lifetime";
-    // The old PayPal €4.99 checkout is retired; Phase 5 will add the new merchant-of-record flow.
-    $("upgradeBtn").disabled=true;
-    $("upgradeBtn").textContent="Billing setup in progress";
-    $("upgradeBtn").title="Checkout is temporarily unavailable while billing is rebuilt.";
+    $("waitlistBtn").hidden=currentPlan==="pro"||currentPlan==="lifetime";
     $("billingMessage").textContent=planSummary(currentPlan)+(currentPlan==="trial"&&usage.trial_ends_at?" · Trial ends "+timeLabel(usage.trial_ends_at):"");
     renderHistory(history);
   } catch(err) {
@@ -246,14 +242,6 @@ $("adminFreeBtn").addEventListener("click",()=>setAdminPlan("free"));
 $("adminTrialBtn").addEventListener("click",()=>setAdminPlan("trial"));
 $("adminProBtn").addEventListener("click",()=>setAdminPlan("pro"));
 $("adminLifetimeBtn").addEventListener("click",()=>setAdminPlan("lifetime"));
-$("upgradeBtn").addEventListener("click",async()=>{
-  const button=$("upgradeBtn");button.disabled=true;button.innerHTML="Opening secure checkout…";
-  try {
-    const result=await api("/functions/v1/hookengine-create-subscription",{method:"POST",body:JSON.stringify({})});
-    if(!result.approvalUrl) throw new Error(result.error||"Checkout is not configured yet.");
-    location.href=result.approvalUrl;
-  } catch(err) {message(err.message||"Checkout is not ready yet.",true);button.disabled=false;button.innerHTML='Get Pro <span>→</span>';}
-});
 renderPlanCards();
 $("trialPlanSummary").textContent=planSummary("trial");
 $("historyFeatureSummary").textContent=PLAN_CATALOG.free.historyDays+"-day generation history";

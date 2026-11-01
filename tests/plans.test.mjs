@@ -164,7 +164,7 @@ test("landing, account portal and popup use the shared catalog", async () => {
     readFile(new URL("../sidepanel.js",import.meta.url),"utf8")
   ]);
   assert.match(landing,/data-plan-summary="free"/);
-  assert.match(landing,/data-plan-price="pro"/);
+  assert.doesNotMatch(landing,/data-plan-price="pro"/);
   assert.match(landing,/data-plan-features="free"/);
   assert.match(landingJs,/from "\.\/extension\/plans\.js"/);
   assert.match(accountHtml,/type="module" src="account\.js"/);
