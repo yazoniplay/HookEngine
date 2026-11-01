@@ -68,18 +68,23 @@ async function latestReservationDefinition() {
   let latest = null;
   for (const filename of filenames) {
     const sql = await readFile(new URL(filename, MIGRATIONS_DIRECTORY), "utf8");
-    const declaration = /create\s+(?:or\s+replace\s+)?function\s+public\.hookengine_reserve_generation\s*\(/ig;
-    let match;
-    while ((match = declaration.exec(sql)) !== null) {
-      const bodyStart = sql.indexOf("as $function$", match.index);
-      assert.notEqual(bodyStart, -1, filename + ": reservation function body delimiter must exist");
-      const end = sql.indexOf("$function$;", bodyStart + "as $function$".length);
-      assert.notEqual(end, -1, filename + ": reservation function must terminate cleanly");
-      latest = { filename, functionSql: sql.slice(match.index, end + "$function$;".length) };
+    if (/create\s+(?:or\s+replace\s+)?function\s+public\.hookengine_reserve_generation\s*\(/i.test(sql)) {
+      latest = { filename, sql };
     }
   }
   assert.ok(latest, "a migration must define hookengine_reserve_generation");
-  return latest;
+  const declaration = /create\s+(?:or\s+replace\s+)?function\s+public\.hookengine_reserve_generation\s*\(/ig;
+  let match, lastMatch = null;
+  while ((match = declaration.exec(latest.sql)) !== null) lastMatch = match;
+  assert.ok(lastMatch, "latest migration must contain the reservation function definition");
+  const bodyStart = latest.sql.indexOf("as $function$", lastMatch.index);
+  assert.notEqual(bodyStart, -1, latest.filename + ": reservation function body delimiter must exist");
+  const bodyEnd = latest.sql.indexOf("$function$;", bodyStart + "as $function$".length);
+  assert.notEqual(bodyEnd, -1, latest.filename + ": reservation function must terminate cleanly");
+  return {
+    filename: latest.filename,
+    functionSql: latest.sql.slice(lastMatch.index, bodyEnd + "$function$;".length)
+  };
 }
 
 function assertPrivacyDisclosure(html) {
