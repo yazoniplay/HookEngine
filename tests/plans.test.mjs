@@ -143,8 +143,8 @@ test("static HTML contains no hardcoded plan quantities or prices", async () => 
 
   const landing = htmlFiles.find(file => file.path === "../index.html").html;
   const mutatedLanding = landing.replace(
-    "Multiple variations in Pro",
-    "3 variations in Pro"
+    "Start free. Pro is coming soon.",
+    "Start free. Pro is coming soon. 3 generations"
   );
   assert.notEqual(mutatedLanding, landing, "mutation inserts a hardcoded plan quantity");
   assert.throws(
@@ -179,7 +179,7 @@ test("landing, account portal and popup use the shared catalog", async () => {
   assert.doesNotMatch(landing,/"price":"4\.99"/i);
   assert.doesNotMatch(accountHtml,/5 credits each week · 3 generations per day/i);
   assert.doesNotMatch(accountHtml,/7-day Pro trial or 40 credits/);
-  assert.match(landingJs,/schemaNode/);
+  assert.doesNotMatch(landingJs,/schemaNode|schema\.offers/);
   assert.equal(planSummary("free"),"5 credits per UTC week · up to 3 generations per UTC day · 3 platforms · 7-day history");
 });
 

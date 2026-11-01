@@ -42,7 +42,7 @@ function assertNoPurchaseCTA(landing, accountHtml, accountJs, landingJs) {
   assert.doesNotMatch(publicCopy, /Get Pro|Opening secure checkout|hookengine-create-subscription/i, "purchase action must use the waitlist");
   assert.match(landing, /id="waitlistForm"/);
   assert.match(landing, /href="#waitlist">Join waitlist/);
-  assert.match(accountHtml, /href="\.\/#waitlist">Join waitlist/);
+  assert.match(accountHtml, /href="\.\.\/#waitlist">Join waitlist/);
   assert.match(accountJs, /link\.textContent="Join waitlist"/);
   assert.doesNotMatch(accountJs, /upgradeBtn|hookengine-create-subscription/i);
   assert.match(landingJs, /extension\/plans\.js/);
