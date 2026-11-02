@@ -13,6 +13,7 @@ import {
   signIn as authenticate,
   signOut as terminateSession
 } from "./extension/auth.js";
+import { planSummary } from "./extension/plans.js";
 import {
   planLabel,
   usageMainLine,
@@ -59,6 +60,8 @@ $("themeToggle").addEventListener("click", async () => {
 });
 
 function renderAccount() {
+  const authPlanSummary=$("authPlanSummary");
+  if(authPlanSummary)authPlanSummary.textContent=planSummary("free");
   const signedIn = !!accountUser;
   const usage = accountUsage;
   const hasProFeatures = !!usage && usage.plan !== "free";

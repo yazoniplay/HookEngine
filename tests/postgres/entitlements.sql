@@ -381,9 +381,10 @@ begin
   if v_result->>'reason' is distinct from 'weekly_limit' then
     raise exception 'Free credit exhaustion must return weekly_limit: %',v_result;
   end if;
-  if position('Weekly pool exhausted. Resets at ' in coalesce(v_result->>'message',''))=0
-     or v_result->>'reset_at' is null then
-    raise exception 'Weekly limit must include its name and exact reset timestamp: %',v_result;
+  if (v_result->>'reset_at')::timestamptz is distinct from (
+       select credit_period_ends_at from public.hookengine_subscriptions where user_id=v_user
+     ) then
+    raise exception 'Weekly limit must return the exact credit-period reset timestamp: %',v_result;
   end if;
 
   update public.hookengine_subscriptions set credits_balance=5 where user_id=v_user;
@@ -408,9 +409,9 @@ begin
   if v_result->>'reason' is distinct from 'daily_cap' then
     raise exception 'Fourth daily generation must return daily_cap: %',v_result;
   end if;
-  if position('Daily cap reached (3/3). Resets at ' in coalesce(v_result->>'message',''))=0
-     or v_result->>'reset_at' is null then
-    raise exception 'Daily cap must include its name and exact reset timestamp: %',v_result;
+  if (v_result->>'reset_at')::timestamptz is distinct from
+       (date_trunc('day',timezone('UTC',now())) + interval '1 day') at time zone 'UTC' then
+    raise exception 'Daily cap must return the exact next UTC midnight reset timestamp: %',v_result;
   end if;
 end;
 $hookengine_phase2_contract$;
@@ -518,3 +519,96 @@ begin
   end if;
 end;
 $hookengine_paypal_events$;
+
+
+-- Anonymous waitlist submissions are insert-only, validated, throttled and deduplicated.
+do $hookengine_waitlist_security$
+declare
+  v_result jsonb;
+  v_first_result jsonb;
+  v_removed boolean;
+  v_count integer;
+begin
+  if not (select relrowsecurity from pg_catalog.pg_class where oid='public.hookengine_waitlist'::regclass) then
+    raise exception 'Waitlist table must have RLS enabled';
+  end if;
+  if not has_table_privilege('anon','public.hookengine_waitlist','INSERT') then
+    raise exception 'anon must be able to submit waitlist entries';
+  end if;
+  if has_table_privilege('anon','public.hookengine_waitlist','SELECT') then
+    raise exception 'anon must not read waitlist rows';
+  end if;
+  if has_table_privilege('anon','public.hookengine_waitlist','UPDATE') then
+    raise exception 'anon must not update waitlist rows';
+  end if;
+  if has_table_privilege('anon','public.hookengine_waitlist','DELETE') then
+    raise exception 'anon must not delete waitlist rows';
+  end if;
+  if not has_function_privilege('anon','public.hookengine_join_waitlist(text)','EXECUTE') then
+    raise exception 'anon must be able to execute the waitlist submission RPC';
+  end if;
+  if has_function_privilege('anon','public.hookengine_remove_waitlist_entry(text)','EXECUTE')
+     or has_function_privilege('authenticated','public.hookengine_remove_waitlist_entry(text)','EXECUTE')
+     or not has_function_privilege('service_role','public.hookengine_remove_waitlist_entry(text)','EXECUTE') then
+    raise exception 'Waitlist removal must be restricted to the service role';
+  end if;
+
+  set local role anon;
+  v_result := public.hookengine_join_waitlist('Waitlist-Test@example.com');
+  if v_result->>'status' is distinct from 'submitted' then
+    raise exception 'First waitlist submission returned an unexpected response: %',v_result;
+  end if;
+  v_first_result := v_result;
+  v_result := public.hookengine_join_waitlist('waitlist-test@example.com');
+  if v_result is distinct from v_first_result then
+    raise exception 'New and existing waitlist emails must receive identical responses: first %, duplicate %',v_first_result,v_result;
+  end if;
+  v_result := public.hookengine_join_waitlist('waitlist-test@example.com');
+  if v_result is distinct from v_first_result then
+    raise exception 'Repeated waitlist submissions must receive the same response: %',v_result;
+  end if;
+
+  begin
+    perform public.hookengine_join_waitlist('waitlist-test@example.com');
+    raise exception 'Expected waitlist rate limit to reject the fourth submission';
+  exception when others then
+    if sqlerrm not like '%waitlist_rate_limited%' then raise; end if;
+  end;
+
+  begin
+    perform public.hookengine_join_waitlist('not-an-email-address');
+    raise exception 'Expected malformed email to be rejected';
+  exception when others then
+    if sqlerrm not like '%invalid_email%' then raise; end if;
+  end;
+
+
+  begin
+    perform public.hookengine_join_waitlist(repeat('a',243) || '@example.com');
+    raise exception 'Expected email longer than 254 characters to be rejected';
+  exception when others then
+    if sqlerrm not like '%invalid_email%' then raise; end if;
+  end;
+
+  insert into public.hookengine_waitlist(email) values ('direct-insert@example.com');
+  reset role;
+
+  select count(*) into v_count from public.hookengine_waitlist
+   where email in ('waitlist-test@example.com','direct-insert@example.com');
+  if v_count <> 2 then
+    raise exception 'Waitlist must store one row per normalized email; found %',v_count;
+  end if;
+
+  set local role service_role;
+  v_removed := public.hookengine_remove_waitlist_entry('WAITLIST-TEST@example.com');
+  reset role;
+  if not coalesce(v_removed,false) then
+    raise exception 'Service-role removal path did not remove the waitlist entry';
+  end if;
+  select count(*) into v_count from public.hookengine_waitlist
+   where email='waitlist-test@example.com';
+  if v_count <> 0 then
+    raise exception 'Removed waitlist entry is still present';
+  end if;
+end;
+$hookengine_waitlist_security$;

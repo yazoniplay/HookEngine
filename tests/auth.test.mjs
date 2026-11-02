@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { restoreSession, signIn, signOut } from "../extension/auth.js";
+import { refreshSession } from "../extension/session.js";
 
 const store = new Map();
 globalThis.chrome = {
@@ -24,6 +25,89 @@ const savedSession = () => ({
   refresh_token: "refresh-token",
   expires_at: Math.floor(Date.now() / 1000) - 60,
   user: { id: "user-1", email: "user@example.com" }
+});
+
+test("extension pages route refreshes through the service worker", async () => {
+  const previousDocument = globalThis.document;
+  const previousRuntime = globalThis.chrome.runtime;
+  let request = null;
+  globalThis.document = {};
+  globalThis.chrome.runtime = {
+    async sendMessage(message) {
+      request = message;
+      return { session: { access_token: "worker-access" }, warning: null };
+    }
+  };
+  try {
+    const result = await refreshSession({ expectedRefreshToken: "previous-refresh" });
+    assert.deepEqual(request, {
+      type: "HOOKENGINE_REFRESH_SESSION",
+      expectedRefreshToken: "previous-refresh"
+    });
+    assert.equal(result.session.access_token, "worker-access");
+  } finally {
+    if (previousDocument === undefined) delete globalThis.document;
+    else globalThis.document = previousDocument;
+    globalThis.chrome.runtime = previousRuntime;
+  }
+});
+
+test("simultaneous session restores share one refresh request", async () => {
+  store.set("hookengine-account-session", savedSession());
+  const previousFetch = globalThis.fetch;
+  let refreshCalls = 0;
+  globalThis.fetch = async url => {
+    if (String(url).includes("grant_type=refresh_token")) {
+      refreshCalls++;
+      await new Promise(resolve => setTimeout(resolve, 10));
+      return jsonResponse({
+        access_token: "rotated-access-token",
+        refresh_token: "rotated-refresh-token",
+        expires_in: 3600,
+        user: { id: "user-1", email: "user@example.com" }
+      });
+    }
+    return jsonResponse({ id: "user-1", email: "user@example.com" });
+  };
+  try {
+    const results = await Promise.all([restoreSession(), restoreSession()]);
+    assert.equal(refreshCalls, 1, "concurrent restores must make one refresh request");
+    assert.equal(results[0].session.access_token, "rotated-access-token");
+    assert.equal(results[1].session.access_token, "rotated-access-token");
+    assert.equal(store.has("hookengine-session-refresh-lock"), false, "refresh lock must be released after completion");
+  } finally {
+    globalThis.fetch = previousFetch;
+  }
+});
+
+test("refresh server errors preserve the stored session", async () => {
+  const session = savedSession();
+  store.set("hookengine-account-session", session);
+  const previousFetch = globalThis.fetch;
+  globalThis.fetch = async () => jsonResponse({ message: "temporarily unavailable" }, 503);
+  try {
+    const result = await restoreSession();
+    assert.equal(result.session.refresh_token, session.refresh_token);
+    assert.equal(store.get("hookengine-account-session").refresh_token, session.refresh_token);
+    assert.match(result.warning, /preserved/i);
+  } finally {
+    globalThis.fetch = previousFetch;
+  }
+});
+
+test("invalid refresh statuses clear the expired session", async () => {
+  const previousFetch = globalThis.fetch;
+  try {
+    for (const status of [400, 401, 403]) {
+      store.set("hookengine-account-session", savedSession());
+      globalThis.fetch = async () => jsonResponse({ message: "refresh token invalid" }, status);
+      const result = await restoreSession();
+      assert.equal(result.session, null, "status " + status + " must clear the session");
+      assert.equal(store.has("hookengine-account-session"), false, "status " + status + " must remove stored credentials");
+    }
+  } finally {
+    globalThis.fetch = previousFetch;
+  }
 });
 
 test("network failure during refresh preserves the stored session", async () => {
@@ -110,6 +194,40 @@ test("sign-out clears local credentials even if the network is unavailable", asy
   try {
     await signOut();
     assert.equal(store.has("hookengine-account-session"), false);
+  } finally {
+    globalThis.fetch = previousFetch;
+  }
+});
+
+
+test("a refresh completing after sign-out cannot restore the cleared session", async () => {
+  store.set("hookengine-account-session", savedSession());
+  const previousFetch = globalThis.fetch;
+  let refreshStarted;
+  let releaseRefresh;
+  const started = new Promise(resolve => { refreshStarted = resolve; });
+  const pendingResponse = new Promise(resolve => { releaseRefresh = resolve; });
+  globalThis.fetch = async url => {
+    if (String(url).includes("grant_type=refresh_token")) {
+      refreshStarted();
+      return pendingResponse;
+    }
+    return jsonResponse({});
+  };
+  try {
+    const restoring = restoreSession();
+    await started;
+    await signOut();
+    releaseRefresh(jsonResponse({
+      access_token: "late-access-token",
+      refresh_token: "late-refresh-token",
+      expires_in: 3600,
+      user: { id: "user-1", email: "user@example.com" }
+    }));
+    const result = await restoring;
+    assert.equal(store.has("hookengine-account-session"), false,
+      "a completed refresh must not recreate credentials after sign-out");
+    assert.equal(result.session, null);
   } finally {
     globalThis.fetch = previousFetch;
   }

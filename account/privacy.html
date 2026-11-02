@@ -1,53 +1,76 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1.0">
-    <title>Privacy Policy - HookEngine</title>
-    <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 40px 20px; }
-        h1 { color: #000; border-bottom: 2px solid #eee; padding-bottom: 10px; }
-        h2 { color: #444; margin-top: 30px; }
-        p { margin-bottom: 15px; }
-    </style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="How HookEngine processes account information, source material and generated drafts.">
+  <title>Privacy Policy — HookEngine</title>
+  <style>
+    :root{color-scheme:light;--paper:#f4f5f0;--ink:#171914;--muted:#55594f;--line:#d8dccf;--accent:#405d2b}
+    *{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.7 system-ui,-apple-system,"Segoe UI",sans-serif}
+    main{width:min(820px,calc(100% - 36px));margin:48px auto 72px}h1,h2{line-height:1.15;letter-spacing:-.035em}h1{font-size:clamp(2.2rem,6vw,3.4rem);margin:12px 0}h2{font-size:1.35rem;margin:34px 0 10px}
+    p,li{color:#34382f}a{color:var(--accent);text-underline-offset:3px}.eyebrow{font-size:.78rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+    .updated{font-size:.9rem;color:var(--muted)}footer{border-top:1px solid var(--line);margin-top:44px;padding-top:18px;font-size:.9rem}
+  </style>
 </head>
 <body>
-    <h1>Privacy Policy</h1>
-    <p>Last Updated: October 25, 2026</p>
+<main>
+  <p class="eyebrow">HookEngine · Privacy</p>
+  <h1>Privacy Policy</h1>
+  <p class="updated">Last updated: November 1, 2026</p>
+  <p>This policy explains what HookEngine processes when you use its browser extension, generation service and account portal. It describes the data flows implemented in the current code and database migrations.</p>
 
-    <h2>1. Introduction</h2>
-    <p>Welcome to HookEngine. We are committed to protecting your privacy. This Privacy Policy explains how we collect, use, and safeguard your information when you use our Chrome Extension and associated services.</p>
+  <h2>Information associated with your account</h2>
+  <ul>
+    <li><strong>Account details:</strong> Your email address and authentication credentials are handled through Supabase Auth.</li>
+    <li><strong>Generation records:</strong> Generated drafts are stored in your HookEngine database and shown in your account history, alongside related generation records. Records can include the source title and URL, source type, selected platforms, generation status, provider and model names, token counts, timing, credit usage, estimated provider cost, timestamps and an error message when a generation fails.</li>
+    <li><strong>Source fingerprint:</strong> The generation reservation function calculates a SHA-256 hash and character length for submitted source text. It stores those values instead of the raw source text in the generation record.</li>
+  </ul>
 
-    <h2>2. Data We Collect</h2>
-    <p>To provide our services, we collect the following information:</p>
-    <ul>
-        <li><strong>Account Information:</strong> When you create an account, we collect your email address and password to manage your authentication and usage limits.</li>
-        <li><strong>Usage Data:</strong> We track the number of content generations you perform to enforce our free and pro tier limits.</li>
-    </ul>
+  <h2>How source material is processed</h2>
+  <p>When you request text generation, the source text, source title, writing preferences and requested platform instructions are sent from the HookEngine service to the AI provider handling that request. For YouTube video analysis, the video URL and generation instructions are sent to Google Gemini.</p>
+  <p><strong>Raw source text is not retained in HookEngine's generation records.</strong> The reservation function stores a null value in the source-text column and records the SHA-256 hash and character length. This statement concerns HookEngine's database; it does not make a claim about temporary processing or the separate data practices of AI providers.</p>
 
-    <h2>3. How We Use Your Data</h2>
-    <p>We use the collected data solely to:</p>
-    <ul>
-        <li>Authenticate your identity and manage your account.</li>
-        <li>Track and limit daily usage according to your plan (Free or Pro).</li>
-        <li>Improve the functionality and performance of HookEngine.</li>
-    </ul>
+  <h2>Extension storage</h2>
+  <ul>
+    <li><strong>Chrome local storage:</strong> The extension uses <code>chrome.storage.local</code> for the saved sign-in session, the most recent generation result, and the extension theme preference. This data is stored in the browser's local extension storage.</li>
+    <li><strong>Chrome sync storage:</strong> The extension uses <code>chrome.storage.sync</code> for writing preferences, including tone, style, length and audience. Chrome may sync these preferences across Chrome browsers signed in to the same Chrome profile, subject to the user's Chrome sync settings.</li>
+  </ul>
 
-    <h2>4. Data Storage and Security</h2>
-    <p>Your account data is stored securely using industry-standard cloud infrastructure. We implement rigorous security measures to protect your information from unauthorized access.</p>
+  <h2>AI and infrastructure providers</h2>
+  <ul>
+    <li><strong>Google Gemini:</strong> Primary text-generation provider and the provider used for YouTube video analysis.</li>
+    <li><strong>Groq and Ollama Cloud:</strong> Configurable fallback providers for text generation when enabled in the service configuration.</li>
+    <li><strong>Supabase:</strong> Provides authentication and the database used for account and generation records.</li>
+  </ul>
+  <p>The content needed to complete a request is sent to the provider that processes it. Each provider handles requests under its own terms and privacy practices; review those provider policies if you need details about their processing or retention.</p>
 
-    <h2>5. Third-Party Services</h2>
-    <p>HookEngine uses the following third-party services to operate:</p>
-    <ul>
-        <li><strong>AI Service Providers:</strong> We utilize advanced AI models to process your content and generate social media drafts. We do not sell your personal content to third parties.</li>
-        <li><strong>Database and Auth Services:</strong> Used for secure user authentication and account management.</li>
-        <li><strong>Payment Processors:</strong> Used for secure payment processing. We do not store your credit card information on our own servers.</li>
-    </ul>
+  <h2>Pro waitlist</h2>
+  <p>If you join the Pro waitlist, HookEngine stores the email address you submit, the first submission time, the most recent submission time and a counter used to limit repeated submissions. The address is intended for Pro availability notices and related launch updates. It is also used to prevent duplicate entries and to apply a limit of three submissions per 24 hours for the same email address. The waitlist feature does not store an IP address. Waitlist records are not available through public read access, and the current database migration does not configure an automatic expiry period for them.</p>
+  <p>Submitting the form does not send an email to that address. HookEngine will contact a waitlist address about launch updates only after the address owner completes a separate confirmation step. That confirmation step is not part of the current waitlist flow, so no waitlist email is sent by the current implementation.</p>
+  <p>A server operator can remove a waitlist entry using the restricted <code>hookengine_remove_waitlist_entry</code> function. The removal function is not available to browser users.</p>
 
-    <h2>6. Your Rights</h2>
-    <p>You can request to have your account and data deleted at any time by contacting us via the support channels provided in the extension.</p>
+  <h2>How long information remains available</h2>
+  <ul>
+    <li><strong>Free history visibility:</strong> The database makes Free-plan generation history visible for <span id="freeHistoryWindow">the configured Free-plan window</span>. Older Free-plan records remain stored in the HookEngine database but are hidden from the Free history view; the visibility cutoff does not delete them.</li>
+    <li><strong>Paid history:</strong> Pro and Lifetime plans have no age-based history cutoff in the database. Paid history remains associated with the account until account deletion; there is no separate automatic draft-expiry period defined by the history policy.</li>
+    <li><strong>Source text:</strong> The current reservation function stores a hash and length rather than raw source text. A scheduled cleanup function also clears any legacy non-null source-text values it encounters.</li>
+  </ul>
+  <p>The current account portal does not provide a self-service control for deleting individual history records or deleting an account. Generation records are linked to the authentication account with database cascade behavior when that account is deleted.</p>
 
-    <h2>7. Contact Us</h2>
-    <p>If you have any questions about this Privacy Policy, please contact us through our official support channels.</p>
+  <h2>Access and security controls</h2>
+  <p>Generation and account records are scoped to the authenticated account through database row-level security policies. The browser account portal reads the signed-in user's own generation history and usage data.</p>
+
+  <h2>Changes to this policy</h2>
+  <p>This page may be updated when the product's data flows or database behavior changes. The “Last updated” date will be revised when the policy is changed.</p>
+
+  <section data-support-section>
+    <h2>Contact</h2>
+    <p>Support contact: <a data-support-email></a></p>
+  </section>
+  <footer><a href="../">HookEngine home</a> · <a href="terms.html">Terms (draft)</a> · <a href="./">Account</a></footer>
+</main>
+<script type="module" src="../support.js"></script>
+<script type="module" src="privacy.js"></script>
 </body>
 </html>

@@ -10,6 +10,7 @@ import {
   validateGenerationPayload,
   validYouTube,
   VARIATION_SEPARATOR,
+  reservationCredits,
 } from "../supabase/functions/hookengine-generate/generation-contract.ts";
 
 const source = "A sufficiently long source article for HookEngine validation tests. ".repeat(2);
@@ -147,3 +148,14 @@ Deno.test("Interactions API schema uses standard lower-case JSON Schema types an
   assertEquals(property.maxItems, 3);
   assertEquals(schema.additionalProperties, false);
 });
+
+
+Deno.test("reservation cost is taken from the database RPC, not recomputed from the request", () => {
+  assertEquals(reservationCredits({ credits_reserved: 5 }), 5);
+  assertEquals(reservationCredits({ credits_reserved: 7 }), 7);
+  assertEquals(reservationCredits({ credits_reserved: 0 }), null);
+  assertEquals(reservationCredits({ credits_reserved: "5" }), null);
+  assertEquals(reservationCredits(null), null);
+});
+
+

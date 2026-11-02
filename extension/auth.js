@@ -1,17 +1,10 @@
-import { SUPABASE_URL, SUPABASE_KEY, STORAGE_KEYS } from "./config.js";
-
-async function readStoredSession() {
-  const saved = await chrome.storage.local.get(STORAGE_KEYS.session);
-  return saved[STORAGE_KEYS.session] || null;
-}
-
-async function writeStoredSession(session) {
-  if (session) {
-    await chrome.storage.local.set({ [STORAGE_KEYS.session]: session });
-  } else {
-    await chrome.storage.local.remove(STORAGE_KEYS.session);
-  }
-}
+import { SUPABASE_URL, SUPABASE_KEY } from "./config.js";
+import {
+  getStoredSession,
+  saveStoredSession,
+  clearStoredSession,
+  refreshSession
+} from "./session.js";
 
 async function parseResponse(response) {
   return response.json().catch(() => ({}));
@@ -43,52 +36,34 @@ export async function signIn(email, password) {
   }
 
   data.expires_at = Math.floor(Date.now() / 1000) + (data.expires_in || 3600);
-  await writeStoredSession(data);
+  await saveStoredSession(data);
   return { session: data, user: data.user };
 }
 
 export async function restoreSession() {
-  let session = await readStoredSession();
+  let session = await getStoredSession();
   if (!session?.access_token) {
-    if (session) await writeStoredSession(null);
+    if (session) await clearStoredSession();
     return { session: null, user: null, warning: null };
   }
 
   if (session.expires_at && session.expires_at * 1000 < Date.now() + 30000) {
     if (!session.refresh_token) {
-      await writeStoredSession(null);
+      await clearStoredSession();
       return { session: null, user: null, warning: null };
     }
 
-    let response;
+    let refreshed;
     try {
-      response = await fetch(SUPABASE_URL + "/auth/v1/token?grant_type=refresh_token", {
-        method: "POST",
-        headers: {
-          apikey: SUPABASE_KEY,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ refresh_token: session.refresh_token })
-      });
+      refreshed = await refreshSession();
     } catch {
       return cachedIdentity(session, "Couldn't reach sign-in. Your saved session is preserved; check your connection and retry.");
     }
-
-    const data = await parseResponse(response);
-    if (!response.ok) {
-      if ([400, 401, 403].includes(response.status)) {
-        await writeStoredSession(null);
-        return { session: null, user: null, warning: null };
-      }
-      return cachedIdentity(session, "Sign-in is temporarily unavailable. Your saved session is preserved.");
+    if (refreshed?.warning) return cachedIdentity(refreshed.session || session, refreshed.warning);
+    if (!refreshed?.session?.access_token) {
+      return { session: null, user: null, warning: null };
     }
-    if (!data.access_token) {
-      return cachedIdentity(session, "The sign-in service returned an invalid refresh response. Your saved session is preserved.");
-    }
-
-    session = data;
-    session.expires_at = Math.floor(Date.now() / 1000) + (session.expires_in || 3600);
-    await writeStoredSession(session);
+    session = refreshed.session;
   }
 
   let response;
@@ -104,7 +79,7 @@ export async function restoreSession() {
   }
 
   if (response.status === 401 || response.status === 403) {
-    await writeStoredSession(null);
+    await clearStoredSession();
     return { session: null, user: null, warning: null };
   }
   if (!response.ok) {
@@ -119,8 +94,8 @@ export async function restoreSession() {
 }
 
 export async function signOut() {
-  const session = await readStoredSession();
-  await writeStoredSession(null);
+  const session = await getStoredSession();
+  await clearStoredSession();
   if (!session?.access_token) return;
 
   try {

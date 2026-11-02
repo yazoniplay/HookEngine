@@ -4,8 +4,10 @@ import {
   FUNCTION_URL,
   STORAGE_KEYS,
   MAX_SOURCE_CHARS,
-  MIN_SOURCE_CHARS
+  MIN_SOURCE_CHARS,
+  ALL_PLATFORMS
 } from "./extension/config.js";
+import { getStoredSession, clearStoredSession, refreshSessionInServiceWorker } from "./extension/session.js";
 
 function decodeCaptionText(value) {
   return (value || "")
@@ -244,8 +246,8 @@ async function fallbackReadPage(tabId) {
           const blocks = [...clone.querySelectorAll("h1,h2,h3,h4,p,li,blockquote,pre,figcaption,dd,dt")]
             .map(node => clean(node.innerText || node.textContent))
             .filter(value => value.length >= 18 &&
-              !/^(share|read more|sign in|subscribe|advertisement|related articles?|cookie settings|pull requests?)\\b/i.test(value));
-          const text = clean(blocks.join("\\n\\n") || clone.innerText || clone.textContent);
+              !/^(share|read more|sign in|subscribe|advertisement|related articles?|cookie settings|pull requests?)\b/i.test(value));
+          const text = clean(blocks.join("\n\n") || clone.innerText || clone.textContent);
           if (text.length < 80) continue;
           const links = [...clone.querySelectorAll("a")].reduce((n, a) => n + clean(a.innerText || a.textContent).length, 0);
           const hint = [el.id, typeof el.className === "string" ? el.className : "", el.getAttribute("itemprop") || ""].join(" ").toLowerCase();
@@ -320,46 +322,22 @@ async function postGeneration(payload, accessToken) {
 }
 
 async function generateWithStoredSession(payload) {
-  const saved = await chrome.storage.local.get(STORAGE_KEYS.session);
-  let session = saved[STORAGE_KEYS.session] || null;
+  const session = await getStoredSession();
   if (!session?.access_token) throw new Error("Sign in to generate drafts.");
 
   let response = await postGeneration(payload, session.access_token);
   if (response.status === 401) {
-    if (!session.refresh_token) {
-      await chrome.storage.local.remove(STORAGE_KEYS.session);
+    const refreshed = await refreshSessionInServiceWorker({
+      expectedRefreshToken: session.refresh_token || null
+    });
+    if (refreshed?.warning) throw new Error(refreshed.warning);
+    if (!refreshed?.session?.access_token) {
       throw new Error("Your session expired. Sign in again.");
     }
 
-    let refreshed;
-    try {
-      refreshed = await fetch(SUPABASE_URL + "/auth/v1/token?grant_type=refresh_token", {
-        method: "POST",
-        headers: { apikey: SUPABASE_KEY, "Content-Type": "application/json" },
-        body: JSON.stringify({ refresh_token: session.refresh_token })
-      });
-    } catch {
-      throw new Error("Couldn't refresh your session because the network is unavailable. Your saved session is preserved.");
-    }
-
-    const refreshData = await refreshed.json().catch(() => ({}));
-    if (!refreshed.ok) {
-      if ([400, 401, 403].includes(refreshed.status)) {
-        await chrome.storage.local.remove(STORAGE_KEYS.session);
-        throw new Error("Your session expired. Sign in again.");
-      }
-      throw new Error("Sign-in is temporarily unavailable. Your saved session is preserved.");
-    }
-    if (!refreshData.access_token) {
-      throw new Error("The sign-in service returned an invalid session. Your saved session is preserved.");
-    }
-
-    session = refreshData;
-    session.expires_at = Math.floor(Date.now() / 1000) + (session.expires_in || 3600);
-    await chrome.storage.local.set({ [STORAGE_KEYS.session]: session });
-    response = await postGeneration(payload, session.access_token);
+    response = await postGeneration(payload, refreshed.session.access_token);
     if (response.status === 401) {
-      await chrome.storage.local.remove(STORAGE_KEYS.session);
+      await clearStoredSession();
       throw new Error("Your session expired. Sign in again.");
     }
   }
@@ -392,7 +370,7 @@ async function handleGenerationMessage(message) {
   const resolved = await resolveYouTubeGenerationSource(originalPayload);
   const data = await generateWithStoredSession(resolved.payload);
   const outputs = data.outputs || Object.fromEntries(
-    ["x_thread", "linkedin_post", "tiktok_hooks", "instagram_caption", "threads_posts", "facebook_post"]
+    ALL_PLATFORMS
       .filter(key => typeof data[key] === "string")
       .map(key => [key, data[key]])
   );
@@ -425,11 +403,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     "HOOKENGINE_GET_ACTIVE_TAB",
     "HOOKENGINE_GENERATE",
     "HOOKENGINE_GET_LAST_GENERATION",
-    "HOOKENGINE_CLEAR_LAST_GENERATION"
+    "HOOKENGINE_CLEAR_LAST_GENERATION",
+    "HOOKENGINE_REFRESH_SESSION"
   ];
   if (!supported.includes(message?.type) || sender?.id !== chrome.runtime.id) return;
 
   (async () => {
+    if (message.type === "HOOKENGINE_REFRESH_SESSION") {
+      sendResponse(await refreshSessionInServiceWorker({
+        expectedRefreshToken: message.expectedRefreshToken || null
+      }));
+      return;
+    }
     if (message.type === "HOOKENGINE_GENERATE") {
       sendResponse(await handleGenerationMessage(message));
       return;

@@ -65,6 +65,12 @@ export function validYouTube(value: string): boolean {
   }
 }
 
+export function reservationCredits(value: unknown): number | null {
+  if (!isRecord(value)) return null;
+  const credits = value.credits_reserved;
+  return Number.isSafeInteger(credits) && (credits as number) > 0 ? credits as number : null;
+}
+
 export function validateGenerationPayload(input: unknown): PayloadValidation {
   if (!isRecord(input)) return { ok: false, error: "Request body must be a JSON object." };
 

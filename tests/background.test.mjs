@@ -4,7 +4,8 @@ import { readFile } from "node:fs/promises";
 import vm from "node:vm";
 
 const source = (await readFile(new URL("../background.js", import.meta.url), "utf8"))
-  .replace(/^import \{[\s\S]*?\} from "\.\/extension\/config\.js";\s*/, "");
+  .replace(/^import \{[\s\S]*?\} from "\.\/extension\/config\.js";\s*/, "")
+  .replace(/^import \{[\s\S]*?\} from "\.\/extension\/session\.js";\s*/, "");
 const storage = new Map();
 const context = {
   URL,
@@ -33,6 +34,36 @@ context.chrome = {
   },
   tabs: { async query() { return []; } },
   scripting: { async executeScript() { return [{ result: null }]; } }
+};
+context.getStoredSession = async () => storage.get("hookengine-account-session") || null;
+context.clearStoredSession = async () => { storage.delete("hookengine-account-session"); };
+context.refreshSessionInServiceWorker = async ({ expectedRefreshToken } = {}) => {
+  const session = storage.get("hookengine-account-session") || null;
+  if (!session?.refresh_token) {
+    await context.clearStoredSession();
+    return { session: null, warning: null, cleared: true };
+  }
+  if (expectedRefreshToken && session.refresh_token !== expectedRefreshToken) {
+    return { session, warning: null, cleared: false };
+  }
+  const response = await context.fetch(
+    context.SUPABASE_URL + "/auth/v1/token?grant_type=refresh_token",
+    { method: "POST", body: JSON.stringify({ refresh_token: session.refresh_token }) }
+  );
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    if ([400, 401, 403].includes(response.status)) {
+      await context.clearStoredSession();
+      return { session: null, warning: null, cleared: true };
+    }
+    return { session, warning: "Sign-in is temporarily unavailable. Your saved session is preserved.", cleared: false };
+  }
+  const refreshed = {
+    ...session, ...data,
+    expires_at: Math.floor(Date.now() / 1000) + (data.expires_in || 3600)
+  };
+  storage.set("hookengine-account-session", refreshed);
+  return { session: refreshed, warning: null, cleared: false };
 };
 context.fetch = async () => { throw new Error("Unexpected fetch in test"); };
 vm.runInNewContext(source, context, { filename: "background.js" });
@@ -150,7 +181,8 @@ test("transient session verification failures preserve the saved login", async (
   const auth = await readFile(new URL("../extension/auth.js", import.meta.url), "utf8");
   assert.match(auth, /session is preserved/);
   assert.match(auth, /session has been kept/);
-  assert.match(auth, /writeStoredSession\(null\)/);
+  assert.match(auth, /clearStoredSession\(\)/);
+  assert.match(auth, /from "\.\/session\.js"/);
 });
 
 test("the account sign-in buttons use their own form fields and messages", async () => {
@@ -442,4 +474,71 @@ test("all manifest icon assets are valid PNGs at their declared dimensions", asy
     assert.equal(png.readUInt32BE(16), size);
     assert.equal(png.readUInt32BE(20), size);
   }
+});
+
+
+test("fallback extractor filters long junk lines and joins content with real newlines", async () => {
+  const paragraph = "This is a meaningful article paragraph with enough words to survive extraction.";
+  const secondParagraph = "A second meaningful paragraph with enough detail to remain in the extracted article.";
+  const junkLine = "Share this article on social media";
+  const makeCandidate = () => ({
+    id: "article",
+    className: "article-content",
+    getClientRects() { return [{}]; },
+    getAttribute() { return null; },
+    cloneNode() {
+      const blocks = [junkLine, paragraph, "Read more about this topic", secondParagraph]
+        .map(value => ({ innerText: value, textContent: value }));
+      return {
+        querySelectorAll(selector) {
+          if (selector.startsWith("script,")) return [];
+          if (selector === "h1,h2,h3,h4,p,li,blockquote,pre,figcaption,dd,dt") return blocks;
+          if (selector === "a") return [];
+          return [];
+        },
+        innerText: blocks.map(block => block.innerText).join(" "),
+        textContent: blocks.map(block => block.textContent).join(" ")
+      };
+    }
+  });
+
+  const runFallback = async (workerContext) => {
+    workerContext.chrome.scripting.executeScript = async ({ func }) => [{
+      result: vm.runInNewContext("(" + func.toString() + ")()", {
+        document: { querySelectorAll() { return [makeCandidate()]; }, title: "Test article" },
+        location: { href: "https://example.test/article" }
+      })
+    }];
+    return workerContext.fallbackReadPage(1);
+  };
+
+  const result = await runFallback(context);
+  assert.ok(result.text.includes(paragraph));
+  assert.ok(result.text.includes(secondParagraph));
+  assert.ok(result.text.includes(paragraph + "\n\n" + secondParagraph));
+  assert.doesNotMatch(result.text, /Share this article on social media/i);
+  assert.doesNotMatch(result.text, /Read more about this topic/i);
+  assert.equal(result.text.includes("\\n"), false);
+
+  // Mutation check: deliberately restore the historical double-escaped word boundary.
+  // The same behavioral assertion above must fail against this broken implementation.
+  const brokenSource = source.replace(
+    /pull requests\?\)\\b\/i\.test\(value\)/,
+    "pull requests?)\\\\b/i.test(value)"
+  );
+  assert.notEqual(brokenSource, source, "the regex mutation must actually be applied");
+  const brokenContext = {
+    ...context,
+    chrome: {
+      ...context.chrome,
+      scripting: { async executeScript() { return [{ result: null }]; } }
+    }
+  };
+  vm.runInNewContext(brokenSource, brokenContext, { filename: "background-mutated.test.js" });
+  const brokenResult = await runFallback(brokenContext);
+  assert.throws(
+    () => assert.doesNotMatch(brokenResult.text, /Share this article on social media/i),
+    /The input was expected to not match the regular expression/,
+    "re-breaking the regex must make the exact junk-filter assertion fail"
+  );
 });

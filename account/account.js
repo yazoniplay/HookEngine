@@ -1,3 +1,6 @@
+import { PLAN_CATALOG, formatPlanPrice, formatPlanPeriod, planSummary, planFeatures } from "../extension/plans.js";
+import { PLATFORM_LABELS } from "../extension/config.js";
+
 const SUPABASE_URL = "https://ppaknwuwiublxogclqdw.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBwYWtud3V3aXVibHhvZ2NscWR3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE5NzkxNzQsImV4cCI6MjEwNzU1NTE3NH0.mlJayLmT_xCRfGjyrA7j8bqKQVhQrjhCBD5e3czVfr0";
 const $ = id => document.getElementById(id);
@@ -117,6 +120,19 @@ function showAuth() {$("authView").hidden=false;$("dashboardView").hidden=true;$
 function utcStart(){const now=new Date();return new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth(),now.getUTCDate())).toISOString();}
 function safe(value){return String(value??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
 function timeLabel(value){return new Date(value).toLocaleString([], {dateStyle:"medium",timeStyle:"short"});}
+function renderPlanCards(){
+ const root=$("planPricingGrid");if(!root)return;
+ root.replaceChildren(...["free","trial","pro","lifetime"].map(key=>{
+  const plan=PLAN_CATALOG[key],card=document.createElement("article");card.className="pricing-card"+(key==="pro"?" pro-pricing-card":"");
+  const top=document.createElement("div");top.className="pricing-card-top";const heading=document.createElement("div"),label=document.createElement("span"),title=document.createElement("h3");
+  label.className="plan-label"+(key==="pro"?" pro-label":"");label.textContent=key==="lifetime"?"LIFETIME · 50 SPOTS":plan.label.toUpperCase();
+  title.textContent=({free:"Try HookEngine",trial:"7-day Pro access",pro:"For consistent creators",lifetime:"Lifetime entitlement"})[key];heading.append(label,title);
+  const amount=document.createElement("div");amount.className="pricing-amount";amount.textContent=key==="pro"?"Coming soon":formatPlanPrice(key);const period=document.createElement("span");period.textContent=key==="pro"?"":formatPlanPeriod(key);amount.append(period);top.append(heading,amount);
+  const desc=document.createElement("p");desc.className="pricing-description";desc.textContent=planSummary(key);
+  const list=document.createElement("ul");list.className="perk-list";for(const feature of planFeatures(key)){const li=document.createElement("li"),check=document.createElement("span");check.className="perk-check";check.textContent="✓";li.append(check,document.createTextNode(feature));list.append(li);}
+  card.append(top,desc,list);if(key==="pro"){const link=document.createElement("a");link.className="button primary full";link.href="../#waitlist";link.textContent="Join waitlist";card.append(link);}if(key==="lifetime"){const note=document.createElement("p");note.className="pricing-note";note.textContent="Not available for purchase. Price has not been set.";card.append(note);}return card;
+ }));
+}
 async function showDashboard() {
   $("authView").hidden=true;$("dashboardView").hidden=false;$("signOutBtn").hidden=false;
   try {
@@ -130,6 +146,7 @@ async function showDashboard() {
       api("/rest/v1/hookengine_generations?select=id,source_type,source_title,source_url,status,x_thread,linkedin_post,tiktok_hooks,outputs,selected_platforms,provider,error_message,created_at,completed_at,credits_reserved,input_tokens,output_tokens,latency_ms,estimated_provider_cost_usd,model,refunded_at&order=created_at.desc&limit=100")
     ]);
     currentPlan=usage.plan||"free";
+    renderPlanCards();
     const used=Number(usage.daily_used)||0;
     const limit=Number(usage.daily_limit)||0;
     const credits=Number(usage.credits_balance)||0;
@@ -137,22 +154,10 @@ async function showDashboard() {
     $("planBadge").textContent=planLabels[currentPlan]||"FREE PLAN";
     $("planBadge").classList.toggle("pro",currentPlan!=="free");
     $("currentPlan").textContent={free:"Free",pro:"Pro",trial:"Pro Trial",lifetime:"Lifetime"}[currentPlan]||"Free";
-    $("planDescription").textContent={
-      free:`${Number(usage.credits_total)||0} credits each UTC week, with a maximum of ${Number(usage.daily_limit)||0} generations per day.`,
-      pro:`${Number(usage.credits_total)||0} credits each UTC month, with a maximum of ${Number(usage.daily_limit)||0} generations per day.`,
-      trial:`Pro features for 7 days or ${Number(usage.credits_total)||0} credits, whichever comes first.`,
-      lifetime:`Pro features with ${Number(usage.credits_total)||0} credits refreshed each UTC month.`
-    }[currentPlan]||"Your HookEngine plan.";
-    $("planPrice").textContent={free:"€0",pro:(usage.price_minor==null?"Not configured":new Intl.NumberFormat("en-IE",{style:"currency",currency:usage.price_currency||"EUR"}).format(Number(usage.price_minor)/100)),trial:"€0",lifetime:(usage.price_minor==null?"Not configured":new Intl.NumberFormat("en-IE",{style:"currency",currency:usage.price_currency||"EUR"}).format(Number(usage.price_minor)/100))}[currentPlan]||"€0";
-    $("planPricePeriod").textContent={free:"/ month",pro:(usage.price_minor==null?"billing not configured":"/ month"),trial:"/ 7 days",lifetime:(usage.price_minor==null?"pricing not configured":"")}[currentPlan]||"";
-    const periodLabel=currentPlan==="free"?"UTC week":currentPlan==="trial"?"trial":"UTC month";
-    const platformNames=(usage.platforms||[]).map(key=>({x_thread:"X",linkedin_post:"LinkedIn",tiktok_hooks:"TikTok",instagram_caption:"Instagram",threads_posts:"Threads",facebook_post:"Facebook"}[key]||key));
-    const dashboardPerks={
-      free:[`${Number(usage.credits_total)||0} credits each ${periodLabel}`,`Up to ${Number(usage.daily_limit)||0} generations per day`,platformNames.join(", ")+ " drafts",`${Number(usage.versions_per_generation)||1} version · ${Number(usage.regenerations_per_generation)||0} regeneration per source`,`${Number(usage.history_days)||7}-day generation history`],
-      trial:[`${Number(usage.credits_total)||0} Pro trial credits · 7-day expiry`,`Up to ${Number(usage.daily_limit)||0} generations per day`,platformNames.join(", ")+ " drafts",`${Number(usage.versions_per_generation)||1} variations per generation`,usage.video_enabled?"Video analysis included":"Transcript generation available","Unlimited history during trial"],
-      pro:[`${Number(usage.credits_total)||0} credits each ${periodLabel}`,`Up to ${Number(usage.daily_limit)||0} generations per day`,platformNames.join(", ")+ " drafts",`${Number(usage.versions_per_generation)||1} variations per generation`,usage.video_enabled?"Video analysis included":"Video analysis unavailable","Unlimited generation history"],
-      lifetime:[`${Number(usage.credits_total)||0} credits each ${periodLabel}`,`Up to ${Number(usage.daily_limit)||0} generations per day`,platformNames.join(", ")+ " drafts",`${Number(usage.versions_per_generation)||1} variations per generation`,usage.video_enabled?"Video analysis included":"Video analysis unavailable","Unlimited generation history"]
-    };
+    $("planDescription").textContent=planSummary(currentPlan);
+    $("planPrice").textContent=formatPlanPrice(currentPlan);
+    $("planPricePeriod").textContent=formatPlanPeriod(currentPlan);
+    const dashboardPerks={free:planFeatures("free"),trial:planFeatures("trial"),pro:planFeatures("pro"),lifetime:planFeatures("lifetime")};
     const perksRoot=$("dashboardPerks");
     perksRoot.replaceChildren(...(dashboardPerks[currentPlan]||dashboardPerks.free).map(item=>{
       const li=document.createElement("li");
@@ -182,18 +187,9 @@ async function showDashboard() {
       : "USD · all recorded token usage has a configured rate";
     $("completedGenerations").textContent=completed.toLocaleString();
     $("averageLatency").textContent=latency ? "Average "+(latency/1000).toFixed(1)+"s per generation" : "No latency data yet";
-    $("lifetimeSpots").textContent="Lifetime allocations are limited to "+(Number(usage.lifetime_limit)||50)+" total.";
-    $("upgradeBtn").hidden=currentPlan==="pro"||currentPlan==="lifetime";
-    // The old PayPal €4.99 checkout is retired; Phase 5 will add the new merchant-of-record flow.
-    $("upgradeBtn").disabled=true;
-    $("upgradeBtn").textContent="Billing setup in progress";
-    $("upgradeBtn").title="Checkout is temporarily unavailable while billing is rebuilt.";
-    $("billingMessage").textContent={
-      free:`Free: ${Number(usage.credits_total)||0} weekly credits · ${Number(usage.daily_limit)||0} daily generations · ${Number(usage.history_days)||7}-day history.`,
-      pro:`Pro: ${Number(usage.credits_total)||0} monthly credits · ${Number(usage.daily_limit)||0} daily generations.`,
-      trial:"Trial ends "+(usage.trial_ends_at?timeLabel(usage.trial_ends_at):"after 7 days or when credits run out")+".",
-      lifetime:`Lifetime: ${Number(usage.credits_total)||0} monthly credits · Pro features · ${Number(usage.lifetime_limit)||50} spots total.`
-    }[currentPlan]||"Plan details unavailable.";
+    $("lifetimeSpots").textContent="Lifetime allocations are limited to "+PLAN_CATALOG.lifetime.lifetimeSpots+" total.";
+    $("waitlistBtn").hidden=currentPlan==="pro"||currentPlan==="lifetime";
+    $("billingMessage").textContent=planSummary(currentPlan)+(currentPlan==="trial"&&usage.trial_ends_at?" · Trial ends "+timeLabel(usage.trial_ends_at):"");
     renderHistory(history);
   } catch(err) {
     message("Could not load account data: "+err.message,true);
@@ -206,7 +202,7 @@ function renderHistory(rows) {
     const title=row.source_title||"Untitled source";
     const type=row.source_type==="youtube_video"?"YouTube video":"Article / text";
     const completed=row.status==="completed";
-    const labels={x_thread:"X THREAD",linkedin_post:"LINKEDIN",tiktok_hooks:"TIKTOK HOOKS",instagram_caption:"INSTAGRAM",threads_posts:"THREADS",facebook_post:"FACEBOOK"};const saved=row.outputs&&typeof row.outputs==="object"?row.outputs:{x_thread:row.x_thread,linkedin_post:row.linkedin_post,tiktok_hooks:row.tiktok_hooks};const draft=Object.entries(saved).filter(([key,value])=>labels[key]&&value).map(([key,value])=>{const versions=Array.isArray(value)?value:[value];return labels[key]+"\n"+versions.map((version,index)=>"Version "+(index+1)+"\n"+String(version)).join("\n\n");}).join("\n\n────────────────────\n\n");
+    const labels=Object.fromEntries(Object.entries(PLATFORM_LABELS).map(([key,label])=>[key,label.toUpperCase()]));const saved=row.outputs&&typeof row.outputs==="object"?row.outputs:{x_thread:row.x_thread,linkedin_post:row.linkedin_post,tiktok_hooks:row.tiktok_hooks};const draft=Object.entries(saved).filter(([key,value])=>labels[key]&&value).map(([key,value])=>{const versions=Array.isArray(value)?value:[value];return labels[key]+"\n"+versions.map((version,index)=>"Version "+(index+1)+"\n"+String(version)).join("\n\n");}).join("\n\n────────────────────\n\n");
     const usageMeta=[];
     if(Number(row.credits_reserved)>0)usageMeta.push(Number(row.credits_reserved)+" credit"+(Number(row.credits_reserved)===1?"":"s")+(row.refunded_at?" refunded":""));
     const tokens=(Number(row.input_tokens)||0)+(Number(row.output_tokens)||0);
@@ -247,14 +243,10 @@ $("adminFreeBtn").addEventListener("click",()=>setAdminPlan("free"));
 $("adminTrialBtn").addEventListener("click",()=>setAdminPlan("trial"));
 $("adminProBtn").addEventListener("click",()=>setAdminPlan("pro"));
 $("adminLifetimeBtn").addEventListener("click",()=>setAdminPlan("lifetime"));
-$("upgradeBtn").addEventListener("click",async()=>{
-  const button=$("upgradeBtn");button.disabled=true;button.innerHTML="Opening secure checkout…";
-  try {
-    const result=await api("/functions/v1/hookengine-create-subscription",{method:"POST",body:JSON.stringify({})});
-    if(!result.approvalUrl) throw new Error(result.error||"Checkout is not configured yet.");
-    location.href=result.approvalUrl;
-  } catch(err) {message(err.message||"Checkout is not ready yet.",true);button.disabled=false;button.innerHTML='Get Pro <span>→</span>';}
-});
+renderPlanCards();
+$("trialPlanSummary").textContent=planSummary("trial");
+$("historyFeatureSummary").textContent=PLAN_CATALOG.free.historyDays+"-day generation history";
+$("limitCount").textContent="/ "+PLAN_CATALOG.free.dailyGenerations;
 (async()=>{
   const params=new URLSearchParams(location.search);
   if(params.get("checkout")==="success") message("Payment approval returned. Your plan will update after PayPal confirms the subscription.");

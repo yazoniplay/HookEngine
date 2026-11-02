@@ -57,6 +57,7 @@ jobs:
           node --check sidepanel.js
           node --check settings.js
           node --check extension/auth.js
+          node --check extension/session.js
           node --check extension/config.js
           node --check vendor/readability.js
       - name: Run extension regression tests

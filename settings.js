@@ -1,4 +1,5 @@
 import { STORAGE_KEYS } from "./extension/config.js";
+import { getStoredSession } from "./extension/session.js";
 
 const defaults = {
   tone: "balanced",
@@ -20,6 +21,14 @@ async function init() {
 
     const theme = await chrome.storage.local.get(STORAGE_KEYS.theme);
     document.documentElement.dataset.theme = theme[STORAGE_KEYS.theme] || "dark";
+
+    const session = await getStoredSession();
+    const accountStatus = $("accountSessionStatus");
+    if (accountStatus) {
+      accountStatus.textContent = session?.user?.email
+        ? "Signed in as " + session.user.email
+        : "No saved account session.";
+    }
   } catch {
     // Keep usable defaults if browser storage is temporarily unavailable.
   }
