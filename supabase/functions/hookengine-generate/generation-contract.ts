@@ -192,7 +192,7 @@ const VIDEO_DRAFT_MIN_WORDS: Record<string, number> = {
 };
 
 function wordCount(value: string): number {
-  return (value.match(/[\\p{L}\\p{N}]+(?:['’][\\p{L}\\p{N}]+)*/gu) || []).length;
+  return (value.match(/[\p{L}\p{N}]+(?:['’][\p{L}\p{N}]+)*/gu) || []).length;
 }
 
 /** Reject underdeveloped YouTube social drafts before they reach the user. */
