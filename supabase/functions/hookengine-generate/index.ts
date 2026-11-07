@@ -113,6 +113,7 @@ async function finish(
   outputTokens: number | null = null,
   latencyMs: number | null = null,
   errorMessage: string | null = null,
+  videoAnalysis: string | null = null,
 ) {
   const finalized = await rpc("hookengine_finish_generation", {
     p_generation_id: id,
@@ -122,7 +123,7 @@ async function finish(
     p_linkedin_post: serializeOutput(outputs.linkedin_post),
     p_tiktok_hooks: serializeOutput(outputs.tiktok_hooks),
     p_error_message: errorMessage,
-    p_outputs: outputs,
+    p_outputs: videoAnalysis ? { ...outputs, video_analysis: videoAnalysis } : outputs,
     p_selected_platforms: platforms,
     p_provider: provider,
     p_model: model,
@@ -430,7 +431,8 @@ async function handleRequest(req: Request): Promise<Response> {
         variationCount,
       );
     const latencyMs = Math.round(performance.now() - startedAt);
-    const persistedOutputs = { ...result.outputs, ...("analysis" in result ? { video_analysis: result.analysis } : {}) };
+    const videoAnalysis = "analysis" in result ? result.analysis : null;
+    const persistedOutputs = videoAnalysis ? { ...result.outputs, video_analysis: videoAnalysis } : result.outputs;
     await finish(
       userId,
       reservation.generation_id,
@@ -442,6 +444,8 @@ async function handleRequest(req: Request): Promise<Response> {
       result.inputTokens,
       result.outputTokens,
       latencyMs,
+      null,
+      videoAnalysis,
     );
     return reply({
       outputs: persistedOutputs,
