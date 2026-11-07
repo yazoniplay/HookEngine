@@ -3,18 +3,26 @@ export interface AdminPlanConfig {
   anonKey: string;
   serviceRoleKey: string;
   adminEmail: string;
+  /** Browser origins allowed to read responses. Defaults to the account portal only. */
+  allowedOrigins?: readonly string[];
 }
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Content-Type": "application/json",
-  "Cache-Control": "no-store",
-};
+export const DEFAULT_ADMIN_ORIGINS: readonly string[] = ["https://yazoniplay.github.io"];
 
-function json(data: unknown, status = 200) {
-  return new Response(JSON.stringify(data), { status, headers: corsHeaders });
+// Kept local (not imported from the generate function) so each Edge Function deploys on its own.
+export function adminCorsHeaders(
+  origin: string | null,
+  allowedOrigins: readonly string[] = DEFAULT_ADMIN_ORIGINS,
+): Record<string, string> {
+  const headers: Record<string, string> = {
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Content-Type": "application/json",
+    "Cache-Control": "no-store",
+    "Vary": "Origin",
+  };
+  if (origin && allowedOrigins.includes(origin)) headers["Access-Control-Allow-Origin"] = origin;
+  return headers;
 }
 
 export function createAdminPlanHandler(config: AdminPlanConfig, fetchImpl: typeof fetch = fetch) {
@@ -56,7 +64,10 @@ export function createAdminPlanHandler(config: AdminPlanConfig, fetchImpl: typeo
   }
 
   return async (req: Request): Promise<Response> => {
-    if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+    const cors = adminCorsHeaders(req.headers.get("origin"), config.allowedOrigins ?? DEFAULT_ADMIN_ORIGINS);
+    const json = (data: unknown, status = 200) =>
+      new Response(JSON.stringify(data), { status, headers: cors });
+    if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
     if (req.method !== "POST") {
       await writeAudit({ outcome: "rejected_method", httpStatus: 405, details: { method: req.method } });
       return json({ error: "Method not allowed." }, 405);

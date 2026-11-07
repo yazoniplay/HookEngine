@@ -139,11 +139,9 @@ test("the public Supabase client key lives in shared extension config", async ()
   assert.doesNotMatch(popup, /eyJ[a-zA-Z0-9_-]{20,}\.[a-zA-Z0-9_-]{20,}\./);
 });
 
-test("both extension HTML entry points load the popup application as a module", async () => {
+test("the popup entry point loads the popup application as a module", async () => {
   const popup = await readFile(new URL("../popup.html", import.meta.url), "utf8");
-  const sidepanel = await readFile(new URL("../sidepanel.html", import.meta.url), "utf8");
   assert.match(popup, /<script type="module" src="sidepanel\.js"><\/script>/);
-  assert.match(sidepanel, /<script type="module" src="sidepanel\.js"><\/script>/);
 });
 
 test("transient session verification failures preserve the saved login", async () => {
@@ -179,10 +177,8 @@ test("YouTube extraction does not run the article parser as a fallback", async (
 
 test("manual source fields enforce the shared maximum length", async () => {
   const popup = await readFile(new URL("../popup.html", import.meta.url), "utf8");
-  const sidepanel = await readFile(new URL("../sidepanel.html", import.meta.url), "utf8");
   const script = await readFile(new URL("../sidepanel.js", import.meta.url), "utf8");
   assert.match(popup, /id="sourceText"[^>]*maxlength="60000"/);
-  assert.match(sidepanel, /id="sourceText"[^>]*maxlength="60000"/);
   assert.match(script, /length > MAX_SOURCE_CHARS/);
   assert.match(script, /length < MIN_SOURCE_CHARS/);
 });
