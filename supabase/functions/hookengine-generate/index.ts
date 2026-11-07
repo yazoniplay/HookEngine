@@ -455,7 +455,7 @@ async function generateText(prompt: string, platforms: string[], variationCount:
   return { ...result.value, provider: result.provider, fallbackUsed: result.fallbackUsed };
 }
 
-async function generateYouTube(
+async function generateYouTubeGemini(
   url: string,
   title: string,
   platforms: string[],
@@ -643,6 +643,89 @@ async function generateYouTube(
     model: typeof data.model === "string" ? data.model : GEMINI_MODEL,
     inputTokens: Number.isInteger(usage.total_input_tokens) ? usage.total_input_tokens : null,
     outputTokens: Number.isInteger(usage.total_output_tokens) ? usage.total_output_tokens : null,
+    provider: "Gemini",
+    fallbackUsed: false,
+  };
+}
+
+async function generateYouTube(
+  url: string,
+  title: string,
+  platforms: string[],
+  preferences: GenerationPreferences,
+  variationCount: number,
+  transcript: string,
+): Promise<TextGenerationResult & { analysis: string; provider: string; fallbackUsed: boolean }> {
+  const attempts: Array<{ name: "Gemini" | "OpenRouter" | "Groq" | "Ollama"; run: () => Promise<TextGenerationResult & { analysis: string; provider: string; fallbackUsed: boolean }> }> = [
+    ...(GEMINI_API_KEY ? [{ name: "Gemini" as const, run: () => generateYouTubeGemini(url, title, platforms, preferences, variationCount, transcript) }] : []),
+    ...(OPENROUTER_API_KEY ? [{
+      name: "OpenRouter" as const,
+      run: async () => runFallbackVideoGeneration("OpenRouter", url, title, platforms, preferences, variationCount, transcript),
+    }] : []),
+    ...(GROQ_API_KEY ? [{
+      name: "Groq" as const,
+      run: async () => runFallbackVideoGeneration("Groq", url, title, platforms, preferences, variationCount, transcript),
+    }] : []),
+    ...(OLLAMA_API_KEY ? [{
+      name: "Ollama" as const,
+      run: async () => runFallbackVideoGeneration("Ollama", url, title, platforms, preferences, variationCount, transcript),
+    }] : []),
+  ];
+
+  let storyboard: VideoStoryboardContext | undefined;
+  const errors: string[] = [];
+  for (const attempt of attempts) {
+    try {
+      if (attempt.name === "Groq" || attempt.name === "Ollama") {
+        storyboard ??= await loadYouTubeStoryboardContext(url);
+      }
+      if (attempt.name === "Gemini") return await attempt.run();
+      const result = await runFallbackVideoGeneration(
+        attempt.name,
+        url,
+        title,
+        platforms,
+        preferences,
+        variationCount,
+        transcript,
+        storyboard,
+      );
+      return result;
+    } catch (error) {
+      const detail = error instanceof Error ? error.message.slice(0, 500) : "Unknown provider error.";
+      console.error("YouTube video provider failed.", attempt.name, safeErrorStatus(error), detail);
+      errors.push(attempt.name + ": " + detail);
+    }
+  }
+  throw new Error("AI providers are temporarily unavailable. Please try again shortly.");
+}
+
+async function runFallbackVideoGeneration(
+  provider: "OpenRouter" | "Groq" | "Ollama",
+  url: string,
+  title: string,
+  platforms: string[],
+  preferences: GenerationPreferences,
+  variationCount: number,
+  transcript: string,
+  storyboard?: VideoStoryboardContext,
+): Promise<TextGenerationResult & { analysis: string; provider: string; fallbackUsed: boolean }> {
+  const prompt = videoPrompt(title, platforms, preferences, variationCount, transcript);
+  const result = await fallbackVideoRaw(provider, url, prompt, storyboard);
+  const parsed = parseVideoOutputs(result.raw, platforms, variationCount);
+  if (!parsed) throw new Error(provider + " returned an invalid video analysis or draft format.");
+  const qualityIssues = videoDraftQualityIssues(parsed.outputs, platforms, variationCount);
+  if (qualityIssues.length) {
+    throw new Error(provider + " returned underdeveloped drafts: " + qualityIssues.join("; ").slice(0, 350));
+  }
+  return {
+    outputs: parsed.outputs,
+    analysis: parsed.analysis,
+    model: result.model,
+    inputTokens: null,
+    outputTokens: null,
+    provider,
+    fallbackUsed: true,
   };
 }
 
@@ -725,7 +808,7 @@ async function handleRequest(req: Request): Promise<Response> {
   const startedAt = performance.now();
   try {
     const result = payload.sourceMode === "youtube_video"
-      ? { ...await generateYouTube(payload.sourceUrl, payload.title, payload.platforms, payload.preferences, variationCount, payload.text), provider: "Gemini", fallbackUsed: false }
+      ? await generateYouTube(payload.sourceUrl, payload.title, payload.platforms, payload.preferences, variationCount, payload.text)
       : await generateText(
         promptFor(payload.title, payload.text.trim(), payload.platforms, payload.preferences, variationCount),
         payload.platforms,
