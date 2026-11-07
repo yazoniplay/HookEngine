@@ -183,12 +183,12 @@ export function parseOutputs(
 }
 
 const VIDEO_DRAFT_MIN_WORDS: Record<string, number> = {
-  x_thread: 110,
-  linkedin_post: 145,
-  tiktok_hooks: 105,
-  instagram_caption: 95,
-  threads_posts: 85,
-  facebook_post: 115,
+  x_thread: 150,
+  linkedin_post: 160,
+  tiktok_hooks: 130,
+  instagram_caption: 110,
+  threads_posts: 100,
+  facebook_post: 120,
 };
 
 function wordCount(value: string): number {
