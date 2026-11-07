@@ -3,6 +3,7 @@ import {
   GENERATION_SYSTEM_INSTRUCTION,
   interactionsSchemaFor,
   parseOutputs,
+  parseVideoOutputs,
   runWithProviderFallback,
   schemaFor,
   serializeOutput,
@@ -146,4 +147,23 @@ Deno.test("Interactions API schema uses standard lower-case JSON Schema types an
   assertEquals(property.minItems, 3);
   assertEquals(property.maxItems, 3);
   assertEquals(schema.additionalProperties, false);
+});
+
+
+Deno.test("video response requires a substantial analysis alongside platform drafts", () => {
+  const analysis = "## Overview\\n" + "A detailed grounded explanation of the video's ideas and speaker delivery. ".repeat(8);
+  const valid = parseVideoOutputs(JSON.stringify({
+    video_analysis: analysis,
+    x_thread: "1/4\\nA grounded opening.\\n\\n2/4\\nA supporting point.\\n\\n3/4\\nAnother point.\\n\\n4/4\\nThe takeaway.",
+  }), ["x_thread"], 1);
+  assertEquals(valid?.analysis, analysis);
+  assertEquals(valid?.outputs.x_thread.length, 1);
+  assertEquals(parseVideoOutputs(JSON.stringify({ x_thread: "Short draft only" }), ["x_thread"], 1), null);
+  assertEquals(parseVideoOutputs(JSON.stringify({ video_analysis: "too short", x_thread: "Draft" }), ["x_thread"], 1), null);
+});
+
+Deno.test("video schema requires a separate analysis field", () => {
+  const schema = interactionsSchemaFor(["x_thread", "linkedin_post"], 1);
+  assertEquals((schema.properties as Record<string, {type:string}>).video_analysis.type, "string");
+  assertEquals(schema.required, ["x_thread", "linkedin_post", "video_analysis"]);
 });
