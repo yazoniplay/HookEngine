@@ -352,9 +352,9 @@ async function generateYouTube(
       "Drafts that failed: " + qualityIssues.join("; "),
       "Current response to improve: " + JSON.stringify({ ...parsed.outputs, video_analysis: parsed.analysis }),
       "Writing preferences: " + JSON.stringify(preferences),
-      "Platform requirements:\\n" + instructions,
+      "Platform requirements:\n" + instructions,
       transcriptSection,
-    ].join("\\n\\n");
+    ].join("\n\n");
     const repairResponse = await fetch("https://generativelanguage.googleapis.com/v1beta/interactions", {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-goog-api-key": GEMINI_API_KEY },
@@ -386,7 +386,7 @@ async function generateYouTube(
         if (step?.type === "model_output" && Array.isArray(step.content)) repairBlocks.push(...step.content);
       }
       repairRaw = repairBlocks.filter((block) => block?.type === "text" && typeof block.text === "string")
-        .map((block) => block.text).join("\\n");
+        .map((block) => block.text).join("\n");
     }
     const repaired = parseVideoOutputs(repairRaw, platforms, variationCount);
     if (!repaired) throw new Error("The social drafts failed the quality retry. Please try again.");
