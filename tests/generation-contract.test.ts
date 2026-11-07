@@ -192,3 +192,29 @@ Deno.test("video schema requires a separate analysis field", () => {
   assertEquals((schema.properties as Record<string, {type:string}>).video_analysis.type, "string");
   assertEquals(schema.required, ["x_thread", "linkedin_post", "video_analysis"]);
 });
+
+
+Deno.test("video parser accepts fenced JSON, harmless wrapper metadata and braces inside strings", () => {
+  const analysis = "## Overview\n" + "A detailed grounded explanation of the video's ideas and speaker delivery. ".repeat(8);
+  const payload = {
+    video_analysis: analysis,
+    x_thread: 'A useful draft that mentions an object shaped like {this} without breaking JSON parsing.',
+    provider_metadata: { finish_reason: "stop" },
+  };
+  const parsed = parseVideoOutputs("```json\n" + JSON.stringify(payload) + "\n```", ["x_thread"], 1);
+  assertEquals(typeof parsed?.analysis, "string");
+  assertEquals(parsed?.outputs.x_thread[0].includes("{this}"), true);
+});
+
+Deno.test("video parser accepts nested output wrappers and JSON-encoded JSON", () => {
+  const analysis = "## Overview\n" + "A detailed grounded explanation of the video's ideas and speaker delivery. ".repeat(8);
+  const payload = {
+    analysis,
+    outputs: { x_thread: ["A complete and grounded social draft."] },
+    model: "gemini",
+  };
+  const encoded = JSON.stringify(JSON.stringify(payload));
+  const parsed = parseVideoOutputs(encoded, ["x_thread"], 1);
+  assertEquals(parsed?.analysis, analysis.trim());
+  assertEquals(parsed?.outputs.x_thread, ["A complete and grounded social draft."]);
+});

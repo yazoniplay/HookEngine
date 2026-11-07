@@ -208,38 +208,77 @@ export function validateGenerationPayload(input: unknown): PayloadValidation {
   };
 }
 
+function parseJsonObject(raw: string): Record<string, unknown> | null {
+  let value = raw.trim();
+  if (!value) return null;
+  value = value.replace(/^\x60{3}(?:json)?\s*/i, "").replace(/\s*\x60{3}\s*$/, "");
+
+  const tryParse = (candidate: string): unknown => {
+    try {
+      let parsed: unknown = JSON.parse(candidate);
+      // Some gateways wrap JSON output as a JSON-encoded string.
+      if (typeof parsed === "string") parsed = JSON.parse(parsed);
+      return parsed;
+    } catch {
+      return null;
+    }
+  };
+
+  const direct = tryParse(value);
+  if (isRecord(direct)) return direct;
+
+  // Find the first complete JSON object without being confused by braces
+  // inside quoted strings (the previous first/last-brace slice was brittle).
+  for (let start = value.indexOf("{"); start >= 0; start = value.indexOf("{", start + 1)) {
+    let depth = 0;
+    let inString = false;
+    let escaped = false;
+    for (let i = start; i < value.length; i++) {
+      const char = value[i];
+      if (inString) {
+        if (escaped) escaped = false;
+        else if (char === "\\") escaped = true;
+        else if (char === '"') inString = false;
+        continue;
+      }
+      if (char === '"') inString = true;
+      else if (char === "{") depth++;
+      else if (char === "}") {
+        depth--;
+        if (depth === 0) {
+          const parsed = tryParse(value.slice(start, i + 1));
+          if (isRecord(parsed)) return parsed;
+          break;
+        }
+      }
+    }
+  }
+  return null;
+}
+
 export function parseOutputs(
   raw: string,
   platforms: string[],
   variationCount: number,
 ): Record<string, string[]> | null {
   if (!Number.isInteger(variationCount) || variationCount < 1 || variationCount > 3) return null;
-  let value = raw.trim();
-  const start = value.indexOf("{");
-  const end = value.lastIndexOf("}");
-  if (start >= 0 && end > start) value = value.slice(start, end + 1);
-
-  try {
-    const parsed: unknown = JSON.parse(value);
-    if (!isRecord(parsed) || Object.keys(parsed).length !== platforms.length) return null;
-    const output: Record<string, string[]> = {};
-    for (const platform of platforms) {
-      const rawValue = parsed[platform];
-      const versions = Array.isArray(rawValue)
-        ? rawValue
-        : typeof rawValue === "string"
-          ? rawValue.split(VARIATION_SEPARATOR)
-          : [];
-      if (versions.length !== variationCount ||
-          versions.some((version) => typeof version !== "string" || !version.trim() || version.length > 20000)) {
-        return null;
-      }
-      output[platform] = versions.map((version) => (version as string).trim());
+  const parsed = parseJsonObject(raw);
+  if (!parsed || Object.keys(parsed).length !== platforms.length) return null;
+  const output: Record<string, string[]> = {};
+  for (const platform of platforms) {
+    const rawValue = parsed[platform];
+    const versions = Array.isArray(rawValue)
+      ? rawValue
+      : typeof rawValue === "string"
+        ? rawValue.split(VARIATION_SEPARATOR)
+        : [];
+    if (versions.length !== variationCount ||
+        versions.some((version) => typeof version !== "string" || !version.trim() || version.length > 20000)) {
+      return null;
     }
-    return output;
-  } catch {
-    return null;
+    output[platform] = versions.map((version) => (version as string).trim());
   }
+  return output;
 }
 
 const VIDEO_DRAFT_MIN_WORDS: Record<string, number> = {
@@ -285,26 +324,25 @@ export function parseVideoOutputs(
   platforms: string[],
   variationCount: number,
 ): { outputs: Record<string, string[]>; analysis: string } | null {
-  let value = raw.trim();
-  const start = value.indexOf("{");
-  const end = value.lastIndexOf("}");
-  if (start >= 0 && end > start) value = value.slice(start, end + 1);
-  try {
-    const parsed: unknown = JSON.parse(value);
-    if (!isRecord(parsed) || typeof parsed.video_analysis !== "string") return null;
-    const analysis = parsed.video_analysis.trim();
-    if (analysis.length < 200 || analysis.length > 30000) return null;
-    const social: Record<string, unknown> = {};
-    for (const platform of platforms) {
-      if (!(platform in parsed)) return null;
-      social[platform] = parsed[platform];
-    }
-    if (Object.keys(parsed).length !== platforms.length + 1) return null;
-    const outputs = parseOutputs(JSON.stringify(social), platforms, variationCount);
-    return outputs ? { outputs, analysis } : null;
-  } catch {
-    return null;
+  const parsed = parseJsonObject(raw);
+  if (!parsed) return null;
+
+  // Accept the documented flat shape and common wrapper shapes returned by
+  // model gateways, while still requiring every requested platform output.
+  const nested = isRecord(parsed.outputs) ? parsed.outputs : null;
+  const analysisValue = parsed.video_analysis ?? parsed.videoAnalysis ?? parsed.analysis;
+  if (typeof analysisValue !== "string") return null;
+  const analysis = analysisValue.trim();
+  if (analysis.length < 200 || analysis.length > 30000) return null;
+
+  const social: Record<string, unknown> = {};
+  for (const platform of platforms) {
+    const value = parsed[platform] ?? nested?.[platform];
+    if (value === undefined) return null;
+    social[platform] = value;
   }
+  const outputs = parseOutputs(JSON.stringify(social), platforms, variationCount);
+  return outputs ? { outputs, analysis } : null;
 }
 
 export function schemaFor(platforms: string[], variationCount: number) {
