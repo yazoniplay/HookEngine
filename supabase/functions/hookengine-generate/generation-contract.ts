@@ -306,7 +306,7 @@ export function interactionsSchemaFor(platforms: string[], variationCount: numbe
   const properties: Record<string, unknown> = {};
   for (const platform of platforms) {
     properties[platform] = variationCount > 1
-      ? { type: "array", items: { type: "string" }, minItems: variationCount, maxItems: variationCount }
+      ? { type: "array", items: { type: "string" } }
       : { type: "string" };
   }
   properties.video_analysis = { type: "string" };
