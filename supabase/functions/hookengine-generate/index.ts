@@ -462,7 +462,7 @@ async function generateYouTubeGemini(
   preferences: GenerationPreferences,
   variationCount: number,
   transcript: string,
-): Promise<TextGenerationResult & { analysis: string }> {
+): Promise<TextGenerationResult & { analysis: string; provider: string; fallbackUsed: boolean }> {
   if (!GEMINI_API_KEY) {
     const error = new Error("Gemini video analysis is not configured.");
     (error as Error & { status?: number }).status = 503;
@@ -673,7 +673,6 @@ async function generateYouTube(
   ];
 
   let storyboard: VideoStoryboardContext | undefined;
-  const errors: string[] = [];
   for (const attempt of attempts) {
     try {
       if (attempt.name === "Groq" || attempt.name === "Ollama") {
@@ -694,7 +693,6 @@ async function generateYouTube(
     } catch (error) {
       const detail = error instanceof Error ? error.message.slice(0, 500) : "Unknown provider error.";
       console.error("YouTube video provider failed.", attempt.name, safeErrorStatus(error), detail);
-      errors.push(attempt.name + ": " + detail);
     }
   }
   throw new Error("AI providers are temporarily unavailable. Please try again shortly.");
