@@ -50,6 +50,66 @@ function validHttpUrl(value: string): boolean {
   }
 }
 
+export function youtubeVideoId(value: string): string | null {
+  try {
+    const url = new URL(value);
+    const host = url.hostname.toLowerCase().replace(/^www\./, "");
+    if (url.protocol !== "https:" || url.username || url.password) return null;
+    if (!["youtube.com", "m.youtube.com", "music.youtube.com", "youtu.be"].includes(host)) return null;
+    const id = host === "youtu.be"
+      ? url.pathname.split("/").filter(Boolean)[0]
+      : url.searchParams.get("v") || url.pathname.match(/^\/(?:shorts|embed|live)\/([^/?]+)/)?.[1];
+    return typeof id === "string" && /^[a-zA-Z0-9_-]{11}$/.test(id) ? id : null;
+  } catch {
+    return null;
+  }
+}
+
+export type YouTubeStoryboardSheet = {
+  url: string;
+  width: number;
+  height: number;
+  frameCount: number;
+  columns: number;
+  rows: number;
+  intervalMs: number;
+};
+
+export function parseYouTubeStoryboardSpec(spec: string, maxSheets = 3): YouTubeStoryboardSheet[] {
+  const parts = spec.split("|");
+  const template = parts.shift()?.trim() || "";
+  if (!/^https:\/\/(?:i\d?\.ytimg\.com)\/sb\//.test(template) ||
+      !template.includes("$L") || !template.includes("$N") || maxSheets < 1) return [];
+  const levels = parts.map((part, index) => {
+    const fields = part.split("#");
+    if (fields.length < 8) return null;
+    const [width, height, count, columns, rows, intervalMs, , signature] = fields;
+    const values = [width, height, count, columns, rows, intervalMs].map(Number);
+    if (values.some((value) => !Number.isFinite(value) || value < 0)) return null;
+    const [w, h, total, cols, rowCount, interval] = values;
+    if (!w || !h || !total || !cols || !rowCount || !signature) return null;
+    return { index, width: w, height: h, frameCount: total, columns: cols, rows: rowCount, intervalMs: interval, signature };
+  }).filter((level): level is NonNullable<typeof level> => level !== null);
+  const level = levels.filter((item) => item.width >= 120 && item.height >= 68).at(-1) || levels.at(-1);
+  if (!level) return [];
+  const sheetCount = Math.ceil(level.frameCount / (level.columns * level.rows));
+  const chosen = Array.from({ length: Math.min(maxSheets, sheetCount) }, (_, i) =>
+    Math.round(i * Math.max(0, sheetCount - 1) / Math.max(1, Math.min(maxSheets, sheetCount) - 1)));
+  return [...new Set(chosen)].map((sheetIndex) => {
+    const url = template.replace("$L", String(level.index)).replace("$N", String(sheetIndex)) +
+      (template.includes("?") ? "&" : "?") + "sigh=" + level.signature;
+    return {
+      url,
+      width: level.width,
+      height: level.height,
+      frameCount: Math.min(level.columns * level.rows, level.frameCount - sheetIndex * level.columns * level.rows),
+      columns: level.columns,
+      rows: level.rows,
+      intervalMs: level.intervalMs,
+    };
+  });
+}
+
 export function validYouTube(value: string): boolean {
   try {
     const url = new URL(value);
