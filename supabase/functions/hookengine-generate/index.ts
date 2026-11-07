@@ -437,7 +437,7 @@ async function handleRequest(req: Request): Promise<Response> {
       userId,
       reservation.generation_id,
       "completed",
-      persistedOutputs,
+      result.outputs,
       payload.platforms,
       result.provider,
       result.model,
