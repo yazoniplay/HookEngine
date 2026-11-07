@@ -298,7 +298,7 @@ async function resolveYouTubeGenerationSource(payload) {
         ...payload,
         text: transcript.slice(0, MAX_SOURCE_CHARS),
         title,
-        sourceMode: "text"
+        sourceMode: "youtube_video"
       },
       transcriptUsed: true
     };

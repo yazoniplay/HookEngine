@@ -3,6 +3,7 @@ import {
   GENERATION_SYSTEM_INSTRUCTION,
   interactionsSchemaFor,
   parseOutputs,
+  parseVideoOutputs,
   runWithProviderFallback,
   schemaFor,
   serializeOutput,
@@ -112,6 +113,7 @@ async function finish(
   outputTokens: number | null = null,
   latencyMs: number | null = null,
   errorMessage: string | null = null,
+  videoAnalysis: string | null = null,
 ) {
   const finalized = await rpc("hookengine_finish_generation", {
     p_generation_id: id,
@@ -121,7 +123,7 @@ async function finish(
     p_linkedin_post: serializeOutput(outputs.linkedin_post),
     p_tiktok_hooks: serializeOutput(outputs.tiktok_hooks),
     p_error_message: errorMessage,
-    p_outputs: outputs,
+    p_outputs: videoAnalysis ? { ...outputs, video_analysis: videoAnalysis } : outputs,
     p_selected_platforms: platforms,
     p_provider: provider,
     p_model: model,
@@ -261,7 +263,8 @@ async function generateYouTube(
   platforms: string[],
   preferences: GenerationPreferences,
   variationCount: number,
-): Promise<TextGenerationResult> {
+  transcript: string,
+): Promise<TextGenerationResult & { analysis: string }> {
   if (!GEMINI_API_KEY) {
     const error = new Error("Gemini video analysis is not configured.");
     (error as Error & { status?: number }).status = 503;
@@ -273,19 +276,29 @@ async function generateYouTube(
     ? "Return exactly one non-empty string for each requested platform."
     : "Return an array of exactly " + variationCount +
       " complete, distinct, non-empty strings for each requested platform.";
+  const transcriptSection = transcript.trim()
+    ? "\n\nTRANSCRIPT (primary source for exact wording and sequence):\n" + transcript.slice(0, 60000)
+    : "";
   const prompt = [
-    "Repurpose this public YouTube video into platform-native drafts.",
-    "Use the spoken content and relevant visuals. Preserve the meaning; do not invent facts or quotes.",
+    "You are analyzing a public YouTube video for a creator who wants to understand it deeply and create content that feels naturally spoken.",
+    "FIRST produce a substantial, useful video_analysis, then produce the requested platform drafts.",
+    "VIDEO ANALYSIS requirements: aim for 700–1,000 words when the source supports it. Use clear headings: Overview; Detailed Summary; Main Ideas and Arguments; Important Examples and Evidence; What the Speaker Emphasizes; Key Takeaways; Speaker Delivery Profile.",
+    "The Detailed Summary must follow the actual progression of the video, not collapse it into a generic paragraph. Explain what is said, why it matters, and how each point connects. Preserve nuance, caveats, disagreements and conclusions.",
+    "Speaker Delivery Profile: infer observable high-level communication traits from the speech, such as pace, sentence length, vocabulary, formality, energy, humor, directness, rhetorical habits and how the speaker explains ideas. Be specific and evidence-based. Do not guess private personality traits.",
+    "VOICE ADAPTATION: write the social drafts with the same broad conversational feel and communication traits identified in the delivery profile, so they sound natural and spoken rather than like generic AI copy. Preserve the speaker's level of energy, directness, complexity and explanatory rhythm. Do not impersonate the person, claim to be them, or copy distinctive catchphrases verbatim.",
+    "Use the transcript for accurate wording and sequence when supplied, and use the video for visual context. Never invent facts, quotes, examples, timestamps or details. Do not fabricate timestamps; only include them when directly available and reliable.",
     "Writing preferences: " + JSON.stringify(preferences),
     outputShape,
     "Video title: " + JSON.stringify(title.slice(0, 300)),
     "Requested formats:\n" + instructions,
+    transcriptSection,
+    "Return the analysis in video_analysis and only the requested platform drafts in their respective keys.",
   ].join("\n\n");
 
   const response = await fetch("https://generativelanguage.googleapis.com/v1beta/interactions", {
     method: "POST",
     headers: { "Content-Type": "application/json", "x-goog-api-key": GEMINI_API_KEY },
-    signal: AbortSignal.timeout(55000),
+    signal: AbortSignal.timeout(90000),
     body: JSON.stringify({
       model: GEMINI_MODEL,
       system_instruction: GENERATION_SYSTEM_INSTRUCTION,
@@ -298,7 +311,7 @@ async function generateYouTube(
         mime_type: "application/json",
         schema: interactionsSchemaFor(platforms, variationCount),
       },
-      generation_config: { max_output_tokens: 6000 },
+      generation_config: { max_output_tokens: 10000 },
       store: false,
     }),
   });
@@ -320,11 +333,12 @@ async function generateYouTube(
     raw = blocks.filter((block) => block?.type === "text" && typeof block.text === "string")
       .map((block) => block.text).join("\n");
   }
-  const outputs = parseOutputs(raw, platforms, variationCount);
-  if (!outputs) throw new Error("Gemini returned an invalid video draft format.");
+  const parsed = parseVideoOutputs(raw, platforms, variationCount);
+  if (!parsed) throw new Error("Gemini returned an invalid video analysis or draft format.");
   const usage = data?.usage || {};
   return {
-    outputs,
+    outputs: parsed.outputs,
+    analysis: parsed.analysis,
     model: typeof data.model === "string" ? data.model : GEMINI_MODEL,
     inputTokens: Number.isInteger(usage.total_input_tokens) ? usage.total_input_tokens : null,
     outputTokens: Number.isInteger(usage.total_output_tokens) ? usage.total_output_tokens : null,
@@ -410,13 +424,15 @@ async function handleRequest(req: Request): Promise<Response> {
   const startedAt = performance.now();
   try {
     const result = payload.sourceMode === "youtube_video"
-      ? { ...await generateYouTube(payload.sourceUrl, payload.title, payload.platforms, payload.preferences, variationCount), provider: "Gemini", fallbackUsed: false }
+      ? { ...await generateYouTube(payload.sourceUrl, payload.title, payload.platforms, payload.preferences, variationCount, payload.text), provider: "Gemini", fallbackUsed: false }
       : await generateText(
         promptFor(payload.title, payload.text.trim(), payload.platforms, payload.preferences, variationCount),
         payload.platforms,
         variationCount,
       );
     const latencyMs = Math.round(performance.now() - startedAt);
+    const videoAnalysis = "analysis" in result && typeof result.analysis === "string" ? result.analysis : null;
+    const persistedOutputs = videoAnalysis ? { ...result.outputs, video_analysis: videoAnalysis } : result.outputs;
     await finish(
       userId,
       reservation.generation_id,
@@ -428,9 +444,11 @@ async function handleRequest(req: Request): Promise<Response> {
       result.inputTokens,
       result.outputTokens,
       latencyMs,
+      null,
+      videoAnalysis,
     );
     return reply({
-      outputs: result.outputs,
+      outputs: persistedOutputs,
       provider: result.provider,
       fallbackUsed: result.fallbackUsed,
       usage: {

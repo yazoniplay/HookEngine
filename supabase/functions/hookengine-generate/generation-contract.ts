@@ -182,6 +182,33 @@ export function parseOutputs(
   }
 }
 
+export function parseVideoOutputs(
+  raw: string,
+  platforms: string[],
+  variationCount: number,
+): { outputs: Record<string, string[]>; analysis: string } | null {
+  let value = raw.trim();
+  const start = value.indexOf("{");
+  const end = value.lastIndexOf("}");
+  if (start >= 0 && end > start) value = value.slice(start, end + 1);
+  try {
+    const parsed: unknown = JSON.parse(value);
+    if (!isRecord(parsed) || typeof parsed.video_analysis !== "string") return null;
+    const analysis = parsed.video_analysis.trim();
+    if (analysis.length < 200 || analysis.length > 30000) return null;
+    const social: Record<string, unknown> = {};
+    for (const platform of platforms) {
+      if (!(platform in parsed)) return null;
+      social[platform] = parsed[platform];
+    }
+    if (Object.keys(parsed).length !== platforms.length + 1) return null;
+    const outputs = parseOutputs(JSON.stringify(social), platforms, variationCount);
+    return outputs ? { outputs, analysis } : null;
+  } catch {
+    return null;
+  }
+}
+
 export function schemaFor(platforms: string[], variationCount: number) {
   const properties: Record<string, unknown> = {};
   for (const platform of platforms) {
@@ -244,10 +271,11 @@ export function interactionsSchemaFor(platforms: string[], variationCount: numbe
       ? { type: "array", items: { type: "string" }, minItems: variationCount, maxItems: variationCount }
       : { type: "string" };
   }
+  properties.video_analysis = { type: "string" };
   return {
     type: "object",
     properties,
-    required: platforms,
+    required: [...platforms, "video_analysis"],
     additionalProperties: false,
   };
 }
