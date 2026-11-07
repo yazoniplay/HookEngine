@@ -19,6 +19,7 @@ on:
       - ".github/workflows/extension-tests.yml"
   push:
     branches:
+      - main
       - "phase-1-*"
     paths:
       - "background.js"
@@ -61,3 +62,11 @@ jobs:
           node --check vendor/readability.js
       - name: Run extension regression tests
         run: node --test tests/*.test.mjs
+      - name: Package Chrome Web Store extension
+        run: bash scripts/package-extension.sh
+      - name: Upload Chrome Web Store package
+        uses: actions/upload-artifact@v4
+        with:
+          name: hookengine-chrome-web-store
+          path: dist/hookengine-chrome-web-store.zip
+          if-no-files-found: error
