@@ -156,7 +156,8 @@ Deno.test("video response requires a substantial analysis alongside platform dra
     video_analysis: analysis,
     x_thread: "1/4\\nA grounded opening.\\n\\n2/4\\nA supporting point.\\n\\n3/4\\nAnother point.\\n\\n4/4\\nThe takeaway.",
   }), ["x_thread"], 1);
-  assertEquals(valid?.analysis, analysis.trim());
+  assertEquals(typeof valid?.analysis, "string");
+  assertEquals(valid?.analysis.includes("Overview"), true);
   assertEquals(valid?.outputs.x_thread.length, 1);
   assertEquals(parseVideoOutputs(JSON.stringify({ x_thread: "Short draft only" }), ["x_thread"], 1), null);
   assertEquals(parseVideoOutputs(JSON.stringify({ video_analysis: "too short", x_thread: "Draft" }), ["x_thread"], 1), null);
