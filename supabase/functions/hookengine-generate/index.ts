@@ -712,9 +712,44 @@ async function runFallbackVideoGeneration(
   const result = await fallbackVideoRaw(provider, url, prompt, storyboard);
   const parsed = parseVideoOutputs(result.raw, platforms, variationCount);
   if (!parsed) throw new Error(provider + " returned an invalid video analysis or draft format.");
-  const qualityIssues = videoDraftQualityIssues(parsed.outputs, platforms, variationCount);
+  let qualityIssues = videoDraftQualityIssues(parsed.outputs, platforms, variationCount);
   if (qualityIssues.length) {
-    throw new Error(provider + " returned underdeveloped drafts: " + qualityIssues.join("; ").slice(0, 350));
+    console.warn("Video fallback drafts failed depth checks; repairing each platform separately.", provider, qualityIssues);
+    const failingPlatforms = [...new Set(qualityIssues.map((issue) => issue.split(":")[0].replace(/ version \\d+$/, "")))];
+    for (const platform of failingPlatforms) {
+      const minimumWords = ({
+        x_thread: 150,
+        linkedin_post: 160,
+        tiktok_hooks: 130,
+        instagram_caption: 110,
+        threads_posts: 100,
+        facebook_post: 120,
+      } as Record<string, number>)[platform] || 100;
+      const repairPrompt = [
+        "Write complete, publishable social content for exactly one platform. This is a focused repair, not a summary.",
+        "Meet the minimum word count of " + minimumWords + " words for EVERY variation. This is a hard requirement.",
+        "Use the supplied video visuals, analysis and transcript as source material. Add source-supported reasoning, context, concrete examples and useful specifics. Never invent facts, quotes, examples or personal experiences. Do not pad or repeat.",
+        "Create exactly " + variationCount + " distinct variations.",
+        "Video title: " + JSON.stringify(title.slice(0, 300)),
+        "Platform: " + platform,
+        "Platform requirements: " + PLATFORM_GUIDANCE[platform],
+        "Writing preferences: " + JSON.stringify(preferences),
+        "Video analysis for context: " + parsed.analysis,
+        "Previous short drafts (rewrite them substantially): " + JSON.stringify(parsed.outputs[platform] || []),
+        transcript.trim() ? "TRANSCRIPT:\\n" + transcript.slice(0, 60000) : "",
+        "Return only this JSON object: " + JSON.stringify({
+          [platform]: Array.from({ length: variationCount }, () => "complete draft"),
+        }),
+      ].join("\\n\\n");
+      const repairedRaw = await fallbackVideoRaw(provider, url, repairPrompt, storyboard);
+      const repaired = parseOutputs(repairedRaw.raw, [platform], variationCount);
+      if (!repaired) throw new Error(provider + " returned an invalid repaired " + platform + " draft.");
+      parsed.outputs[platform] = repaired[platform];
+    }
+    qualityIssues = videoDraftQualityIssues(parsed.outputs, platforms, variationCount);
+    if (qualityIssues.length) {
+      throw new Error(provider + " could not meet the required draft depth: " + qualityIssues.join("; ").slice(0, 350));
+    }
   }
   return {
     outputs: parsed.outputs,
