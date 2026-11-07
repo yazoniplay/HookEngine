@@ -262,6 +262,7 @@ async function generateYouTube(
   platforms: string[],
   preferences: GenerationPreferences,
   variationCount: number,
+  transcript: string,
 ): Promise<TextGenerationResult & { analysis: string }> {
   if (!GEMINI_API_KEY) {
     const error = new Error("Gemini video analysis is not configured.");
@@ -275,7 +276,7 @@ async function generateYouTube(
     : "Return an array of exactly " + variationCount +
       " complete, distinct, non-empty strings for each requested platform.";
   const transcriptSection = transcript.trim()
-    ? "\\n\\nTRANSCRIPT (primary source for exact wording and sequence):\\n" + transcript.slice(0, 60000)
+    ? "\n\nTRANSCRIPT (primary source for exact wording and sequence):\n" + transcript.slice(0, 60000)
     : "";
   const prompt = [
     "You are analyzing a public YouTube video for a creator who wants to understand it deeply and create content that feels naturally spoken.",
@@ -288,10 +289,10 @@ async function generateYouTube(
     "Writing preferences: " + JSON.stringify(preferences),
     outputShape,
     "Video title: " + JSON.stringify(title.slice(0, 300)),
-    "Requested formats:\\n" + instructions,
+    "Requested formats:\n" + instructions,
     transcriptSection,
     "Return the analysis in video_analysis and only the requested platform drafts in their respective keys.",
-  ].join("\\n\\n");
+  ].join("\n\n");
 
   const response = await fetch("https://generativelanguage.googleapis.com/v1beta/interactions", {
     method: "POST",
