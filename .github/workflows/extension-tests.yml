@@ -19,6 +19,7 @@ on:
       - ".github/workflows/extension-tests.yml"
   push:
     branches:
+      - main
       - "phase-1-*"
     paths:
       - "background.js"
