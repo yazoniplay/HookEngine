@@ -237,7 +237,7 @@ function parseJsonObject(raw: string): Record<string, unknown> | null {
       const char = value[i];
       if (inString) {
         if (escaped) escaped = false;
-        else if (char === "\\\\") escaped = true;
+        else if (char === "\\") escaped = true;
         else if (char === '"') inString = false;
         continue;
       }
