@@ -208,6 +208,12 @@ test("YouTube video IDs are validated against supported hosts and formats", () =
   assert.equal(context.getYouTubeVideoId("https://www.youtube.com/watch?v=short"), "");
 });
 
+test("Gemini YouTube video requests use static processing to avoid the broken agentic path", async () => {
+  const generator = await readFile(new URL("../supabase/functions/hookengine-generate/index.ts", import.meta.url), "utf8");
+  assert.match(generator, /\{ type: "video", uri: url, processing: "static" \}/);
+  assert.doesNotMatch(generator, /supportsAgenticVideo|processing:\s*"agentic"/);
+});
+
 test("YouTube generation uses a transcript before the Gemini video fallback", async () => {
   context.chrome.tabs.query = async () => [{
     id: 7,

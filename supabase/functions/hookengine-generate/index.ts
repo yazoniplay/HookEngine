@@ -255,10 +255,6 @@ async function generateText(prompt: string, platforms: string[], variationCount:
   return { ...result.value, provider: result.provider, fallbackUsed: result.fallbackUsed };
 }
 
-function supportsAgenticVideo(model: string): boolean {
-  return /^gemini-(?:3\.5-flash-lite|3\.[6-8]-flash)(?:-|$)/i.test(model);
-}
-
 async function generateYouTube(
   url: string,
   title: string,
@@ -294,7 +290,7 @@ async function generateYouTube(
       model: GEMINI_MODEL,
       system_instruction: GENERATION_SYSTEM_INSTRUCTION,
       input: [
-        { type: "video", uri: url, processing: supportsAgenticVideo(GEMINI_MODEL) ? "agentic" : "static" },
+        { type: "video", uri: url, processing: "static" },
         { type: "text", text: prompt },
       ],
       response_format: {
