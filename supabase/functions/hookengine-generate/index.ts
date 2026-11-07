@@ -331,6 +331,12 @@ async function generateYouTube(
     throw error;
   }
   if (data?.status && data.status !== "completed") {
+    console.error("Gemini video interaction did not complete.", JSON.stringify({
+      status: data.status,
+      model: data.model ?? null,
+      hasOutputText: typeof data.output_text === "string",
+      stepTypes: Array.isArray(data.steps) ? data.steps.map((step: { type?: string }) => step?.type ?? "unknown") : [],
+    }));
     throw new Error("Video analysis did not complete. Please try again.");
   }
   let raw = typeof data.output_text === "string" ? data.output_text : "";
@@ -343,7 +349,18 @@ async function generateYouTube(
       .map((block) => block.text).join("\n");
   }
   let parsed = parseVideoOutputs(raw, platforms, variationCount);
-  if (!parsed) throw new Error("Gemini returned an invalid video analysis or draft format.");
+  if (!parsed) {
+    console.error("Gemini video response could not be parsed.", JSON.stringify({
+      status: data?.status ?? null,
+      model: data?.model ?? null,
+      outputTextLength: raw.length,
+      outputTextPresent: raw.length > 0,
+      stepTypes: Array.isArray(data?.steps) ? data.steps.map((step: { type?: string }) => step?.type ?? "unknown") : [],
+      requestedPlatforms: platforms,
+      variationCount,
+    }));
+    throw new Error("Gemini returned an invalid video analysis or draft format.");
+  }
 
   // Repair each failing platform independently. Bundling several formats and the
   // full video analysis into one repair response caused Gemini to keep compressing
@@ -555,7 +572,8 @@ async function handleRequest(req: Request): Promise<Response> {
     } catch (finalizeError) {
       console.error("Could not record failed generation.", safeErrorStatus(finalizeError));
     }
-    console.error("HookEngine generation failed.", safeErrorStatus(error));
+    console.error("HookEngine generation failed.", safeErrorStatus(error),
+      error instanceof Error ? error.message.slice(0, 300) : "Unknown error");
     const publicMessage = message === "AI providers are temporarily unavailable. Please try again shortly." ||
         message === "Could not analyze this YouTube video." ||
         message === "Video analysis did not complete. Please try again."
