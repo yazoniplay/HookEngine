@@ -736,11 +736,11 @@ async function runFallbackVideoGeneration(
         "Writing preferences: " + JSON.stringify(preferences),
         "Video analysis for context: " + parsed.analysis,
         "Previous short drafts (rewrite them substantially): " + JSON.stringify(parsed.outputs[platform] || []),
-        transcript.trim() ? "TRANSCRIPT:\\n" + transcript.slice(0, 60000) : "",
+        transcript.trim() ? "TRANSCRIPT:\n" + transcript.slice(0, 60000) : "",
         "Return only this JSON object: " + JSON.stringify({
           [platform]: Array.from({ length: variationCount }, () => "complete draft"),
         }),
-      ].join("\\n\\n");
+      ].join("\n\n");
       const repairedRaw = await fallbackVideoRaw(provider, url, repairPrompt, storyboard);
       const repaired = parseOutputs(repairedRaw.raw, [platform], variationCount);
       if (!repaired) throw new Error(provider + " returned an invalid repaired " + platform + " draft.");
