@@ -33,12 +33,12 @@ const MAX_REQUEST_BYTES = 512 * 1024;
 const ALLOWED_ORIGINS = parseAllowedOrigins(Deno.env.get("HOOKENGINE_ALLOWED_ORIGINS"));
 
 const PLATFORM_GUIDANCE: Record<string, string> = {
-  x_thread: "Create a 5–8 post numbered X thread. Each post concise, source-grounded and under 260 characters where possible. No hashtags.",
-  linkedin_post: "Create a credible LinkedIn post with a specific opening, short paragraphs, one useful central insight and a clear takeaway. Avoid corporate clichés.",
-  tiktok_hooks: "Return five distinct, short spoken opening hooks, numbered 1–5. Make them natural and specific.",
-  instagram_caption: "Write one Instagram caption with a strong first line, readable line breaks and a small set of relevant hashtags only when useful. Do not invent calls to action.",
-  threads_posts: "Write a sequence of 3–5 concise, conversational Threads posts. Make each post stand alone while building one coherent idea.",
-  facebook_post: "Write one natural Facebook post for a broad audience. Use clear language, useful context and a conversational close without engagement bait.",
+  x_thread: "Create a substantial 6–8 post numbered X thread. Give each post room to develop one complete point (usually 180–260 characters, within platform limits). Build a clear progression: compelling opening, context, distinct insights/examples, and a satisfying conclusion. Avoid empty one-line posts, repetition and hashtags.",
+  linkedin_post: "Write a developed LinkedIn post of roughly 180–260 words when the source supports it. Open with a specific, interesting observation; explain the central idea with concrete details and examples; use readable short paragraphs; finish with a useful takeaway. Avoid corporate clichés, generic lessons and engagement bait.",
+  tiktok_hooks: "Provide five genuinely different spoken hooks (about 12–25 words each), then write one complete 30–45 second spoken script (roughly 80–120 words) based on the strongest hook. The script needs a clear setup, a few specific beats, a natural payoff and a spoken-sounding ending. Do not return hooks alone.",
+  instagram_caption: "Write a developed Instagram caption of roughly 120–200 words when the source supports it. Start with a strong specific first line, tell the idea as a compact story or explanation, include useful detail and preserve the speaker's natural voice. Use readable line breaks; add only a few relevant hashtags when genuinely useful. Do not invent calls to action.",
+  threads_posts: "Write 3–5 substantive, conversational Threads posts, usually 35–65 words each. Each post should stand alone while advancing one coherent sequence. Include the actual insight or example rather than teaser fragments.",
+  facebook_post: "Write a complete Facebook post of roughly 140–220 words when the source supports it. Give enough context for someone who has not watched the video, explain the key point with a concrete detail, and close naturally. Avoid filler, engagement bait and invented calls to action.",
 };
 
 type TextGenerationResult = {
@@ -286,6 +286,8 @@ async function generateYouTube(
     "The Detailed Summary must follow the actual progression of the video, not collapse it into a generic paragraph. Explain what is said, why it matters, and how each point connects. Preserve nuance, caveats, disagreements and conclusions.",
     "Speaker Delivery Profile: infer observable high-level communication traits from the speech, such as pace, sentence length, vocabulary, formality, energy, humor, directness, rhetorical habits and how the speaker explains ideas. Be specific and evidence-based. Do not guess private personality traits.",
     "VOICE ADAPTATION: write the social drafts with the same broad conversational feel and communication traits identified in the delivery profile, so they sound natural and spoken rather than like generic AI copy. Preserve the speaker's level of energy, directness, complexity and explanatory rhythm. Do not impersonate the person, claim to be them, or copy distinctive catchphrases verbatim.",
+    "SOCIAL DRAFT DEPTH: do not make the platform drafts short summaries of the video. Treat each requested format as a finished, publishable piece of content. Follow the per-platform length and structure guidance below; use the available output budget for substance, not filler. Include the speaker's actual reasoning, examples, useful specifics and nuance where supported. Avoid generic introductions, repeated points and vague motivational language. If the video genuinely lacks enough material for a requested length, write the strongest complete version the source supports rather than padding or inventing details.",
+    "Keep the video_analysis and social drafts separate: the analysis explains the whole video, while each social draft should independently communicate a coherent, valuable idea to its platform's audience.",
     "Use the transcript for accurate wording and sequence when supplied, and use the video for visual context. Never invent facts, quotes, examples, timestamps or details. Do not fabricate timestamps; only include them when directly available and reliable.",
     "Writing preferences: " + JSON.stringify(preferences),
     outputShape,
@@ -311,7 +313,7 @@ async function generateYouTube(
         mime_type: "application/json",
         schema: interactionsSchemaFor(platforms, variationCount),
       },
-      generation_config: { max_output_tokens: 10000 },
+      generation_config: { max_output_tokens: 14000 },
       store: false,
     }),
   });
