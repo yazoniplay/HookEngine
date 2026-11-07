@@ -231,7 +231,7 @@ test("YouTube generation uses a transcript before the Gemini video fallback", as
   };
   const transcript = await context.resolveYouTubeGenerationSource(source);
   assert.equal(transcript.transcriptUsed, true);
-  assert.equal(transcript.payload.sourceMode, "text");
+  assert.equal(transcript.payload.sourceMode, "youtube_video");
   assert.ok(transcript.payload.text.length >= 80);
 
   context.fetchCaptionTracks = async () => "";
