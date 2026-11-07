@@ -138,14 +138,14 @@ Deno.test("provider fallback reports unavailable when every provider fails", asy
 });
 
 
-Deno.test("Interactions API schema uses standard lower-case JSON Schema types and exact variation counts", () => {
+Deno.test("Interactions API schema avoids unsupported array bounds; runtime enforces variation count", () => {
   const schema = interactionsSchemaFor(["x_thread"], 3);
   assertEquals(schema.type, "object");
-  const property = (schema.properties as Record<string, {type:string;items:{type:string};minItems:number;maxItems:number}>).x_thread;
+  const property = (schema.properties as Record<string, {type:string;items:{type:string}}>).x_thread;
   assertEquals(property.type, "array");
   assertEquals(property.items.type, "string");
-  assertEquals(property.minItems, 3);
-  assertEquals(property.maxItems, 3);
+  assertEquals("minItems" in property, false);
+  assertEquals("maxItems" in property, false);
   assertEquals(schema.additionalProperties, false);
 });
 

@@ -320,6 +320,12 @@ async function generateYouTube(
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
+    const apiMessage = typeof data?.error?.message === "string"
+      ? data.error.message.slice(0, 1200)
+      : typeof data?.error?.status === "string"
+        ? data.error.status
+        : "No error details returned.";
+    console.error("Gemini video analysis request rejected.", response.status, apiMessage);
     const error = new Error("Could not analyze this YouTube video.");
     (error as Error & { status?: number }).status = response.status;
     throw error;
