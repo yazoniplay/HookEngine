@@ -10,6 +10,8 @@ import {
   serializeOutput,
   validateGenerationPayload,
   validYouTube,
+  parseYouTubeStoryboardSpec,
+  type YouTubeStoryboardSheet,
   type GenerationPayload,
   type GenerationPreferences,
 } from "./generation-contract.ts";
@@ -20,8 +22,12 @@ const GEMINI_MODEL = Deno.env.get("GEMINI_MODEL") || "gemini-3.5-flash-lite";
 const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY") || "";
 const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY") || "";
 const GROQ_MODEL = Deno.env.get("GROQ_MODEL") || "llama-3.3-70b-versatile";
+const GROQ_VIDEO_MODEL = Deno.env.get("GROQ_VIDEO_MODEL") || "qwen/qwen3.6-27b";
+const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY") || "";
+const OPENROUTER_VIDEO_MODEL = Deno.env.get("OPENROUTER_VIDEO_MODEL") || "qwen/qwen3.6-flash";
 const OLLAMA_API_KEY = Deno.env.get("OLLAMA_API_KEY") || "";
 const OLLAMA_MODEL = Deno.env.get("OLLAMA_MODEL") || "gpt-oss:20b";
+const OLLAMA_VIDEO_MODEL = Deno.env.get("OLLAMA_VIDEO_MODEL") || "gemma4";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") || Deno.env.get("SUPABASE_PUBLISHABLE_KEY") || "";
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
@@ -52,6 +58,197 @@ type TextGenerationResult = {
 function safeErrorStatus(error: unknown): number {
   const status = (error as { status?: unknown } | null)?.status;
   return typeof status === "number" && status >= 400 && status <= 599 ? status : 503;
+}
+
+type VideoStoryboardContext = {
+  sheets: YouTubeStoryboardSheet[];
+  ollamaImages: string[];
+};
+
+function extractJsonObject(source: string, marker: string): string | null {
+  const markerIndex = source.indexOf(marker);
+  if (markerIndex < 0) return null;
+  const start = source.indexOf("{", markerIndex + marker.length);
+  if (start < 0) return null;
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+  for (let i = start; i < source.length; i++) {
+    const char = source[i];
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (char === "\\") escaped = true;
+      else if (char === '"') inString = false;
+      continue;
+    }
+    if (char === '"') inString = true;
+    else if (char === "{") depth++;
+    else if (char === "}" && --depth === 0) return source.slice(start, i + 1);
+  }
+  return null;
+}
+
+function bytesToBase64(bytes: Uint8Array): string {
+  let binary = "";
+  const chunkSize = 0x8000;
+  for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(offset, offset + chunkSize));
+  }
+  return btoa(binary);
+}
+
+async function loadYouTubeStoryboardContext(url: string): Promise<VideoStoryboardContext> {
+  const page = await fetch(url, {
+    headers: { "User-Agent": "Mozilla/5.0 (compatible; HookEngine/1.0)" },
+    signal: AbortSignal.timeout(18000),
+  });
+  if (!page.ok) throw new Error("YouTube video metadata request failed (" + page.status + ").");
+  const html = await page.text();
+  const playerJson = extractJsonObject(html, "ytInitialPlayerResponse");
+  if (!playerJson) throw new Error("YouTube did not expose storyboard metadata for this video.");
+  const player = JSON.parse(playerJson);
+  const spec = player?.storyboards?.playerStoryboardSpecRenderer?.spec;
+  if (typeof spec !== "string") throw new Error("This YouTube video has no storyboard frames available.");
+  const sheets = parseYouTubeStoryboardSpec(spec, 3);
+  if (!sheets.length) throw new Error("YouTube storyboard metadata could not be parsed.");
+
+  const ollamaImages: string[] = [];
+  for (const sheet of sheets) {
+    const response = await fetch(sheet.url, { signal: AbortSignal.timeout(12000) });
+    if (!response.ok) throw new Error("A YouTube storyboard image could not be loaded.");
+    const contentType = response.headers.get("content-type") || "";
+    if (!contentType.startsWith("image/")) throw new Error("YouTube returned an invalid storyboard image.");
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    if (!bytes.length || bytes.length > 4 * 1024 * 1024) throw new Error("A storyboard image exceeded the supported size.");
+    ollamaImages.push(bytesToBase64(bytes));
+  }
+  return { sheets, ollamaImages };
+}
+
+function videoPrompt(
+  title: string,
+  platforms: string[],
+  preferences: GenerationPreferences,
+  variationCount: number,
+  transcript: string,
+): string {
+  const instructions = platforms.map((key) => key.toUpperCase() + ": " + PLATFORM_GUIDANCE[key]).join("\n");
+  const outputShape = variationCount === 1
+    ? "Return exactly one non-empty string for each requested platform."
+    : "Return an array of exactly " + variationCount +
+      " complete, distinct, non-empty strings for each requested platform.";
+  const transcriptSection = transcript.trim()
+    ? "\n\nTRANSCRIPT (primary source for exact wording and sequence):\n" + transcript.slice(0, 60000)
+    : "";
+  return [
+    "You are analyzing a public YouTube video for a creator who wants to understand it deeply and create content that feels naturally spoken.",
+    "FIRST produce a substantial, useful video_analysis, then produce the requested platform drafts.",
+    "VIDEO ANALYSIS requirements: aim for 700–1,000 words when the source supports it. Use clear headings: Overview; Detailed Summary; Main Ideas and Arguments; Important Examples and Evidence; What the Speaker Emphasizes; Key Takeaways; Speaker Delivery Profile.",
+    "The Detailed Summary must follow the actual progression of the video, not collapse it into a generic paragraph. Explain what is said, why it matters, and how each point connects. Preserve nuance, caveats, disagreements and conclusions.",
+    "Speaker Delivery Profile: infer observable high-level communication traits from the speech, such as pace, sentence length, vocabulary, formality, energy, humor, directness, rhetorical habits and how the speaker explains ideas. Be specific and evidence-based. Do not guess private personality traits.",
+    "VOICE ADAPTATION: write the social drafts with the same broad conversational feel and communication traits identified in the delivery profile, so they sound natural and spoken rather than like generic AI copy. Preserve the speaker's level of energy, directness, complexity and explanatory rhythm. Do not impersonate the person, claim to be them, or copy distinctive catchphrases verbatim.",
+    "SOCIAL DRAFT DEPTH: do not make the platform drafts short summaries of the video. Treat each requested format as a finished, publishable piece of content. Follow the per-platform length and structure guidance below; use the available output budget for substance, not filler. Include the speaker's actual reasoning, examples, useful specifics and nuance where supported. Avoid generic introductions, repeated points and vague motivational language. If the video genuinely lacks enough material for a requested length, write the strongest complete version the source supports rather than padding or inventing details.",
+    "Keep the video_analysis and social drafts separate: the analysis explains the whole video, while each social draft should independently communicate a coherent, valuable idea to its platform's audience.",
+    "Use the transcript for accurate wording and sequence when supplied, and use the video frames for visual context. Never invent facts, quotes, examples, timestamps or details. Do not fabricate timestamps; only include them when directly available and reliable.",
+    "Writing preferences: " + JSON.stringify(preferences),
+    outputShape,
+    "Video title: " + JSON.stringify(title.slice(0, 300)),
+    "Requested formats:\n" + instructions,
+    transcriptSection,
+    "Return the analysis in video_analysis and only the requested platform drafts in their respective keys.",
+  ].join("\n\n");
+}
+
+async function fallbackVideoRaw(
+  provider: "OpenRouter" | "Groq" | "Ollama",
+  url: string,
+  prompt: string,
+  storyboard?: VideoStoryboardContext,
+): Promise<{ raw: string; model: string }> {
+  let endpoint = "";
+  let model = "";
+  let body: Record<string, unknown>;
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+
+  if (provider === "OpenRouter") {
+    if (!OPENROUTER_API_KEY) throw new Error("OpenRouter is not configured.");
+    endpoint = "https://openrouter.ai/api/v1/chat/completions";
+    model = OPENROUTER_VIDEO_MODEL;
+    headers.Authorization = "Bearer " + OPENROUTER_API_KEY;
+    body = {
+      model,
+      messages: [
+        { role: "system", content: GENERATION_SYSTEM_INSTRUCTION },
+        { role: "user", content: [
+          { type: "text", text: prompt },
+          { type: "video_url", video_url: { url } },
+        ] },
+      ],
+      response_format: { type: "json_object" },
+      max_tokens: 14000,
+      stream: false,
+    };
+  } else {
+    if (!storyboard?.sheets.length) throw new Error("No sampled video frames are available for " + provider + ".");
+    const frameNote = "VISUAL INPUT: The attached images are YouTube storyboard contact sheets sampled across the video. Each sheet contains a grid of still frames; inspect the tiles left-to-right and top-to-bottom. Use them to understand scenes, on-screen text, demonstrations, objects and visual changes. Do not treat a storyboard as full-motion footage.";
+    if (provider === "Groq") {
+      if (!GROQ_API_KEY) throw new Error("Groq is not configured.");
+      endpoint = "https://api.groq.com/openai/v1/chat/completions";
+      model = GROQ_VIDEO_MODEL;
+      headers.Authorization = "Bearer " + GROQ_API_KEY;
+      body = {
+        model,
+        messages: [
+          { role: "system", content: GENERATION_SYSTEM_INSTRUCTION },
+          { role: "user", content: [
+            { type: "text", text: frameNote + "\n\n" + prompt },
+            ...storyboard.sheets.map((sheet) => ({
+              type: "image_url",
+              image_url: { url: sheet.url },
+            })),
+          ] },
+        ],
+        response_format: { type: "json_object" },
+        max_completion_tokens: 14000,
+        stream: false,
+      };
+    } else {
+      if (!OLLAMA_API_KEY) throw new Error("Ollama Cloud is not configured.");
+      endpoint = "https://ollama.com/api/chat";
+      model = OLLAMA_VIDEO_MODEL;
+      headers.Authorization = "Bearer " + OLLAMA_API_KEY;
+      body = {
+        model,
+        messages: [{
+          role: "user",
+          content: GENERATION_SYSTEM_INSTRUCTION + "\n\n" + frameNote + "\n\n" + prompt,
+          images: storyboard.ollamaImages,
+        }],
+        format: "json",
+        stream: false,
+        options: { temperature: 0.7, num_predict: 14000 },
+      };
+    }
+  }
+
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers,
+    signal: AbortSignal.timeout(120000),
+    body: JSON.stringify(body),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const detail = typeof data?.error?.message === "string"
+      ? data.error.message.slice(0, 500)
+      : typeof data?.error === "string" ? data.error.slice(0, 500) : "No provider error details.";
+    throw Object.assign(new Error(provider + " video request failed: " + detail), { status: response.status });
+  }
+  const raw = provider === "Ollama"
+    ? data?.message?.content
+    : data?.choices?.[0]?.message?.content;
+  if (typeof raw !== "string" || !raw.trim()) throw new Error(provider + " returned an empty video analysis.");
+  return { raw, model };
 }
 
 async function authenticate(req: Request): Promise<string | null> {
