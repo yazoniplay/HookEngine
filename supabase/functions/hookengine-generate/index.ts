@@ -431,7 +431,7 @@ async function handleRequest(req: Request): Promise<Response> {
         variationCount,
       );
     const latencyMs = Math.round(performance.now() - startedAt);
-    const videoAnalysis = "analysis" in result ? result.analysis : null;
+    const videoAnalysis = "analysis" in result && typeof result.analysis === "string" ? result.analysis : null;
     const persistedOutputs = videoAnalysis ? { ...result.outputs, video_analysis: videoAnalysis } : result.outputs;
     await finish(
       userId,
