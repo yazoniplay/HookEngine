@@ -63,3 +63,45 @@ Deno.test("invalid session is rejected and audited", async () => {
   assertEquals(auditRows.length, 1);
   assertEquals(auditRows[0].outcome, "rejected_invalid_session");
 });
+
+Deno.test("admin CORS only allows the account portal origin, never a wildcard", async () => {
+  const fakeFetch: typeof fetch = async () => {
+    throw new Error("Preflight must not reach the network.");
+  };
+  const handler = createAdminPlanHandler(config, fakeFetch);
+  const preflight = (origin: string) => handler(new Request("https://edge.example/admin", {
+    method: "OPTIONS",
+    headers: { Origin: origin },
+  }));
+
+  const portal = await preflight("https://yazoniplay.github.io");
+  assertEquals(portal.status, 200);
+  assertEquals(portal.headers.get("Access-Control-Allow-Origin"), "https://yazoniplay.github.io");
+  assertEquals(portal.headers.get("Vary"), "Origin");
+
+  for (const origin of ["https://evil.example", "chrome-extension://abcdefghijklmnopabcdefghijklmnop", "null"]) {
+    const response = await preflight(origin);
+    assertEquals(response.headers.get("Access-Control-Allow-Origin"), null);
+  }
+});
+
+Deno.test("admin error responses carry the pinned CORS header for the portal", async () => {
+  const fakeFetch: typeof fetch = async (input) => {
+    const url = String(input);
+    if (url.endsWith("/auth/v1/user")) return new Response("{}", { status: 401 });
+    if (url.endsWith("/rest/v1/hookengine_admin_audit")) return new Response(null, { status: 201 });
+    throw new Error("Unexpected fetch: " + url);
+  };
+  const handler = createAdminPlanHandler(config, fakeFetch);
+  const response = await handler(new Request("https://edge.example/admin", {
+    method: "POST",
+    headers: {
+      Origin: "https://yazoniplay.github.io",
+      Authorization: "Bearer expired-token",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ plan: "pro" }),
+  }));
+  assertEquals(response.status, 401);
+  assertEquals(response.headers.get("Access-Control-Allow-Origin"), "https://yazoniplay.github.io");
+});

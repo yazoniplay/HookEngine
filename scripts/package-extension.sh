@@ -29,7 +29,6 @@ zip -r -X "$ZIP_PATH" \
   background.js \
   content.js \
   popup.html \
-  sidepanel.html \
   sidepanel.js \
   styles.css \
   settings.html \

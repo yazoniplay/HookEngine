@@ -12,7 +12,7 @@ import {
   type GenerationPreferences,
 } from "./generation-contract.ts";
 import { reservationHttpStatus, reservationLimitReached } from "./reservation-status.ts";
-import { corsPreflight, jsonReply } from "./http-response.ts";
+import { buildCorsHeaders, corsPreflight, jsonReply, parseAllowedOrigins } from "./http-response.ts";
 
 const GEMINI_MODEL = Deno.env.get("GEMINI_MODEL") || "gemini-3.5-flash-lite";
 const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY") || "";
@@ -25,6 +25,11 @@ const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") || Deno.env.get("SUP
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 
 const MAX_REQUEST_BYTES = 512 * 1024;
+
+// Comma-separated browser origins allowed to read responses (e.g. the account portal and, optionally,
+// chrome-extension://<published-extension-id>). The extension works without being listed because its
+// host_permissions bypass CORS. Defaults to the account portal origin.
+const ALLOWED_ORIGINS = parseAllowedOrigins(Deno.env.get("HOOKENGINE_ALLOWED_ORIGINS"));
 
 const PLATFORM_GUIDANCE: Record<string, string> = {
   x_thread: "Create a 5–8 post numbered X thread. Each post concise, source-grounded and under 260 characters where possible. No hashtags.",
@@ -41,8 +46,6 @@ type TextGenerationResult = {
   inputTokens: number | null;
   outputTokens: number | null;
 };
-
-const reply = jsonReply;
 
 function safeErrorStatus(error: unknown): number {
   const status = (error as { status?: unknown } | null)?.status;
@@ -333,7 +336,9 @@ async function generateYouTube(
 }
 
 async function handleRequest(req: Request): Promise<Response> {
-  if (req.method === "OPTIONS") return corsPreflight();
+  const cors = buildCorsHeaders(req.headers.get("origin"), ALLOWED_ORIGINS);
+  const reply = (data: unknown, status = 200) => jsonReply(data, status, cors);
+  if (req.method === "OPTIONS") return corsPreflight(cors);
   if (req.method !== "POST") return reply({ error: "Method not allowed." }, 405);
 
   const contentLength = Number(req.headers.get("content-length") || 0);
@@ -464,6 +469,10 @@ Deno.serve(async (req: Request) => {
     return await handleRequest(req);
   } catch (error) {
     console.error("HookEngine request handler failed.", safeErrorStatus(error));
-    return reply({ error: "HookEngine could not process this request. Please try again." }, 503);
+    return jsonReply(
+      { error: "HookEngine could not process this request. Please try again." },
+      503,
+      buildCorsHeaders(req.headers.get("origin"), ALLOWED_ORIGINS),
+    );
   }
 });

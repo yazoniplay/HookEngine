@@ -8,12 +8,6 @@
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 
-  function decodeText(value) {
-    const box = document.createElement("textarea");
-    box.innerHTML = value || "";
-    return box.value;
-  }
-
   function nativeVideoTranscript() {
     const pieces = [];
     for (const video of document.querySelectorAll("video")) {
