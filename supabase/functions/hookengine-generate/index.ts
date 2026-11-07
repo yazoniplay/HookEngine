@@ -88,6 +88,46 @@ function extractJsonObject(source: string, marker: string): string | null {
   return null;
 }
 
+function summarizeGeminiVideoOutput(raw: string, platforms: string[]) {
+  let value = raw.trim().replace(/^\x60{3}(?:json)?\s*/i, "").replace(/\s*\x60{3}\s*$/, "");
+  const tryParse = (candidate: string): unknown => {
+    try {
+      let parsed: unknown = JSON.parse(candidate);
+      if (typeof parsed === "string") parsed = JSON.parse(parsed);
+      return parsed;
+    } catch {
+      return null;
+    }
+  };
+  let parsed = tryParse(value);
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    const start = value.indexOf("{");
+    const end = value.lastIndexOf("}");
+    if (start >= 0 && end > start) parsed = tryParse(value.slice(start, end + 1));
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    return { jsonParsed: false, firstCharacter: value[0] ?? null, hasOpeningBrace: value.includes("{"), hasClosingBrace: value.includes("}") };
+  }
+  const record = parsed as Record<string, unknown>;
+  const nested = record.outputs && typeof record.outputs === "object" && !Array.isArray(record.outputs)
+    ? record.outputs as Record<string, unknown>
+    : null;
+  const shape = (item: unknown) => {
+    if (Array.isArray(item)) return { type: "array", length: item.length, itemTypes: [...new Set(item.slice(0, 3).map((entry) => typeof entry))] };
+    if (typeof item === "string") return { type: "string", length: item.length };
+    if (item && typeof item === "object") return { type: "object", keys: Object.keys(item as Record<string, unknown>).slice(0, 20) };
+    return { type: typeof item };
+  };
+  const analysisKey = ["video_analysis", "videoAnalysis", "analysis"].find((key) => record[key] !== undefined);
+  return {
+    jsonParsed: true,
+    keys: Object.keys(record).slice(0, 30),
+    analysis: analysisKey ? shape(record[analysisKey]) : null,
+    platforms: Object.fromEntries(platforms.map((key) => [key, shape(record[key] ?? nested?.[key])])),
+    nestedOutputKeys: nested ? Object.keys(nested).slice(0, 30) : null,
+  };
+}
+
 function bytesToBase64(bytes: Uint8Array): string {
   let binary = "";
   const chunkSize = 0x8000;
@@ -555,6 +595,7 @@ async function generateYouTubeGemini(
       stepTypes: Array.isArray(data?.steps) ? data.steps.map((step: { type?: string }) => step?.type ?? "unknown") : [],
       requestedPlatforms: platforms,
       variationCount,
+      outputShape: summarizeGeminiVideoOutput(raw, platforms),
     }));
     throw new Error("Gemini returned an invalid video analysis or draft format.");
   }
