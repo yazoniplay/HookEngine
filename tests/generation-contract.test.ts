@@ -10,6 +10,8 @@ import {
   shouldFallback,
   validateGenerationPayload,
   validYouTube,
+  parseYouTubeStoryboardSpec,
+  youtubeVideoId,
   VARIATION_SEPARATOR,
 } from "../supabase/functions/hookengine-generate/generation-contract.ts";
 
@@ -48,6 +50,28 @@ Deno.test("validates YouTube host, protocol and video ID", () => {
   assertEquals(validYouTube("http://youtube.com/watch?v=abcdefghijk"), false);
   assertEquals(validYouTube("https://youtube.com.evil.test/watch?v=abcdefghijk"), false);
   assertEquals(validYouTube("https://youtube.com/watch?v=short"), false);
+});
+
+Deno.test("extracts YouTube IDs from supported URL forms", () => {
+  assertEquals(youtubeVideoId("https://www.youtube.com/watch?v=abcdefghijk"), "abcdefghijk");
+  assertEquals(youtubeVideoId("https://youtu.be/abcdefghijk"), "abcdefghijk");
+  assertEquals(youtubeVideoId("https://youtube.com.evil.test/watch?v=abcdefghijk"), null);
+});
+
+Deno.test("parses signed YouTube storyboard levels into sampled sheet URLs", () => {
+  const spec = [
+    "https://i.ytimg.com/sb/abcdefghijk/storyboard3_L$L/$N.jpg?sqp=abc",
+    "48#27#100#10#10#0#default#rs$low",
+    "160#90#60#5#5#10000#M$M#rs$high",
+  ].join("|");
+  const sheets = parseYouTubeStoryboardSpec(spec, 3);
+  assertEquals(sheets.length, 3);
+  assertEquals(sheets[0].width, 160);
+  assertEquals(sheets[0].height, 90);
+  assertEquals(sheets[0].url.includes("storyboard3_L1/0.jpg"), true);
+  assertEquals(sheets[0].url.includes("sigh=rs$high"), true);
+  assertEquals(sheets[1].url.includes("storyboard3_L1/1.jpg"), true);
+  assertEquals(parseYouTubeStoryboardSpec("https://example.com/not-a-storyboard", 3), []);
 });
 
 Deno.test("regeneration requires a UUID parent and generation rejects stray parent IDs", () => {
