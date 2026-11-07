@@ -4,6 +4,7 @@ import {
   interactionsSchemaFor,
   parseOutputs,
   parseVideoOutputs,
+  videoDraftQualityIssues,
   runWithProviderFallback,
   schemaFor,
   serializeOutput,
@@ -335,8 +336,68 @@ async function generateYouTube(
     raw = blocks.filter((block) => block?.type === "text" && typeof block.text === "string")
       .map((block) => block.text).join("\n");
   }
-  const parsed = parseVideoOutputs(raw, platforms, variationCount);
+  let parsed = parseVideoOutputs(raw, platforms, variationCount);
   if (!parsed) throw new Error("Gemini returned an invalid video analysis or draft format.");
+
+  // Do not silently ship thin drafts. Give the model one targeted repair pass,
+  // then fail the generation (and refund its reservation) if it still misses depth.
+  let qualityIssues = videoDraftQualityIssues(parsed.outputs, platforms, variationCount);
+  if (qualityIssues.length) {
+    console.warn("YouTube social drafts failed depth checks; requesting one repair pass.", qualityIssues);
+    const repairPrompt = [
+      "Your previous social drafts were too short to be publishable. Rewrite the underlength drafts listed below.",
+      "Use the actual video and transcript as source material. Expand with specific reasoning, explanations, examples, context and useful detail that are genuinely supported by the source. Do not pad, repeat yourself, invent facts or turn one sentence into several empty sentences.",
+      "Meet the full platform length and structure requirements. Treat the minimum word counts as hard requirements, not suggestions.",
+      "Keep any draft that already meets its minimum unchanged. Keep video_analysis unchanged. Return the complete JSON object with every requested platform and video_analysis.",
+      "Drafts that failed: " + qualityIssues.join("; "),
+      "Current response to improve: " + JSON.stringify({ ...parsed.outputs, video_analysis: parsed.analysis }),
+      "Writing preferences: " + JSON.stringify(preferences),
+      "Platform requirements:\n" + instructions,
+      transcriptSection,
+    ].join("\n\n");
+    const repairResponse = await fetch("https://generativelanguage.googleapis.com/v1beta/interactions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-goog-api-key": GEMINI_API_KEY },
+      signal: AbortSignal.timeout(90000),
+      body: JSON.stringify({
+        model: GEMINI_MODEL,
+        system_instruction: GENERATION_SYSTEM_INSTRUCTION,
+        input: [
+          { type: "video", uri: url, processing: "static" },
+          { type: "text", text: repairPrompt },
+        ],
+        response_format: {
+          type: "text",
+          mime_type: "application/json",
+          schema: interactionsSchemaFor(platforms, variationCount),
+        },
+        generation_config: { max_output_tokens: 14000 },
+        store: false,
+      }),
+    });
+    const repairData = await repairResponse.json().catch(() => ({}));
+    if (!repairResponse.ok || (repairData?.status && repairData.status !== "completed")) {
+      throw new Error("The social drafts came back too short and the quality retry did not complete. Please try again.");
+    }
+    let repairRaw = typeof repairData.output_text === "string" ? repairData.output_text : "";
+    if (!repairRaw) {
+      const repairBlocks: Array<{ type?: string; text?: string }> = [];
+      for (const step of repairData.steps || []) {
+        if (step?.type === "model_output" && Array.isArray(step.content)) repairBlocks.push(...step.content);
+      }
+      repairRaw = repairBlocks.filter((block) => block?.type === "text" && typeof block.text === "string")
+        .map((block) => block.text).join("\n");
+    }
+    const repaired = parseVideoOutputs(repairRaw, platforms, variationCount);
+    if (!repaired) throw new Error("The social drafts failed the quality retry. Please try again.");
+    parsed = repaired;
+    qualityIssues = videoDraftQualityIssues(parsed.outputs, platforms, variationCount);
+    if (qualityIssues.length) {
+      console.error("YouTube social drafts remained below minimum depth after repair.", qualityIssues);
+      throw new Error("The video did not produce sufficiently detailed social drafts. Please try again with another video.");
+    }
+  }
+
   const usage = data?.usage || {};
   return {
     outputs: parsed.outputs,

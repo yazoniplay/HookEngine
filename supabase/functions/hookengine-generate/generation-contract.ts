@@ -182,6 +182,44 @@ export function parseOutputs(
   }
 }
 
+const VIDEO_DRAFT_MIN_WORDS: Record<string, number> = {
+  x_thread: 150,
+  linkedin_post: 160,
+  tiktok_hooks: 130,
+  instagram_caption: 110,
+  threads_posts: 100,
+  facebook_post: 120,
+};
+
+function wordCount(value: string): number {
+  return (value.match(/[\p{L}\p{N}]+(?:['’][\p{L}\p{N}]+)*/gu) || []).length;
+}
+
+/** Reject underdeveloped YouTube social drafts before they reach the user. */
+export function videoDraftQualityIssues(
+  outputs: Record<string, string[]>,
+  platforms: string[],
+  variationCount: number,
+): string[] {
+  const issues: string[] = [];
+  for (const platform of platforms) {
+    const minimum = VIDEO_DRAFT_MIN_WORDS[platform];
+    const versions = outputs[platform] || [];
+    if (!minimum || versions.length !== variationCount) {
+      issues.push(platform + ": missing requested variations");
+      continue;
+    }
+    versions.forEach((draft, index) => {
+      const actual = wordCount(draft);
+      if (actual < minimum) {
+        issues.push(platform + (variationCount > 1 ? " version " + (index + 1) : "") +
+          ": " + actual + " words; minimum " + minimum);
+      }
+    });
+  }
+  return issues;
+}
+
 export function parseVideoOutputs(
   raw: string,
   platforms: string[],
