@@ -265,12 +265,51 @@ function outputVersions(value) {
 function renderOutputs(outputs) {
   const root = $("outputList");
   root.replaceChildren();
+  const analysis = typeof outputs?.video_analysis === "string" ? outputs.video_analysis.trim() : "";
   const entries = Object.entries(outputs || {})
     .map(([key, value]) => [key, outputVersions(value)])
     .filter(([key, versions]) => PLATFORM_LABELS[key] && versions.length);
-  $("resultCount").textContent = entries.length + " platforms";
-  $("copyAllBtn").hidden = entries.length === 0;
-  $("clearResultsBtn").hidden = entries.length === 0;
+  $("resultCount").textContent = entries.length + " platforms" + (analysis ? " · Full video breakdown" : "");
+  $("copyAllBtn").hidden = entries.length === 0 && !analysis;
+  $("clearResultsBtn").hidden = entries.length === 0 && !analysis;
+
+  if (analysis) {
+    const card = document.createElement("article");
+    card.className = "output-card video-analysis-card";
+    const top = document.createElement("div");
+    top.className = "output-top";
+    const title = document.createElement("strong");
+    title.className = "output-title";
+    title.textContent = "Video breakdown & speaker profile";
+    const actions = document.createElement("div");
+    actions.className = "output-actions";
+    const copy = document.createElement("button");
+    copy.className = "copy-btn";
+    copy.type = "button";
+    copy.textContent = "Copy analysis";
+    copy.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(analysis);
+        copy.textContent = "Copied";
+        setTimeout(() => copy.textContent = "Copy analysis", 1200);
+      } catch {
+        showError("Clipboard access failed. Select the analysis and copy it manually.");
+      }
+    });
+    const meta = document.createElement("span");
+    meta.className = "output-meta";
+    meta.textContent = analysis.length.toLocaleString() + " characters";
+    actions.append(copy);
+    top.append(title, meta, actions);
+    const editor = document.createElement("textarea");
+    editor.className = "output-text analysis-text";
+    editor.value = analysis;
+    editor.rows = Math.min(32, Math.max(12, Math.ceil(analysis.length / 75)));
+    editor.style.minHeight = "320px";
+    editor.setAttribute("aria-label", "Detailed video breakdown and speaker delivery profile");
+    card.append(top, editor);
+    root.append(card);
+  }
 
   for (const [key, versions] of entries) {
     const card = document.createElement("article");
@@ -341,7 +380,7 @@ function renderOutputs(outputs) {
     card.append(editor);
     root.append(card);
   }
-  $("results").hidden = entries.length === 0;
+  $("results").hidden = entries.length === 0 && !analysis;
 }
 
 $("copyAllBtn").addEventListener("click", async () => {
