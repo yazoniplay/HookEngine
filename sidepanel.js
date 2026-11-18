@@ -74,8 +74,8 @@ function renderAccount() {
   $("accountSummary").textContent = !signedIn
     ? "Sign in to use HookEngine"
     : !usage
-      ? "Loading your plan and credits…"
-      : usage.credits + " credits · " + usage.used + "/" + usage.limit + " daily generations used";
+      ? "Loading your plan and usage…"
+      : usageMainLine(usage);
   document.querySelector(".account-indicator").classList.toggle("active", signedIn);
   $("signedOutPanel").hidden = signedIn;
   $("signedInPanel").hidden = !signedIn;
@@ -83,14 +83,13 @@ function renderAccount() {
     $("signedInEmail").textContent = accountUser.email || "Signed in";
     $("extensionPlan").textContent = usage ? planLabel(usage.plan) : "LOADING";
     if (usage) {
-      const trialNote = usage.plan === "trial" && usage.trialEndsAt
-        ? " · Trial ends " + new Date(usage.trialEndsAt).toLocaleDateString()
-        : "";
-      $("dailyUsage").textContent = usage.credits + " credits left · " +
-        usage.remaining + "/" + usage.limit + " daily generations remaining" + trialNote;
-      $("extensionProgress").style.width = Math.min(100, usage.used / Math.max(1,usage.limit) * 100) + "%";
+      $("dailyUsage").textContent = dailyLimitLine(usage);
+      $("dailyUsage").hidden = !dailyLimitLine(usage);
+      $("extensionProgress").style.width = Math.min(100,
+        (usage.creditsTotal - usage.credits) / Math.max(1, usage.creditsTotal) * 100) + "%";
     } else {
       $("dailyUsage").textContent = "Usage unavailable";
+      $("dailyUsage").hidden = false;
       $("extensionProgress").style.width = "0%";
     }
   }
@@ -138,11 +137,14 @@ async function refreshUsage() {
     if (!response.ok) throw new Error(data.message || data.details || "Usage request failed (" + response.status + ").");
     accountUsage = {
       plan: data.plan || "free",
+      period: data.period || "weekly",
       credits: Number(data.credits_balance) || 0,
-      creditsPerPeriod: Number(data.credits_per_period) || 0,
-      used: Number(data.daily_used) || 0,
-      limit: Number(data.daily_limit) || 0,
-      remaining: Number(data.remaining_daily) || 0,
+      creditsTotal: Number(data.credits_total ?? data.credits_per_period) || 0,
+      dailyUsed: Number(data.daily_used) || 0,
+      dailyLimit: Number(data.daily_limit) || 0,
+      remainingDaily: Number(data.remaining_daily) || 0,
+      resetAt: data.reset_at || null,
+      resetAtDay: data.daily_reset_at || null,
       trialEndsAt: data.trial_ends_at || null,
       platforms: Array.isArray(data.platforms) ? data.platforms : []
     };
