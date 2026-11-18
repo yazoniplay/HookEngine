@@ -14,7 +14,8 @@ const context = {
   FUNCTION_URL: "https://project.example/functions/v1/hookengine-generate",
   STORAGE_KEYS: {
     session: "hookengine-account-session",
-    lastGeneration: "hookengine-last-generation"
+    lastGeneration: "hookengine-last-generation",
+    history: "hookengine-history"
   },
   MAX_SOURCE_CHARS: 60000,
   MIN_SOURCE_CHARS: 80
@@ -134,9 +135,18 @@ test("the public Supabase client key lives in shared extension config", async ()
   assert.ok(match, "shared config should define the public client key");
   const payload = JSON.parse(Buffer.from(match[1].split(".")[1], "base64url").toString("utf8"));
   assert.equal(payload.role, "anon", "the browser key must be the public anon role");
-  assert.match(popup, /SUPABASE_KEY/);
+  const background = await readFile(new URL("../background.js", import.meta.url), "utf8");
+  assert.match(background, /apikey: SUPABASE_KEY/);
   assert.match(popup, /from "\.\/extension\/config\.js"/);
   assert.doesNotMatch(popup, /eyJ[a-zA-Z0-9_-]{20,}\.[a-zA-Z0-9_-]{20,}\./);
+});
+
+test("the popup contains no sign-in flow and does not hold a key", async () => {
+  const html = await readFile(new URL("../popup.html", import.meta.url), "utf8");
+  const popup = await readFile(new URL("../sidepanel.js", import.meta.url), "utf8");
+  assert.doesNotMatch(html, /authGate|accountSignIn|gateSignIn|accountPanel|accountToggle|upgradeButton/);
+  assert.doesNotMatch(popup, /extension\/auth\.js/);
+  assert.doesNotMatch(popup, /signIn\(|refreshUsage|renderAccount/);
 });
 
 test("the popup entry point loads the popup application as a module", async () => {
@@ -151,23 +161,10 @@ test("transient session verification failures preserve the saved login", async (
   assert.match(auth, /writeStoredSession\(null\)/);
 });
 
-test("the account sign-in buttons use their own form fields and messages", async () => {
+test("the popup clears any login left by earlier versions", async () => {
   const popup = await readFile(new URL("../sidepanel.js", import.meta.url), "utf8");
-  assert.match(popup, /signIn\("account"\)/);
-  assert.match(popup, /signIn\("gate"\)/);
-  assert.match(popup, /accountMessage/);
-  assert.match(popup, /gateMessage/);
-});
-
-test("the popup delegates session management to the dedicated auth module", async () => {
-  const popup = await readFile(new URL("../sidepanel.js", import.meta.url), "utf8");
-  const auth = await readFile(new URL("../extension/auth.js", import.meta.url), "utf8");
-  assert.match(popup, /from "\.\/extension\/auth\.js"/);
-  assert.match(popup, /restoreSession/);
-  assert.match(popup, /authenticate\(email, password\)/);
-  assert.match(auth, /export async function restoreSession\(\)/);
-  assert.match(auth, /export async function signIn\(email, password\)/);
-  assert.match(auth, /export async function signOut\(\)/);
+  assert.match(popup, /removeLegacySession\(\)/);
+  assert.match(popup, /chrome\.storage\.local\.remove\(SESSION_KEY\)/);
 });
 
 test("YouTube extraction does not run the article parser as a fallback", async () => {
@@ -240,39 +237,21 @@ test("YouTube generation uses a transcript before the Gemini video fallback", as
   assert.equal(fallback.payload.sourceMode, "youtube_video");
 });
 
-test("service-worker generation refreshes an expired token exactly once", async () => {
-  storage.set("hookengine-account-session", {
-    access_token: "expired-access",
-    refresh_token: "refresh-token"
-  });
-  let generationCalls = 0;
-  let refreshCalls = 0;
+test("service-worker generation is anonymous: no Authorization header is sent", async () => {
+  let sentHeaders = null;
   context.fetch = async (url, options) => {
-    if (url === context.FUNCTION_URL) {
-      generationCalls++;
-      if (generationCalls === 1) return {
-        ok: false, status: 401, async json() { return { error: "expired" }; }
-      };
-      return {
-        ok: true, status: 200,
-        async json() { return { outputs: { x_thread: "Draft" }, usage: { plan: "free" } }; }
-      };
-    }
-    if (String(url).includes("grant_type=refresh_token")) {
-      refreshCalls++;
-      return {
-        ok: true, status: 200,
-        async json() { return { access_token: "fresh-access", refresh_token: "fresh-refresh", expires_in: 3600 }; }
-      };
-    }
-    throw new Error("Unexpected URL " + url);
+    if (url !== context.FUNCTION_URL) throw new Error("Unexpected URL " + url);
+    sentHeaders = options.headers;
+    return {
+      ok: true, status: 200,
+      async json() { return { outputs: { x_thread: "Draft" }, usage: { plan: "anonymous", remainingDaily: 9 } }; }
+    };
   };
 
-  const data = await context.generateWithStoredSession({ text: "source" });
+  const data = await context.generateAnonymously({ text: "source" });
   assert.equal(data.outputs.x_thread, "Draft");
-  assert.equal(generationCalls, 2);
-  assert.equal(refreshCalls, 1);
-  assert.equal(storage.get("hookengine-account-session").access_token, "fresh-access");
+  assert.equal(sentHeaders.apikey, context.SUPABASE_KEY);
+  assert.equal("Authorization" in sentHeaders, false);
 });
 
 test("service-worker generation persists the last result without storing source text", async () => {
@@ -344,34 +323,26 @@ test("the popup can clear its persisted result", async () => {
   assert.equal(storage.has("hookengine-last-generation"), false);
 });
 
-test("a second generation 401 does not trigger another refresh attempt", async () => {
-  storage.set("hookengine-account-session", {
-    access_token: "expired-access",
-    refresh_token: "refresh-token"
+test("a 429 from the generator surfaces its limit message with status 429", async () => {
+  context.fetch = async () => ({
+    ok: false, status: 429,
+    async json() { return { error: "Daily limit reached for this connection. Try again tomorrow." }; }
   });
-  let generationCalls = 0;
-  let refreshCalls = 0;
-  context.fetch = async url => {
-    if (url === context.FUNCTION_URL) {
-      generationCalls++;
-      return { ok: false, status: 401, async json() { return { error: "unauthorized" }; } };
-    }
-    if (String(url).includes("grant_type=refresh_token")) {
-      refreshCalls++;
-      return {
-        ok: true, status: 200,
-        async json() { return { access_token: "fresh-access", refresh_token: "fresh-refresh", expires_in: 3600 }; }
-      };
-    }
-    throw new Error("Unexpected URL " + url);
-  };
   await assert.rejects(
-    context.generateWithStoredSession({ text: "source" }),
-    /Your session expired/
+    context.generateAnonymously({ text: "source" }),
+    error => error.status === 429 && /Try again tomorrow/.test(error.message)
   );
-  assert.equal(generationCalls, 2);
-  assert.equal(refreshCalls, 1);
-  assert.equal(storage.has("hookengine-account-session"), false);
+});
+
+test("generation history keeps the newest entries on this device only", async () => {
+  storage.delete("hookengine-history");
+  for (let i = 0; i < 25; i++) {
+    await context.saveHistoryEntry({ title: "Draft " + i, outputs: {}, platforms: ["x_thread"] });
+  }
+  const history = storage.get("hookengine-history");
+  assert.equal(history.length, 20);
+  assert.equal(history[0].title, "Draft 24");
+  assert.ok(history[0].id, "each history entry gets an id");
 });
 
 test("draft output renderer accepts array versions and exposes result actions", async () => {
@@ -412,19 +383,12 @@ test("writing preferences are saved in sync storage and sent with generation req
   assert.match(popup, /openOptionsPage/);
 });
 
-test("account toggle remains a real button and switches the account panel", async () => {
+test("the popup shows a local history list and restores the last generation", async () => {
   const html = await readFile(new URL("../popup.html", import.meta.url), "utf8");
   const popup = await readFile(new URL("../sidepanel.js", import.meta.url), "utf8");
-  assert.match(html, /<button id="accountToggle"[^>]*aria-controls="accountPanel"[^>]*aria-expanded="false"/);
-  assert.match(popup, /panel\.hidden = !panel\.hidden/);
-  assert.match(popup, /setAttribute\("aria-expanded", String\(!panel\.hidden\)\)/);
-  assert.doesNotMatch(popup, /accountToggle"\)\.addEventListener\("keydown"/);
-});
-
-test("the popup includes an account history link and the last generation is restored", async () => {
-  const html = await readFile(new URL("../popup.html", import.meta.url), "utf8");
-  const popup = await readFile(new URL("../sidepanel.js", import.meta.url), "utf8");
-  assert.match(html, /Account & history/);
+  assert.match(html, /id="historyList"/);
+  assert.match(html, /id="clearHistoryBtn"/);
+  assert.match(popup, /STORAGE_KEYS\.history/);
   assert.match(popup, /restoreLastGeneration\(\)/);
   assert.match(popup, /HOOKENGINE_GET_LAST_GENERATION/);
 });

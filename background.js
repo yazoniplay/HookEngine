@@ -307,68 +307,45 @@ async function resolveYouTubeGenerationSource(payload) {
   return { payload, transcriptUsed: false };
 }
 
-async function postGeneration(payload, accessToken) {
+// Anonymous generation: no Authorization header is sent. The function authenticates
+// requests itself and rejects any bearer token it cannot verify, so an account-free
+// request must not carry one.
+async function postGeneration(payload) {
   return fetch(FUNCTION_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      apikey: SUPABASE_KEY,
-      Authorization: "Bearer " + accessToken
+      apikey: SUPABASE_KEY
     },
     body: JSON.stringify(payload)
   });
 }
 
-async function generateWithStoredSession(payload) {
-  const saved = await chrome.storage.local.get(STORAGE_KEYS.session);
-  let session = saved[STORAGE_KEYS.session] || null;
-  if (!session?.access_token) throw new Error("Sign in to generate drafts.");
-
-  let response = await postGeneration(payload, session.access_token);
-  if (response.status === 401) {
-    if (!session.refresh_token) {
-      await chrome.storage.local.remove(STORAGE_KEYS.session);
-      throw new Error("Your session expired. Sign in again.");
-    }
-
-    let refreshed;
-    try {
-      refreshed = await fetch(SUPABASE_URL + "/auth/v1/token?grant_type=refresh_token", {
-        method: "POST",
-        headers: { apikey: SUPABASE_KEY, "Content-Type": "application/json" },
-        body: JSON.stringify({ refresh_token: session.refresh_token })
-      });
-    } catch {
-      throw new Error("Couldn't refresh your session because the network is unavailable. Your saved session is preserved.");
-    }
-
-    const refreshData = await refreshed.json().catch(() => ({}));
-    if (!refreshed.ok) {
-      if ([400, 401, 403].includes(refreshed.status)) {
-        await chrome.storage.local.remove(STORAGE_KEYS.session);
-        throw new Error("Your session expired. Sign in again.");
-      }
-      throw new Error("Sign-in is temporarily unavailable. Your saved session is preserved.");
-    }
-    if (!refreshData.access_token) {
-      throw new Error("The sign-in service returned an invalid session. Your saved session is preserved.");
-    }
-
-    session = refreshData;
-    session.expires_at = Math.floor(Date.now() / 1000) + (session.expires_in || 3600);
-    await chrome.storage.local.set({ [STORAGE_KEYS.session]: session });
-    response = await postGeneration(payload, session.access_token);
-    if (response.status === 401) {
-      await chrome.storage.local.remove(STORAGE_KEYS.session);
-      throw new Error("Your session expired. Sign in again.");
-    }
-  }
-
+async function generateAnonymously(payload) {
+  const response = await postGeneration(payload);
   const data = await response.json().catch(() => ({}));
+  if (response.status === 429) {
+    const error = new Error(data.error || "Daily limit reached. Try again tomorrow.");
+    error.status = 429;
+    throw error;
+  }
   if (!response.ok) {
     throw new Error(data.error || "Generation failed (" + response.status + ").");
   }
   return data;
+}
+
+const HISTORY_LIMIT = 20;
+
+// Generation history lives only in this browser (chrome.storage.local). It is never
+// sent to the server and is capped at the most recent HISTORY_LIMIT entries.
+async function saveHistoryEntry(entry) {
+  const saved = await chrome.storage.local.get(STORAGE_KEYS.history);
+  const existing = Array.isArray(saved[STORAGE_KEYS.history]) ? saved[STORAGE_KEYS.history] : [];
+  const id = Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10);
+  const next = [{ id, ...entry }, ...existing].slice(0, HISTORY_LIMIT);
+  await chrome.storage.local.set({ [STORAGE_KEYS.history]: next });
+  return next;
 }
 
 async function handleGenerationMessage(message) {
@@ -390,7 +367,7 @@ async function handleGenerationMessage(message) {
   }
 
   const resolved = await resolveYouTubeGenerationSource(originalPayload);
-  const data = await generateWithStoredSession(resolved.payload);
+  const data = await generateAnonymously(resolved.payload);
   const outputs = data.outputs || Object.fromEntries(
     ["x_thread", "linkedin_post", "tiktok_hooks", "instagram_caption", "threads_posts", "facebook_post"]
       .filter(key => typeof data[key] === "string")
@@ -409,6 +386,7 @@ async function handleGenerationMessage(message) {
     platforms: resolved.payload.platforms
   };
   await chrome.storage.local.set({ [STORAGE_KEYS.lastGeneration]: lastGeneration });
+  await saveHistoryEntry(lastGeneration);
   return {
     ok: true,
     data,

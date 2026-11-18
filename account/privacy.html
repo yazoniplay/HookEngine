@@ -13,41 +13,38 @@
 </head>
 <body>
     <h1>Privacy Policy</h1>
-    <p>Last Updated: October 25, 2026</p>
-
+    <p>Last Updated: November 18, 2026</p>
     <h2>1. Introduction</h2>
-    <p>Welcome to HookEngine. We are committed to protecting your privacy. This Privacy Policy explains how we collect, use, and safeguard your information when you use our Chrome Extension and associated services.</p>
-
-    <h2>2. Data We Collect</h2>
-    <p>To provide our services, we collect the following information:</p>
+    <p>HookEngine is a free Chrome extension. You do not need an account to use it. This policy explains what information the extension and its service process, and why.</p>
+    <h2>2. Information We Process</h2>
+    <p>To create drafts, the extension sends the following to HookEngine's server:</p>
     <ul>
-        <li><strong>Account Information:</strong> When you create an account, we collect your email address and password to manage your authentication and usage limits.</li>
-        <li><strong>Usage Data:</strong> We track the number of content generations you perform to enforce our free and pro tier limits.</li>
+        <li><strong>Source content:</strong> the article text, selected text or transcript you choose to generate from, the optional title, the page address for YouTube videos, and the platforms you select.</li>
+        <li><strong>Connection data for daily limits:</strong> your IP address is combined with a secret salt and converted into a one-way hash. We store only that hash and a count of credits used that day. The raw IP address is never stored or logged. Hashes are removed by a scheduled cleanup after a short retention period (currently up to two days).</li>
     </ul>
-
-    <h2>3. How We Use Your Data</h2>
-    <p>We use the collected data solely to:</p>
+    <h2>3. Information Stored On Your Device</h2>
+    <p>Your draft history is kept in your browser's local storage, the most recent 20 generations. It is not sent to HookEngine. You can clear it at any time from the extension's History section. Uninstalling the extension removes it.</p>
+    <h2>4. How We Use Information</h2>
+    <p>We use the information above only to:</p>
     <ul>
-        <li>Authenticate your identity and manage your account.</li>
-        <li>Track and limit daily usage according to your plan (Free or Pro).</li>
-        <li>Improve the functionality and performance of HookEngine.</li>
+        <li>Create the drafts you request.</li>
+        <li>Enforce the daily credit limit per connection and the shared daily cap.</li>
+        <li>Keep the service running and protect it from abuse.</li>
     </ul>
-
-    <h2>4. Data Storage and Security</h2>
-    <p>Your account data is stored securely using industry-standard cloud infrastructure. We implement rigorous security measures to protect your information from unauthorized access.</p>
-
     <h2>5. Third-Party Services</h2>
-    <p>HookEngine uses the following third-party services to operate:</p>
+    <p>HookEngine uses the following services to operate:</p>
     <ul>
-        <li><strong>AI Service Providers:</strong> We utilize advanced AI models to process your content and generate social media drafts. We do not sell your personal content to third parties.</li>
-        <li><strong>Database and Auth Services:</strong> Used for secure user authentication and account management.</li>
-        <li><strong>Payment Processors:</strong> Used for secure payment processing. We do not store your credit card information on our own servers.</li>
+        <li><strong>AI providers:</strong> your source content is processed by AI models to generate drafts. Depending on availability, providers include Google Gemini, Groq, OpenRouter and Ollama. Each provider handles the content under its own terms. We do not sell your content.</li>
+        <li><strong>Hosting and database:</strong> Supabase hosts HookEngine's functions and the database that holds the limit counters described above.</li>
     </ul>
-
-    <h2>6. Your Rights</h2>
-    <p>You can request to have your account and data deleted at any time by contacting us via the support channels provided in the extension.</p>
-
-    <h2>7. Contact Us</h2>
-    <p>If you have any questions about this Privacy Policy, please contact us through our official support channels.</p>
+    <p>The extension does not use advertising or analytics services.</p>
+    <h2>6. Accounts Created Before This Change</h2>
+    <p>Earlier versions of HookEngine used sign-in accounts. The extension no longer uses them, and any saved sign-in is removed from your browser when the extension runs. If you have an existing account and want its data deleted, contact us through the support address on the HookEngine landing page.</p>
+    <h2>7. Your Choices</h2>
+    <p>You control what you submit, and you can clear your local history at any time. You can request deletion of any server-side data associated with you through the support address above.</p>
+    <h2>8. Changes to This Policy</h2>
+    <p>We will update this page when our data practices change, and the date above will change with it.</p>
+    <h2>9. Contact</h2>
+    <p>For questions about this policy, use the support address listed on the HookEngine landing page.</p>
 </body>
 </html>

@@ -5,7 +5,8 @@ export const STORAGE_KEYS = Object.freeze({
   session: "hookengine-account-session",
   theme: "hookengine-theme",
   writingPreferences: "hookengine-writing-preferences",
-  lastGeneration: "hookengine-last-generation"
+  lastGeneration: "hookengine-last-generation",
+  history: "hookengine-history"
 });
 export const MAX_SOURCE_CHARS = 60000;
 export const MIN_SOURCE_CHARS = 80;

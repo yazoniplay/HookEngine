@@ -1,6 +1,4 @@
 import {
-  SUPABASE_URL,
-  SUPABASE_KEY,
   FUNCTION_URL,
   STORAGE_KEYS,
   MAX_SOURCE_CHARS,
@@ -8,25 +6,12 @@ import {
   VARIATION_SEPARATOR,
   PLATFORM_LABELS
 } from "./extension/config.js";
-import {
-  restoreSession,
-  signIn as authenticate,
-  signOut as terminateSession
-} from "./extension/auth.js";
-import {
-  planLabel,
-  usageMainLine,
-  dailyLimitLine
-} from "./extension/usage-display.mjs";
 
 const $ = id => document.getElementById(id);
-const SESSION_KEY = STORAGE_KEYS.session;
 const THEME_KEY = STORAGE_KEYS.theme;
 const WRITING_PREFS_KEY = STORAGE_KEYS.writingPreferences;
-
-let accountSession = null;
-let accountUser = null;
-let accountUsage = null;
+const HISTORY_KEY = STORAGE_KEYS.history;
+const SESSION_KEY = STORAGE_KEYS.session;
 
 function applyTheme(theme) {
   const selected = theme === "light" ? "light" : "dark";
@@ -58,149 +43,16 @@ $("themeToggle").addEventListener("click", async () => {
   try { await chrome.storage.local.set({[THEME_KEY]:next}); } catch {}
 });
 
-function renderAccount() {
-  const signedIn = !!accountUser;
-  const usage = accountUsage;
-  const hasProFeatures = !!usage && usage.plan !== "free";
-  $("authGate").hidden = signedIn;
-  document.querySelector(".app").classList.toggle("auth-required", !signedIn);
-  $("upgradeButton").hidden = !signedIn || hasProFeatures;
-  $("planSummary").textContent = usage ? planLabel(usage.plan) : "—";
-  $("planSummary").hidden = !signedIn || !usage;
-  $("accountPanel").hidden = true;
-  $("accountToggle").setAttribute("aria-expanded", "false");
-  $("accountToggle").textContent = signedIn ? "Account" : "Sign in";
-  $("accountStrip").classList.toggle("is-signed-in", signedIn);
-  $("accountSummary").textContent = !signedIn
-    ? "Sign in to use HookEngine"
-    : !usage
-      ? "Loading your plan and usage…"
-      : usageMainLine(usage);
-  document.querySelector(".account-indicator").classList.toggle("active", signedIn);
-  $("signedOutPanel").hidden = signedIn;
-  $("signedInPanel").hidden = !signedIn;
-  if (signedIn) {
-    $("signedInEmail").textContent = accountUser.email || "Signed in";
-    $("extensionPlan").textContent = usage ? planLabel(usage.plan) : "LOADING";
-    if (usage) {
-      $("dailyUsage").textContent = dailyLimitLine(usage);
-      $("dailyUsage").hidden = !dailyLimitLine(usage);
-      $("extensionProgress").style.width = Math.min(100,
-        (usage.creditsTotal - usage.credits) / Math.max(1, usage.creditsTotal) * 100) + "%";
-    } else {
-      $("dailyUsage").textContent = "Usage unavailable";
-      $("dailyUsage").hidden = false;
-      $("extensionProgress").style.width = "0%";
-    }
-  }
-  document.querySelectorAll(".pro-option").forEach(label => {
-    const input = label.querySelector("input");
-    const unlocked = hasProFeatures;
-    label.classList.toggle("unlocked", unlocked);
-    input.disabled = !unlocked;
-  });
-  $("proHint").hidden = hasProFeatures;
-}
-$("accountToggle").addEventListener("click", () => {
-  const panel = $("accountPanel");
-  panel.hidden = !panel.hidden;
-  $("accountToggle").setAttribute("aria-expanded", String(!panel.hidden));
-});
-async function loadAccountSession() {
-  try {
-    const restored = await restoreSession();
-    accountSession = restored.session;
-    accountUser = restored.user;
-    if (restored.warning) showError(restored.warning);
-  } catch (error) {
-    console.warn("HookEngine: account session could not be restored", error);
-    showError("Couldn't restore your account right now. Your saved session has not been deleted.");
-  }
-
-  renderAccount();
-  if (accountUser) await refreshUsage();
-}
-async function refreshUsage() {
-  if (!accountUser || !accountSession?.access_token) return;
-  try {
-    const response = await fetch(SUPABASE_URL + "/rest/v1/rpc/hookengine_my_usage", {
-      method: "POST",
-      headers: {
-        apikey: SUPABASE_KEY,
-        Authorization: "Bearer " + accountSession.access_token,
-        "Content-Type": "application/json"
-      },
-      body: "{}",
-      cache: "no-store"
-    });
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(data.message || data.details || "Usage request failed (" + response.status + ").");
-    accountUsage = {
-      plan: data.plan || "free",
-      period: data.period || "weekly",
-      credits: Number(data.credits_balance) || 0,
-      creditsTotal: Number(data.credits_total ?? data.credits_per_period) || 0,
-      dailyUsed: Number(data.daily_used) || 0,
-      dailyLimit: Number(data.daily_limit) || 0,
-      remainingDaily: Number(data.remaining_daily) || 0,
-      resetAt: data.reset_at || null,
-      resetAtDay: data.daily_reset_at || null,
-      trialEndsAt: data.trial_ends_at || null,
-      platforms: Array.isArray(data.platforms) ? data.platforms : []
-    };
-  } catch (error) {
-    accountUsage = null;
-    showError("Couldn't load your HookEngine usage: " + (error.message || "Please retry."));
-  }
-  renderAccount();
-}
-async function signIn(source = "account") {
-  const isGate = source === "gate";
-  const emailInput = $(isGate ? "gateEmail" : "accountEmail");
-  const passwordInput = $(isGate ? "gatePassword" : "accountPassword");
-  const message = $(isGate ? "gateMessage" : "accountMessage");
-  const signInButton = $(isGate ? "gateSignIn" : "accountSignIn");
-  const email = emailInput.value.trim();
-  const password = passwordInput.value;
-
-  if (!email || !password) {
-    message.textContent = "Enter your email and password.";
-    return;
-  }
-
-  signInButton.disabled = true;
-  message.textContent = "Signing in…";
-  try {
-    const result = await authenticate(email, password);
-    accountSession = result.session;
-    accountUser = result.user;
-    $("accountPassword").value = "";
-    $("gatePassword").value = "";
-    message.textContent = "";
-    await refreshUsage();
-    renderAccount();
-  } catch (error) {
-    message.textContent = error.message || "Could not sign in.";
-  } finally {
-    signInButton.disabled = false;
-  }
+// Accounts are no longer used. Remove any login left in storage by earlier versions.
+async function removeLegacySession() {
+  try { await chrome.storage.local.remove(SESSION_KEY); } catch {}
 }
 
-$("accountSignIn").addEventListener("click", () => signIn("account"));
-$("gateSignIn").addEventListener("click", () => signIn("gate"));
-$("gatePassword").addEventListener("keydown", event => {
-  if (event.key === "Enter") signIn("gate");
-});
-$("accountPassword").addEventListener("keydown", event => {
-  if (event.key === "Enter") signIn("account");
-});
-$("accountSignOut").addEventListener("click", async () => {
-  await terminateSession();
-  accountSession = null;
-  accountUser = null;
-  accountUsage = null;
-  renderAccount();
-});
+function showUsage(usage) {
+  const remaining = usage && typeof usage.remainingDaily === "number" ? usage.remainingDaily : null;
+  $("usageLine").hidden = remaining === null;
+  $("usageLine").textContent = remaining === null ? "" : remaining + " credits left today";
+}
 
 function updateSourceMeta() {
   const length = $("sourceText").value.length;
@@ -411,8 +263,61 @@ $("clearResultsBtn").addEventListener("click", async () => {
   }
 });
 
+// Local history: one list per browser, newest first. Loading an entry shows its drafts again.
+async function readHistory() {
+  try {
+    const saved = await chrome.storage.local.get(HISTORY_KEY);
+    return Array.isArray(saved[HISTORY_KEY]) ? saved[HISTORY_KEY] : [];
+  } catch { return []; }
+}
+
+function formatWhen(iso) {
+  const date = new Date(iso);
+  return Number.isNaN(date.getTime()) ? "" : date.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
+}
+
+async function renderHistory() {
+  const entries = await readHistory();
+  const list = $("historyList");
+  list.replaceChildren();
+  $("historyEmpty").hidden = entries.length > 0;
+  $("clearHistoryBtn").hidden = entries.length === 0;
+  for (const entry of entries) {
+    const item = document.createElement("li");
+    item.className = "history-item";
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "history-open";
+    const title = document.createElement("strong");
+    title.textContent = entry.title || (entry.sourceMode === "youtube_video" ? "YouTube video" : "Untitled source");
+    const meta = document.createElement("small");
+    const platforms = (entry.platforms || []).map(key => PLATFORM_LABELS[key] || key).join(", ");
+    meta.textContent = [formatWhen(entry.generatedAt), platforms].filter(Boolean).join(" · ");
+    button.append(title, meta);
+    button.addEventListener("click", () => {
+      renderOutputs(entry.outputs || {});
+      $("providerNote").hidden = true;
+      clearError();
+    });
+    item.append(button);
+    list.append(item);
+  }
+}
+
+$("clearHistoryBtn").addEventListener("click", async () => {
+  try {
+    await chrome.storage.local.remove(HISTORY_KEY);
+    renderHistory();
+  } catch {
+    showError("Could not clear history.");
+  }
+});
+
+chrome.storage.onChanged?.addListener((changes, area) => {
+  if (area === "local" && changes[HISTORY_KEY]) renderHistory();
+});
+
 async function requestGeneration(payload) {
-  if (!accountSession?.access_token) throw new Error("Sign in to generate drafts.");
   const result = await chrome.runtime.sendMessage({
     type: "HOOKENGINE_GENERATE",
     payload
@@ -421,9 +326,8 @@ async function requestGeneration(payload) {
   if (!result?.ok) throw new Error(result?.error || "Generation failed.");
   const data = result.data || {};
 
-  await refreshUsage();
-  renderAccount();
   renderOutputs(result.lastGeneration?.outputs || data.outputs || {});
+  showUsage(data.usage);
   const notes = [];
   if (result.transcriptUsed) notes.push("Transcript-first");
   else if (payload.sourceMode === "youtube_video") notes.push("Gemini video analysis");
@@ -440,7 +344,6 @@ async function restoreLastGeneration() {
     if (!result?.ok || !result.lastGeneration) return;
     const last = result.lastGeneration;
     renderOutputs(last.outputs || {});
-    renderAccount();
 
     const notes = [];
     if (last.transcriptUsed) notes.push("Transcript-first");
@@ -472,8 +375,8 @@ async function generateForSource(sourceMode="text",sourceUrl="") {
       preferences:(await chrome.storage.sync.get(WRITING_PREFS_KEY))[WRITING_PREFS_KEY]||{}
     });
   } catch(error) {
+    // A 429 carries the server's limit message (per-connection or global daily cap).
     showError(error.message||"Could not generate drafts.");
-    if (accountUser) await refreshUsage();
   }
   finally {setLoading(false);}
 }
@@ -491,4 +394,4 @@ $("analyzeVideoBtn").addEventListener("click",()=>{
     generateForSource("youtube_video",tab.url);
   });
 });
-initTheme();loadAccountSession();restoreLastGeneration();updateSourceMeta();updatePlatformCount();
+initTheme();removeLegacySession();restoreLastGeneration();renderHistory();updateSourceMeta();updatePlatformCount();
