@@ -34,6 +34,18 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "
 
 const MAX_REQUEST_BYTES = 512 * 1024;
 
+// Anonymous (no login) usage. Caps are counted in credits, the same units as accounts:
+// 1 credit per article or text draft, 5 per YouTube video. Limits are enforced in the
+// database; this module only hashes the client IP with a server-side salt and never
+// stores or logs the raw address.
+const ANONYMOUS_IP_DAILY_CREDITS = 10;
+const ANONYMOUS_PLATFORMS = ["x_thread", "linkedin_post", "tiktok_hooks"];
+const ANON_IP_SALT = Deno.env.get("ANON_IP_SALT") || "";
+const GLOBAL_DAILY_CREDIT_CAP = (() => {
+  const parsed = Number(Deno.env.get("GLOBAL_DAILY_CREDIT_CAP"));
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : 100;
+})();
+
 // Comma-separated browser origins allowed to read responses (e.g. the account portal and, optionally,
 // chrome-extension://<published-extension-id>). The extension works without being listed because its
 // host_permissions bypass CORS. Defaults to the account portal origin.
@@ -803,6 +815,127 @@ async function runFallbackVideoGeneration(
   };
 }
 
+// The rightmost X-Forwarded-For entry is the address appended by the platform proxy.
+// Anything to its left is client-supplied and is ignored.
+function trustedClientIp(req: Request): string | null {
+  const parts = (req.headers.get("x-forwarded-for") || "")
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean);
+  const last = parts.at(-1);
+  return last && last.length <= 64 ? last : null;
+}
+
+async function anonymousIpBucket(ip: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(ANON_IP_SALT),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const signature = await crypto.subtle.sign("HMAC", key, encoder.encode(ip));
+  return [...new Uint8Array(signature)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+async function handleAnonymousGeneration(req: Request): Promise<Response> {
+  const cors = buildCorsHeaders(req.headers.get("origin"), ALLOWED_ORIGINS);
+  const reply = (data: unknown, status = 200) => jsonReply(data, status, cors);
+  if (!ANON_IP_SALT || !SUPABASE_SERVICE_ROLE_KEY) {
+    return reply({ error: "Anonymous generation is not configured." }, 503);
+  }
+
+  const rawBody = await req.text();
+  if (new TextEncoder().encode(rawBody).byteLength > MAX_REQUEST_BYTES) {
+    return reply({ error: "Request body is too large." }, 413);
+  }
+  let body: unknown;
+  try {
+    body = JSON.parse(rawBody);
+  } catch {
+    return reply({ error: "Request body must be valid JSON." }, 400);
+  }
+  const validation = validateGenerationPayload(body);
+  if (!validation.ok) return reply({ error: validation.error }, 400);
+  const payload = validation.value;
+
+  if (!payload.platforms.every((platform) => ANONYMOUS_PLATFORMS.includes(platform))) {
+    return reply({ error: "Only X, LinkedIn and TikTok are available without an account." }, 403);
+  }
+
+  const isVideo = payload.sourceMode === "youtube_video";
+  const cost = isVideo ? 5 : 1;
+
+  const ip = trustedClientIp(req);
+  if (!ip) return reply({ error: "Could not identify this connection. Please try again." }, 400);
+  const bucket = await anonymousIpBucket(ip);
+
+  let decision: any;
+  try {
+    decision = await rpc("hookengine_reserve_anonymous", {
+      p_ip_hash: bucket,
+      p_ip_limit: ANONYMOUS_IP_DAILY_CREDITS,
+      p_global_limit: GLOBAL_DAILY_CREDIT_CAP,
+      p_cost: cost,
+    });
+  } catch (error) {
+    console.error("HookEngine anonymous reservation failed", safeErrorStatus(error));
+    return reply({ error: "Could not check usage. Please try again." }, 503);
+  }
+  if (!decision?.allowed) {
+    const globalLimit = decision?.reason === "global_limit";
+    return reply({
+      error: globalLimit
+        ? "Global daily limit reached. Try again tomorrow."
+        : "Daily limit reached for this connection. Try again tomorrow.",
+      reason: globalLimit ? "global_limit" : "ip_limit",
+      resetAt: decision?.resets_at ?? null,
+    }, 429);
+  }
+
+  const startedAt = performance.now();
+  try {
+    // Videos use the same provider chain as account users; text uses generateText.
+    const result = isVideo
+      ? await generateYouTube(payload.sourceUrl, payload.title, payload.platforms, payload.preferences, 1, payload.text)
+      : await generateText(
+        promptFor(payload.title, payload.text.trim(), payload.platforms, payload.preferences, 1),
+        payload.platforms,
+        1,
+      );
+    const videoAnalysis = "analysis" in result && typeof result.analysis === "string" ? result.analysis : null;
+    return reply({
+      outputs: videoAnalysis ? { ...result.outputs, video_analysis: videoAnalysis } : result.outputs,
+      provider: result.provider,
+      fallbackUsed: result.fallbackUsed,
+      usage: {
+        plan: "anonymous",
+        creditsReserved: cost,
+        remainingDaily: decision.ip_remaining ?? null,
+        latencyMs: Math.round(performance.now() - startedAt),
+      },
+    });
+  } catch (error) {
+    // Give the reserved credits back when no draft was produced.
+    try {
+      await rpc("hookengine_refund_anonymous", { p_ip_hash: bucket, p_cost: cost });
+    } catch (refundError) {
+      console.error("Could not refund anonymous generation credits.", safeErrorStatus(refundError));
+    }
+    console.error("HookEngine anonymous generation failed.", safeErrorStatus(error),
+      error instanceof Error ? error.message.slice(0, 300) : "Unknown error");
+    const message = error instanceof Error ? error.message : "";
+    const publicMessage = message === "AI providers are temporarily unavailable. Please try again shortly." ||
+        message === "Could not analyze this YouTube video." ||
+        message === "Video analysis did not complete. Please try again." ||
+        message === "Open a public YouTube video and try again."
+      ? message
+      : "Generation failed. Your credits were not used. Please try again.";
+    return reply({ error: publicMessage }, 502);
+  }
+}
+
 async function handleRequest(req: Request): Promise<Response> {
   const cors = buildCorsHeaders(req.headers.get("origin"), ALLOWED_ORIGINS);
   const reply = (data: unknown, status = 200) => jsonReply(data, status, cors);
@@ -814,8 +947,11 @@ async function handleRequest(req: Request): Promise<Response> {
     return reply({ error: "Request body is too large." }, 413);
   }
 
+  const hasBearer = /^Bearer\s+\S+/i.test(req.headers.get("authorization") || "");
   const userId = await authenticate(req);
-  if (!userId) return reply({ error: "Sign in to HookEngine to use your allowance." }, 401);
+  // A token that fails verification is still rejected; only requests with no token go anonymous.
+  if (!userId && hasBearer) return reply({ error: "Sign in to HookEngine to use your allowance." }, 401);
+  if (!userId) return await handleAnonymousGeneration(req);
   if (!SUPABASE_SERVICE_ROLE_KEY) return reply({ error: "Usage service is not configured." }, 503);
 
   const rawBody = await req.text();

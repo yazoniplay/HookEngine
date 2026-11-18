@@ -44,6 +44,7 @@ migrations=(
   supabase/migrations/20261031130000_hookengine_internal_accounts_admin_audit.sql
   supabase/migrations/20261031130500_hookengine_unpriced_generation_metric.sql
   supabase/migrations/20261031140000_hookengine_paypal_refund_reversal_events.sql
+  supabase/migrations/20261118130000_hookengine_anonymous_ip_caps.sql
 )
 
 for migration in "${migrations[@]}"; do
