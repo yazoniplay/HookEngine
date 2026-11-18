@@ -5,12 +5,15 @@ declare
   v_free_user uuid := '10000000-0000-4000-8000-000000000001';
   v_video_user uuid := '20000000-0000-4000-8000-000000000002';
   v_transcript_user uuid := '30000000-0000-4000-8000-000000000003';
+  v_lifetime_user uuid := '40000000-0000-4000-8000-000000000004';
+  v_second_lifetime_user uuid := '50000000-0000-4000-8000-000000000005';
   v_source text := repeat('Validated source content for HookEngine integration tests. ', 2);
   v_other_source text := repeat('Different source content that must not be accepted for regeneration. ', 2);
   v_result jsonb;
   v_root uuid;
   v_regeneration uuid;
   v_video_root uuid;
+  v_failed_video uuid;
   v_video_regeneration uuid;
   v_balance integer;
   v_event_time timestamptz;
@@ -18,7 +21,26 @@ begin
   insert into auth.users(id,email) values
     (v_free_user,'free-test@example.invalid'),
     (v_video_user,'video-test@example.invalid'),
-    (v_transcript_user,'transcript-test@example.invalid');
+    (v_transcript_user,'transcript-test@example.invalid'),
+    (v_lifetime_user,'lifetime-customer-fixture@example.test'),
+    (v_second_lifetime_user,'second-lifetime-customer-fixture@example.test'),
+    ('60000000-0000-4000-8000-000000000006','paypal-cancel-fixture@example.test'),
+    ('70000000-0000-4000-8000-000000000007','paypal-failure-fixture@example.test'),
+    ('80000000-0000-4000-8000-000000000008','paypal-refund-fixture@example.test');
+
+  insert into public.hookengine_internal_accounts(user_id,reason) values
+    (v_free_user,'CI test fixture'),
+    (v_video_user,'CI test fixture'),
+    (v_transcript_user,'CI test fixture');
+
+  if not (select relrowsecurity from pg_class where oid='public.hookengine_admin_audit'::regclass) then
+    raise exception 'Admin audit table must have RLS enabled';
+  end if;
+  if has_table_privilege('anon','public.hookengine_admin_audit','INSERT')
+     or has_table_privilege('authenticated','public.hookengine_admin_audit','INSERT')
+     or not has_table_privilege('service_role','public.hookengine_admin_audit','INSERT') then
+    raise exception 'Admin audit table grants are not service-role-only';
+  end if;
 
   if not exists (
     select 1 from public.hookengine_subscriptions
@@ -150,6 +172,27 @@ begin
     raise exception 'Could not finalize Pro video generation';
   end if;
 
+  -- A failed 5-credit video analysis must restore all five reserved credits.
+  v_result := public.hookengine_reserve_generation(
+    v_video_user,'youtube_video','Failed video refund','https://www.youtube.com/watch?v=failed-video-test','',
+    'generation',null,array['x_thread']::text[]
+  );
+  if not coalesce((v_result->>'allowed')::boolean,false)
+     or (v_result->>'credits_reserved')::integer <> 5 then
+    raise exception 'Video failure refund test did not reserve five credits: %',v_result;
+  end if;
+  v_failed_video := (v_result->>'generation_id')::uuid;
+  select credits_balance into v_balance from public.hookengine_subscriptions where user_id=v_video_user;
+  if not public.hookengine_finish_generation(
+    p_generation_id=>v_failed_video,p_user_id=>v_video_user,p_status=>'failed',p_error_message=>'forced video failure test'
+  ) then
+    raise exception 'Could not finalize failed video reservation';
+  end if;
+  if (select credits_balance from public.hookengine_subscriptions where user_id=v_video_user) <> v_balance + 5
+     or (select refunded_at from public.hookengine_generations where id=v_failed_video) is null then
+    raise exception 'Failed 5-credit video reservation was not fully refunded';
+  end if;
+
   v_result := public.hookengine_reserve_generation(
     v_video_user,'youtube_video','Video root','https://www.youtube.com/watch?v=integration-test','',
     'regeneration',v_video_root,array['x_thread']::text[]
@@ -201,6 +244,23 @@ begin
      or (v_result->>'credits_consumed')::bigint <> 6
      or (v_result->>'estimated_provider_cost_usd')::numeric <= 0 then
     raise exception 'Usage RPC did not return token, credit and provider cost metrics: %',v_result;
+  end if;
+
+  -- Zero-token telemetry with no model must not be counted as an unpriced generation.
+  v_result := public.hookengine_reserve_generation(
+    v_video_user,'article','Zero-token telemetry test','',v_source,'generation',null,array['x_thread']::text[]
+  );
+  v_root := (v_result->>'generation_id')::uuid;
+  if not public.hookengine_finish_generation(
+    p_generation_id=>v_root,p_user_id=>v_video_user,p_status=>'completed',
+    p_outputs=>'{"x_thread":"zero token test"}'::jsonb,p_selected_platforms=>array['x_thread']::text[],
+    p_provider=>'Gemini',p_model=>null,p_input_tokens=>0,p_output_tokens=>0,p_latency_ms=>1
+  ) then
+    raise exception 'Could not finalize zero-token telemetry test';
+  end if;
+  v_result := public.hookengine_my_usage();
+  if (v_result->>'unpriced_generations')::integer <> 0 then
+    raise exception 'Zero-token row incorrectly counted as unpriced: %',v_result;
   end if;
 
   -- PayPal activation grants the Pro period once; duplicates and out-of-order events are ignored.
@@ -255,14 +315,19 @@ begin
   end if;
 
   v_result := public.hookengine_admin_set_plan(v_free_user,'lifetime');
-  if not coalesce((v_result->>'assigned')::boolean,false)
-     or (select plan from public.hookengine_subscriptions where user_id=v_free_user) <> 'lifetime'
-     or (select credits_balance from public.hookengine_subscriptions where user_id=v_free_user) <> 150 then
-    raise exception 'Lifetime assignment failed: %',v_result;
+  if v_result->>'reason' is distinct from 'internal_account'
+     or (select plan from public.hookengine_subscriptions where user_id=v_free_user) = 'lifetime'
+     or (select lifetime_claimed_at from public.hookengine_subscriptions where user_id=v_free_user) is not null then
+    raise exception 'Internal CI account must not consume a Lifetime spot: %',v_result;
   end if;
 
   update public.hookengine_plans set lifetime_spot_limit=1 where plan_key='lifetime';
-  v_result := public.hookengine_admin_set_plan(v_video_user,'lifetime');
+  v_result := public.hookengine_admin_set_plan(v_lifetime_user,'lifetime');
+  if not coalesce((v_result->>'assigned')::boolean,false)
+     or (select plan from public.hookengine_subscriptions where user_id=v_lifetime_user) <> 'lifetime' then
+    raise exception 'Eligible Lifetime customer fixture could not claim a spot: %',v_result;
+  end if;
+  v_result := public.hookengine_admin_set_plan(v_second_lifetime_user,'lifetime');
   if v_result->>'reason' is distinct from 'sold_out' then
     raise exception 'Lifetime spot cap was not enforced: %',v_result;
   end if;
@@ -382,8 +447,7 @@ begin
   if v_usage->>'plan' is distinct from 'free'
      or (v_usage->>'credits_total')::integer<>5
      or (v_usage->>'daily_limit')::integer<>3
-     or v_usage->>'reset_at' is null
-     or v_usage->>'daily_reset_at' is null then
+     or v_usage->>'reset_at' is null or v_usage->>'daily_reset_at' is null then
     raise exception 'SECURITY INVOKER usage RPC returned incorrect plan limits: %',v_usage;
   end if;
   if (select count(*) from public.hookengine_subscriptions
@@ -393,3 +457,64 @@ begin
 end;
 $hookengine_invoker_test$;
 reset role;
+
+
+-- PayPal subscription state transitions, refunds and replay idempotency.
+do $hookengine_paypal_events$
+declare
+  v_cancel uuid := '60000000-0000-4000-8000-000000000006';
+  v_failure uuid := '70000000-0000-4000-8000-000000000007';
+  v_refund uuid := '80000000-0000-4000-8000-000000000008';
+  v_event_time timestamptz := now();
+  v_result jsonb;
+begin
+  update public.hookengine_subscriptions
+  set plan='pro',status='active',provider='paypal',provider_subscription_id='I-CANCEL-TEST',
+      credits_balance=300,current_period_end=now()+interval '30 days'
+  where user_id=v_cancel;
+  update public.hookengine_profiles set plan='pro' where user_id=v_cancel;
+
+  v_result := public.hookengine_apply_paypal_event(
+    'WH-CANCEL-TEST','BILLING.SUBSCRIPTION.CANCELLED','I-CANCEL-TEST',v_event_time,null
+  );
+  if not coalesce((v_result->>'applied')::boolean,false)
+     or (select plan from public.hookengine_subscriptions where user_id=v_cancel)<>'free'
+     or (select status from public.hookengine_subscriptions where user_id=v_cancel)<>'cancelled' then
+    raise exception 'PayPal cancellation did not revoke Pro: %',v_result;
+  end if;
+  v_result := public.hookengine_apply_paypal_event(
+    'WH-CANCEL-TEST','BILLING.SUBSCRIPTION.CANCELLED','I-CANCEL-TEST',v_event_time,null
+  );
+  if v_result->>'reason' is distinct from 'duplicate_event' then
+    raise exception 'Replayed PayPal event was not rejected idempotently: %',v_result;
+  end if;
+
+  update public.hookengine_subscriptions
+  set plan='pro',status='active',provider='paypal',provider_subscription_id='I-FAILURE-TEST',
+      credits_balance=300,current_period_end=now()+interval '30 days'
+  where user_id=v_failure;
+  update public.hookengine_profiles set plan='pro' where user_id=v_failure;
+  v_result := public.hookengine_apply_paypal_event(
+    'WH-FAILURE-TEST','BILLING.SUBSCRIPTION.PAYMENT.FAILED','I-FAILURE-TEST',v_event_time,null
+  );
+  if not coalesce((v_result->>'applied')::boolean,false)
+     or (select plan from public.hookengine_subscriptions where user_id=v_failure)<>'free'
+     or (select status from public.hookengine_subscriptions where user_id=v_failure)<>'past_due' then
+    raise exception 'PayPal payment failure did not revoke paid access: %',v_result;
+  end if;
+
+  update public.hookengine_subscriptions
+  set plan='pro',status='active',provider='paypal',provider_subscription_id='I-REFUND-TEST',
+      credits_balance=300,current_period_end=now()+interval '30 days'
+  where user_id=v_refund;
+  update public.hookengine_profiles set plan='pro' where user_id=v_refund;
+  v_result := public.hookengine_apply_paypal_event(
+    'WH-REFUND-TEST','PAYMENT.SALE.REFUNDED','I-REFUND-TEST',v_event_time,null
+  );
+  if not coalesce((v_result->>'applied')::boolean,false)
+     or (select plan from public.hookengine_subscriptions where user_id=v_refund)<>'free'
+     or (select status from public.hookengine_subscriptions where user_id=v_refund)<>'past_due' then
+    raise exception 'PayPal sale refund did not revoke paid access: %',v_result;
+  end if;
+end;
+$hookengine_paypal_events$;

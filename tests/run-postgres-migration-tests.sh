@@ -41,6 +41,9 @@ migrations=(
   supabase/migrations/20261031123000_hookengine_regeneration_cost_one_credit.sql
   supabase/migrations/20261031083757_hookengine_usage_daily_reset.sql
   supabase/migrations/20261031084402_hookengine_reservation_limit_reset_messages.sql
+  supabase/migrations/20261031130000_hookengine_internal_accounts_admin_audit.sql
+  supabase/migrations/20261031130500_hookengine_unpriced_generation_metric.sql
+  supabase/migrations/20261031140000_hookengine_paypal_refund_reversal_events.sql
 )
 
 for migration in "${migrations[@]}"; do

@@ -13,6 +13,11 @@ import {
   signIn as authenticate,
   signOut as terminateSession
 } from "./extension/auth.js";
+import {
+  planLabel,
+  usageMainLine,
+  dailyLimitLine
+} from "./extension/usage-display.mjs";
 
 const $ = id => document.getElementById(id);
 const SESSION_KEY = STORAGE_KEYS.session;
@@ -53,41 +58,6 @@ $("themeToggle").addEventListener("click", async () => {
   try { await chrome.storage.local.set({[THEME_KEY]:next}); } catch {}
 });
 
-function planLabel(plan) {
-  return ({free:"Free",pro:"Pro",trial:"Trial",lifetime:"Lifetime"})[plan] || "Free";
-}
-function usageMainLine(usage) {
-  if (usage.plan === "trial") {
-    const daysLeft = usage.trialEndsAt
-      ? Math.max(0, Math.ceil((new Date(usage.trialEndsAt).getTime() - Date.now()) / 86400000))
-      : 0;
-    return "Pro trial: " + usage.credits + " of " + usage.creditsTotal +
-      " credits left · " + daysLeft + (daysLeft === 1 ? " day left" : " days left");
-  }
-  if (usage.plan === "free") {
-    const resetDay = usage.resetAt
-      ? new Date(usage.resetAt).toLocaleDateString("en-US", { weekday: "long", timeZone: "UTC" })
-      : "Monday";
-    return usage.credits + " of " + usage.creditsTotal +
-      " sources left this week · resets " + resetDay;
-  }
-  const periodLabel = ["month", "monthly"].includes(usage.period) ? "this month" : "this period";
-  const resetDate = usage.resetAt
-    ? new Date(usage.resetAt).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })
-    : "at the period reset";
-  return usage.credits + " of " + usage.creditsTotal +
-    " credits left " + periodLabel + " · resets " + resetDate;
-}
-function dailyLimitLine(usage) {
-  if (!usage.dailyLimit || usage.remainingDaily > 1) return "";
-  const resetTime = usage.resetAtDay
-    ? new Date(usage.resetAtDay).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" })
-    : "00:00";
-  if (usage.dailyUsed >= usage.dailyLimit) {
-    return "Daily limit reached (" + usage.dailyUsed + "/" + usage.dailyLimit + ") · resets at " + resetTime + " UTC";
-  }
-  return "Daily limit nearly reached (" + usage.dailyUsed + "/" + usage.dailyLimit + ") · resets at " + resetTime + " UTC";
-}
 function renderAccount() {
   const signedIn = !!accountUser;
   const usage = accountUsage;
@@ -96,6 +66,7 @@ function renderAccount() {
   document.querySelector(".app").classList.toggle("auth-required", !signedIn);
   $("upgradeButton").hidden = !signedIn || hasProFeatures;
   $("planSummary").textContent = usage ? planLabel(usage.plan) : "—";
+  $("planSummary").hidden = !signedIn || !usage;
   $("accountPanel").hidden = true;
   $("accountToggle").setAttribute("aria-expanded", "false");
   $("accountToggle").textContent = signedIn ? "Account" : "Sign in";
@@ -296,12 +267,51 @@ function outputVersions(value) {
 function renderOutputs(outputs) {
   const root = $("outputList");
   root.replaceChildren();
+  const analysis = typeof outputs?.video_analysis === "string" ? outputs.video_analysis.trim() : "";
   const entries = Object.entries(outputs || {})
     .map(([key, value]) => [key, outputVersions(value)])
     .filter(([key, versions]) => PLATFORM_LABELS[key] && versions.length);
-  $("resultCount").textContent = entries.length + " platforms";
-  $("copyAllBtn").hidden = entries.length === 0;
-  $("clearResultsBtn").hidden = entries.length === 0;
+  $("resultCount").textContent = entries.length + " platforms" + (analysis ? " · Full video breakdown" : "");
+  $("copyAllBtn").hidden = entries.length === 0 && !analysis;
+  $("clearResultsBtn").hidden = entries.length === 0 && !analysis;
+
+  if (analysis) {
+    const card = document.createElement("article");
+    card.className = "output-card video-analysis-card";
+    const top = document.createElement("div");
+    top.className = "output-top";
+    const title = document.createElement("strong");
+    title.className = "output-title";
+    title.textContent = "Video breakdown & speaker profile";
+    const actions = document.createElement("div");
+    actions.className = "output-actions";
+    const copy = document.createElement("button");
+    copy.className = "copy-btn";
+    copy.type = "button";
+    copy.textContent = "Copy analysis";
+    copy.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(analysis);
+        copy.textContent = "Copied";
+        setTimeout(() => copy.textContent = "Copy analysis", 1200);
+      } catch {
+        showError("Clipboard access failed. Select the analysis and copy it manually.");
+      }
+    });
+    const meta = document.createElement("span");
+    meta.className = "output-meta";
+    meta.textContent = analysis.length.toLocaleString() + " characters";
+    actions.append(copy);
+    top.append(title, meta, actions);
+    const editor = document.createElement("textarea");
+    editor.className = "output-text analysis-text";
+    editor.value = analysis;
+    editor.rows = Math.min(32, Math.max(12, Math.ceil(analysis.length / 75)));
+    editor.style.minHeight = "320px";
+    editor.setAttribute("aria-label", "Detailed video breakdown and speaker delivery profile");
+    card.append(top, editor);
+    root.append(card);
+  }
 
   for (const [key, versions] of entries) {
     const card = document.createElement("article");
@@ -372,7 +382,7 @@ function renderOutputs(outputs) {
     card.append(editor);
     root.append(card);
   }
-  $("results").hidden = entries.length === 0;
+  $("results").hidden = entries.length === 0 && !analysis;
 }
 
 $("copyAllBtn").addEventListener("click", async () => {

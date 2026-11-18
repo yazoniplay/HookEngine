@@ -206,7 +206,7 @@ function renderHistory(rows) {
     const title=row.source_title||"Untitled source";
     const type=row.source_type==="youtube_video"?"YouTube video":"Article / text";
     const completed=row.status==="completed";
-    const labels={x_thread:"X THREAD",linkedin_post:"LINKEDIN",tiktok_hooks:"TIKTOK HOOKS",instagram_caption:"INSTAGRAM",threads_posts:"THREADS",facebook_post:"FACEBOOK"};const saved=row.outputs&&typeof row.outputs==="object"?row.outputs:{x_thread:row.x_thread,linkedin_post:row.linkedin_post,tiktok_hooks:row.tiktok_hooks};const draft=Object.entries(saved).filter(([key,value])=>labels[key]&&value).map(([key,value])=>labels[key]+"\n"+value).join("\n\n────────────────────\n\n");
+    const labels={x_thread:"X THREAD",linkedin_post:"LINKEDIN",tiktok_hooks:"TIKTOK HOOKS",instagram_caption:"INSTAGRAM",threads_posts:"THREADS",facebook_post:"FACEBOOK"};const saved=row.outputs&&typeof row.outputs==="object"?row.outputs:{x_thread:row.x_thread,linkedin_post:row.linkedin_post,tiktok_hooks:row.tiktok_hooks};const draft=Object.entries(saved).filter(([key,value])=>labels[key]&&value).map(([key,value])=>{const versions=Array.isArray(value)?value:[value];return labels[key]+"\n"+versions.map((version,index)=>"Version "+(index+1)+"\n"+String(version)).join("\n\n");}).join("\n\n────────────────────\n\n");
     const usageMeta=[];
     if(Number(row.credits_reserved)>0)usageMeta.push(Number(row.credits_reserved)+" credit"+(Number(row.credits_reserved)===1?"":"s")+(row.refunded_at?" refunded":""));
     const tokens=(Number(row.input_tokens)||0)+(Number(row.output_tokens)||0);

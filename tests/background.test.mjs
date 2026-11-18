@@ -115,7 +115,7 @@ test("the vendored Readability dependency is pinned and attributed", async () =>
 test("the toolbar popup remains a Manifest V3 action popup", async () => {
   const manifest = JSON.parse(await readFile(new URL("../manifest.json", import.meta.url), "utf8"));
   assert.equal(manifest.manifest_version, 3);
-  assert.equal(manifest.version, "1.7.0");
+  assert.equal(manifest.version, "1.8.0");
   assert.equal(manifest.action.default_popup, "popup.html");
   assert.equal(manifest.background.type, "module");
 });
@@ -139,11 +139,9 @@ test("the public Supabase client key lives in shared extension config", async ()
   assert.doesNotMatch(popup, /eyJ[a-zA-Z0-9_-]{20,}\.[a-zA-Z0-9_-]{20,}\./);
 });
 
-test("both extension HTML entry points load the popup application as a module", async () => {
+test("the popup entry point loads the popup application as a module", async () => {
   const popup = await readFile(new URL("../popup.html", import.meta.url), "utf8");
-  const sidepanel = await readFile(new URL("../sidepanel.html", import.meta.url), "utf8");
   assert.match(popup, /<script type="module" src="sidepanel\.js"><\/script>/);
-  assert.match(sidepanel, /<script type="module" src="sidepanel\.js"><\/script>/);
 });
 
 test("transient session verification failures preserve the saved login", async () => {
@@ -179,10 +177,8 @@ test("YouTube extraction does not run the article parser as a fallback", async (
 
 test("manual source fields enforce the shared maximum length", async () => {
   const popup = await readFile(new URL("../popup.html", import.meta.url), "utf8");
-  const sidepanel = await readFile(new URL("../sidepanel.html", import.meta.url), "utf8");
   const script = await readFile(new URL("../sidepanel.js", import.meta.url), "utf8");
   assert.match(popup, /id="sourceText"[^>]*maxlength="60000"/);
-  assert.match(sidepanel, /id="sourceText"[^>]*maxlength="60000"/);
   assert.match(script, /length > MAX_SOURCE_CHARS/);
   assert.match(script, /length < MIN_SOURCE_CHARS/);
 });
@@ -212,6 +208,12 @@ test("YouTube video IDs are validated against supported hosts and formats", () =
   assert.equal(context.getYouTubeVideoId("https://www.youtube.com/watch?v=short"), "");
 });
 
+test("Gemini YouTube video requests use static processing to avoid the broken agentic path", async () => {
+  const generator = await readFile(new URL("../supabase/functions/hookengine-generate/index.ts", import.meta.url), "utf8");
+  assert.match(generator, /\{ type: "video", uri: url, processing: "static" \}/);
+  assert.doesNotMatch(generator, /supportsAgenticVideo|processing:\s*"agentic"/);
+});
+
 test("YouTube generation uses a transcript before the Gemini video fallback", async () => {
   context.chrome.tabs.query = async () => [{
     id: 7,
@@ -229,7 +231,7 @@ test("YouTube generation uses a transcript before the Gemini video fallback", as
   };
   const transcript = await context.resolveYouTubeGenerationSource(source);
   assert.equal(transcript.transcriptUsed, true);
-  assert.equal(transcript.payload.sourceMode, "text");
+  assert.equal(transcript.payload.sourceMode, "youtube_video");
   assert.ok(transcript.payload.text.length >= 80);
 
   context.fetchCaptionTracks = async () => "";
@@ -384,9 +386,9 @@ test("draft output renderer accepts array versions and exposes result actions", 
 });
 
 
-test("manifest declares the 1.7.0 toolbar popup, settings page and native-size icons", async () => {
+test("manifest declares the 1.8.0 toolbar popup, settings page and native-size icons", async () => {
   const manifest = JSON.parse(await readFile(new URL("../manifest.json", import.meta.url), "utf8"));
-  assert.equal(manifest.version, "1.7.0");
+  assert.equal(manifest.version, "1.8.0");
   assert.equal(manifest.action.default_popup, "popup.html");
   assert.equal(manifest.options_page, "settings.html");
   assert.equal(manifest.action.default_icon["16"], "icons/icon16.png");
