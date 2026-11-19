@@ -20,7 +20,7 @@
     <p>To create drafts, the extension sends the following to HookEngine's server:</p>
     <ul>
         <li><strong>Source content:</strong> the article text, selected text or transcript you choose to generate from, the optional title, the page address for YouTube videos, and the platforms you select.</li>
-        <li><strong>Connection data for daily limits:</strong> your IP address is combined with a secret salt and converted into a one-way hash. We store only that hash and a count of credits used that day. The raw IP address is never stored or logged. Hashes are removed by a scheduled cleanup after a short retention period (currently up to two days).</li>
+        <li><strong>Connection data for daily limits:</strong> your IP address is combined with a secret salt and converted into a one-way hash. We store only that hash and a count of credits used that day. The raw IP address is never stored or logged. Hashes are removed by a scheduled cleanup after a short retention period (kept for the current UTC day only, then removed).</li>
     </ul>
     <h2>3. Information Stored On Your Device</h2>
     <p>Your draft history is kept in your browser's local storage, the most recent 20 generations. It is not sent to HookEngine. You can clear it at any time from the extension's History section. Uninstalling the extension removes it.</p>

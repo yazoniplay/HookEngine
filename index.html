@@ -20,12 +20,185 @@
 <meta name="twitter:description" content="Turn a YouTube video or article into platform-ready drafts.">
 <meta name="twitter:image" content="https://yazoniplay.github.io/HookEngine/assets/og-image.svg">
 <!-- TODO: Bundle Bricolage Grotesque / Inter WOFF2 subsets in assets/fonts and add @font-face declarations. Current fallback is system-first to avoid third-party requests. -->
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Instrument+Serif&display=swap" rel="stylesheet">
 <style>
-:root{color-scheme:light;--paper:#F4F5F0;--ink:#000;--pink:#C7DF9B;--yellow:#E8EDDF;--teal:#405D2B;--white:#fff;--muted:#514f49;--line:#000;--shadow:4px 4px 0 #000;--radius:10px;--font: "Arial", "Helvetica Neue", sans-serif}
-*{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:92px}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.55 var(--font);-webkit-font-smoothing:antialiased}a{color:inherit;text-decoration:none}button{font:inherit}img,svg{max-width:100%}.wrap{width:min(1160px,calc(100% - 40px));margin-inline:auto}.skip{position:absolute;left:12px;top:-80px;background:var(--yellow);padding:12px;border:2px solid;z-index:99}.skip:focus{top:12px}:focus-visible{outline:3px solid #000;outline-offset:4px}h1,h2,h3,p{margin-top:0}h1,h2,h3{font-weight:900;letter-spacing:-.055em;line-height:1.02}h1{font-size:clamp(2.55rem,6.2vw,5.25rem);max-width:780px;margin:20px 0}.under{position:relative;z-index:0;white-space:nowrap}.under:after{content:"";position:absolute;z-index:-1;height:.22em;background:var(--pink);left:-.04em;right:-.05em;bottom:.02em;transform:rotate(-2deg);border:1px solid #000}.eyebrow{font-size:.76rem;letter-spacing:.12em;text-transform:uppercase;font-weight:900}.sticker{display:inline-block;background:var(--yellow);border:2px solid;border-radius:7px;padding:7px 10px;font-size:.72rem;font-weight:900;box-shadow:3px 3px 0 #000;transform:rotate(-4deg)}.button{display:inline-flex;min-height:48px;align-items:center;justify-content:center;gap:9px;padding:12px 18px;border:2px solid #000;border-radius:9px;background:#000;color:#fff;font-weight:900;box-shadow:4px 4px 0 #000;transition:transform .16s ease,box-shadow .16s ease,background .16s ease}.button.pink{background:var(--pink);color:#000}.button:hover{transform:translate(-2px,-2px);box-shadow:6px 6px 0 #000}.button:active{transform:translate(1px,1px);box-shadow:2px 2px 0 #000}.button svg{width:17px;height:17px;flex:none}.top{position:sticky;top:0;z-index:20;background:var(--paper);border-bottom:2px solid #000}.nav{height:76px;display:flex;align-items:center;justify-content:space-between;gap:22px}.brand{display:flex;align-items:center;gap:10px;font-size:1.22rem;font-weight:950;letter-spacing:-.05em}.mark{display:grid;place-items:center;width:38px;height:38px;border:2px solid #000;background:#10110f;color:#c7df9b;border-radius:8px;box-shadow:3px 3px 0 #000;font-size:1.35rem}.navlinks{display:flex;align-items:center;gap:26px;font-size:.92rem;font-weight:800}.navlinks a:hover{text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:5px}.navcta{min-height:44px;padding:9px 14px}.hero{display:grid;grid-template-columns:1.05fr .95fr;gap:46px;align-items:center;padding:82px 0 72px}.hero-copy{max-width:610px;font-size:1.12rem;color:#333}.hero-actions{display:flex;flex-wrap:wrap;gap:14px;margin:24px 0 12px}.text-link{font-weight:900;text-decoration:underline;text-underline-offset:4px;display:inline-flex;align-items:center;min-height:48px}.trust{font-size:.9rem;font-weight:800;color:#333;margin:13px 0 0}.hero-art{position:relative;padding:20px 14px}.hero-art:before{content:"";position:absolute;inset:5% 2% 0 8%;background:var(--teal);border:2px solid #000;border-radius:16px;transform:rotate(3deg)}.mini-window{position:relative;background:var(--white);border:2px solid #000;border-radius:12px;padding:18px;box-shadow:7px 7px 0 #000;transform:rotate(-1.5deg)}.windowbar{display:flex;gap:7px;padding-bottom:14px;border-bottom:2px solid #000}.windowbar i{width:11px;height:11px;border:1.5px solid #000;border-radius:50%;background:var(--pink)}.windowbar i:nth-child(2){background:var(--yellow)}.windowbar i:nth-child(3){background:var(--teal)}.window-label{margin-left:auto;font-size:.72rem;font-weight:900}.demo-kicker{font-size:.76rem;font-weight:900;text-transform:uppercase;margin:15px 0 5px}.mini-window h2{font-size:1.3rem;margin:0 0 9px}.mini-tabs{display:flex;gap:7px;flex-wrap:wrap}.mini-tabs span{padding:7px 10px;border:2px solid #000;border-radius:7px;font-size:.76rem;font-weight:900}.mini-tabs span:first-child{background:var(--pink)}.mini-draft{background:var(--paper);border:2px solid #000;padding:13px;margin-top:12px;border-radius:8px;font-size:.9rem;font-weight:700}.mini-draft p{margin:0}.hero-sticker{position:absolute;right:-3px;top:0;z-index:2}.section{padding:84px 0}.section-title{max-width:720px;margin-bottom:34px}.section-title h2{font-size:clamp(2.1rem,4.5vw,3.5rem);margin:12px 0}.section-title p{max-width:620px;color:#3c3a35}.demo-section{padding-top:18px}.demo-window{border:2px solid #000;border-radius:12px;background:var(--white);box-shadow:7px 7px 0 #000;overflow:hidden}.demo-chrome{display:flex;align-items:center;gap:8px;padding:13px 16px;border-bottom:2px solid #000;background:#E8EDDF}.demo-chrome .dots{display:flex;gap:6px}.demo-chrome i{width:10px;height:10px;border:1.5px solid #000;border-radius:50%;background:var(--pink)}.demo-chrome i:nth-child(2){background:var(--yellow)}.demo-chrome i:nth-child(3){background:var(--teal)}.demo-chrome strong{font-size:.8rem;margin-left:6px}.demo-chrome small{margin-left:auto;font-weight:800;color:#444}.demo-inner{padding:clamp(18px,4vw,34px)}.source{border:2px solid #000;background:var(--yellow);padding:13px;border-radius:8px;margin-bottom:22px}.source small{display:block;font-size:.7rem;font-weight:900;letter-spacing:.08em;text-transform:uppercase}.source a{font-weight:900;text-decoration:underline;text-underline-offset:3px}.source p{margin:5px 0 0;font-size:.88rem}.tabs{display:flex;gap:8px;flex-wrap:wrap;border-bottom:2px solid #000;padding-bottom:12px}.tab{min-height:44px;padding:9px 14px;border:2px solid #000;border-radius:8px;background:#fff;font-weight:900;cursor:pointer}.tab[aria-selected=true]{background:var(--pink);box-shadow:3px 3px 0 #000}.panel{padding:20px 0 0}.panel[hidden]{display:none}.draft-label{font-size:.75rem;font-weight:900;letter-spacing:.09em;text-transform:uppercase}.draft-text{white-space:pre-line;font-size:1rem;line-height:1.7;max-width:850px;margin:10px 0 16px}.copy-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.copy-btn{min-height:44px;padding:9px 14px;border:2px solid #000;border-radius:8px;background:var(--teal);font-weight:900;cursor:pointer;box-shadow:3px 3px 0 #000}.copy-btn:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 #000}.copy-status{font-size:.85rem;font-weight:800}.pro-preview{margin-top:25px;padding:16px;border:2px dashed #000;border-radius:9px;background:#EDF2E6}.pro-head{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-weight:900}.pro-pills{display:flex;gap:7px;margin:12px 0}.pro-pills button{min-width:44px;min-height:40px;padding:7px 12px;border:2px solid #000;border-radius:7px;background:#fff;font-weight:900;cursor:pointer}.pro-pills button[aria-pressed=true]{background:var(--yellow);box-shadow:2px 2px 0 #000}.pro-note{font-size:.85rem;margin:0;color:#3e3b32}.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}.step{background:var(--white);border:2px solid #000;border-radius:11px;padding:23px;box-shadow:5px 5px 0 #000;transition:transform .18s ease,box-shadow .18s ease}.step:hover{transform:translate(-2px,-3px);box-shadow:7px 8px 0 #000}.step-num{display:grid;place-items:center;width:42px;height:42px;background:var(--pink);border:2px solid #000;border-radius:9px;font-weight:950;font-size:1.15rem;box-shadow:3px 3px 0 #000}.step:nth-child(2) .step-num{background:var(--yellow)}.step:nth-child(3) .step-num{background:var(--teal)}.step h3{font-size:1.35rem;margin:20px 0 9px}.step p{margin:0;color:#393731}.media-slot{margin-top:34px;border:2px solid #000;border-radius:12px;background:var(--yellow);padding:14px;box-shadow:5px 5px 0 #000}.media-slot img{display:block;width:100%;height:auto;border:2px solid #000;border-radius:7px;background:#fff}.media-caption{font-size:.78rem;font-weight:800;margin:10px 2px 0}.compare{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.compare article{padding:21px;border:2px solid #000;border-radius:10px;background:#fff;box-shadow:4px 4px 0 #000}.compare h3{font-size:1.15rem;margin:0 0 10px}.compare p{margin:0;color:#393731}.coming{display:inline-block;background:var(--yellow);border:1.5px solid #000;border-radius:5px;padding:3px 6px;font-size:.65rem;font-weight:900;transform:rotate(-3deg);margin-left:6px}.platform-list{display:grid;grid-template-columns:repeat(6,1fr);gap:12px}.platform{display:flex;align-items:center;justify-content:center;gap:8px;min-height:74px;padding:10px;border:2px solid #000;border-radius:9px;background:#fff;box-shadow:3px 3px 0 #000;font-weight:900}.platform svg{width:22px;height:22px;flex:none}.platform small{display:block;font-size:.62rem;color:#49463e}.platform.pro{background:#EDF2E6}.testimonials{display:none}.testimonials.has-quotes{display:block}.quote-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.quote{border:2px solid #000;background:#fff;padding:20px;border-radius:9px;box-shadow:4px 4px 0 #000}.quote blockquote{margin:0 0 12px;font-weight:800}.quote cite{font-style:normal;font-size:.8rem}.pricing{background:var(--teal);border-block:2px solid #000}.pricing-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;max-width:900px}.price-card{position:relative;background:#fff;border:2px solid #000;border-radius:11px;padding:27px;box-shadow:6px 6px 0 #000}.price-card.pro{background:#EDF2E6}.price-card h3{font-size:1.4rem;margin:0}.price{font-size:clamp(2.4rem,5vw,3.6rem);font-weight:950;letter-spacing:-.07em;margin:15px 0 2px}.price small{font-size:.9rem;letter-spacing:0}.price-card>p{color:#393731}.price-card ul{padding-left:21px;display:grid;gap:9px;margin:22px 0 25px}.price-card li::marker{color:#126e66}.price-card .button{width:100%}.popular{position:absolute;right:15px;top:-16px;background:var(--yellow);border:2px solid #000;border-radius:5px;padding:6px 9px;font-size:.72rem;font-weight:900;transform:rotate(3deg);box-shadow:3px 3px 0 #000}.final-band{padding:42px 0;background:var(--yellow);border-bottom:2px solid #000}.final-inner{display:flex;align-items:center;justify-content:space-between;gap:24px}.final-inner h2{font-size:clamp(1.7rem,3.4vw,2.6rem);margin:0;max-width:730px}.faq-list{max-width:850px}.faq-list details{border:2px solid #000;border-radius:8px;background:#fff;margin:0 0 11px;padding:0 17px;box-shadow:3px 3px 0 #000}.faq-list summary{cursor:pointer;list-style:none;min-height:58px;display:flex;align-items:center;justify-content:space-between;gap:16px;font-weight:900}.faq-list summary::-webkit-details-marker{display:none}.faq-list summary:after{content:"+";font-size:1.4rem}.faq-list details[open] summary:after{content:"−"}.faq-list details p{margin:0 0 17px;color:#393731}.faq-list details a{text-decoration:underline;font-weight:800}.footer{padding:30px 0;display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap}.footlinks{display:flex;gap:18px;flex-wrap:wrap;font-size:.9rem;font-weight:800}.footlinks a{text-decoration:underline;text-underline-offset:3px}.footnote{font-size:.8rem;color:#514f49;margin:0}
-@media(max-width:850px){.hero{grid-template-columns:1fr;gap:30px;padding:60px 0}.hero-art{max-width:650px;width:100%;margin:auto}.platform-list{grid-template-columns:repeat(3,1fr)}}
-@media(max-width:620px){.wrap{width:calc(100% - 30px)}.nav{height:66px}.navlinks{display:none}.navcta{padding:8px 11px;font-size:.86rem}.brand{font-size:1.08rem}.mark{width:34px;height:34px}.hero{padding:47px 0 46px}h1{font-size:clamp(2.45rem,12vw,3.8rem)}.hero-copy{font-size:1rem}.hero-actions{gap:9px}.hero-actions .button{width:100%}.hero-actions .text-link{justify-content:center;width:100%}.section{padding:65px 0}.steps,.compare,.pricing-grid,.quote-grid{grid-template-columns:1fr}.platform-list{grid-template-columns:repeat(2,1fr)}.final-inner{align-items:flex-start;flex-direction:column}.final-inner .button{width:100%}.demo-chrome small{display:none}.demo-inner{padding:16px}.draft-text{font-size:.94rem}}
-@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation:none!important;transition:none!important}.step:hover,.button:hover,.copy-btn:hover{transform:none}}
+:root{
+  --bone:#f7f6f2; --ink:#111216; --ink-2:#2a2c35; --mute:#5b5e6b; --rule:#d7d6cf;
+  --cobalt:#2b3bff; --cobalt-deep:#1d2bd6; --signal:#ffd166; --panel:#ffffff;
+  --serif:"Instrument Serif", Georgia, "Times New Roman", serif;
+  --sans:"Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:88px}
+body{margin:0;background:var(--bone);color:var(--ink);font:400 17px/1.6 var(--sans);-webkit-font-smoothing:antialiased}
+a{color:inherit}
+img,svg{max-width:100%}
+button{font:inherit}
+.wrap{width:min(1120px,calc(100% - 48px));margin-inline:auto}
+:focus-visible{outline:3px solid var(--cobalt);outline-offset:3px;border-radius:4px}
+.skip{position:absolute;left:12px;top:-80px;background:var(--signal);padding:10px 14px;z-index:9;color:var(--ink);font-weight:600}
+.skip:focus{top:12px}
+h1,h2,h3,p{margin-top:0}
+h1,h2{font-family:var(--serif);font-weight:400;letter-spacing:-.01em;line-height:1.02}
+h3{font-weight:650;font-size:1.1rem;line-height:1.3;letter-spacing:-.005em}
+
+/* Header */
+.top{border-bottom:1px solid var(--rule);background:var(--bone);position:sticky;top:0;z-index:5}
+.nav{height:68px;display:flex;align-items:center;justify-content:space-between;gap:20px}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;font-weight:700;font-size:1.05rem;letter-spacing:-.01em}
+.mark{display:grid;place-items:center;width:30px;height:30px;border-radius:8px;background:var(--cobalt);color:#fff;font-weight:700;font-size:1rem}
+.navlinks{display:flex;gap:26px;font-size:.95rem;color:var(--mute)}
+.navlinks a{text-decoration:none}
+.navlinks a:hover{color:var(--ink)}
+
+/* Buttons: one accent, used sparingly */
+.button{display:inline-flex;align-items:center;gap:8px;padding:14px 22px;border-radius:999px;background:var(--cobalt);color:#fff;font-weight:600;text-decoration:none;font-size:1rem;border:0}
+.button:hover{background:var(--cobalt-deep)}
+.button.pink{background:var(--cobalt)}
+.navcta{padding:10px 18px;font-size:.92rem}
+.text-link{color:var(--ink);font-weight:600;text-decoration:underline;text-underline-offset:4px;text-decoration-thickness:1px}
+
+/* Hero */
+.hero{display:grid;grid-template-columns:1.1fr .9fr;gap:64px;align-items:center;padding:88px 0 80px}
+.sticker{display:inline-block;font-size:.85rem;font-weight:600;color:var(--ink);background:var(--signal);padding:4px 11px;border-radius:999px}
+h1{font-size:clamp(2.7rem,6.4vw,5.4rem);line-height:.98;margin:22px 0 22px;max-width:14ch}
+.under{position:relative;white-space:nowrap;z-index:0}
+.under::after{content:"";position:absolute;z-index:-1;left:-.05em;right:-.05em;bottom:.04em;height:.36em;background:var(--signal);border-radius:2px}
+.hero-copy{font-size:1.2rem;color:var(--mute);max-width:44ch;margin-bottom:30px}
+.hero-actions{display:flex;align-items:center;gap:22px;flex-wrap:wrap;margin-bottom:18px}
+.trust{font-size:.92rem;color:var(--mute);margin:0}
+.hero-art{justify-self:stretch}
+.mini-window{background:var(--ink);color:var(--bone);border-radius:18px;padding:22px;box-shadow:0 30px 60px -30px rgba(17,18,22,.45)}
+.windowbar{display:flex;align-items:center;gap:6px;margin-bottom:18px}
+.windowbar i{width:9px;height:9px;border-radius:50%;background:#3a3d48}
+.window-label{margin-left:auto;font-size:.8rem;color:#9fa3b3}
+.demo-kicker{font-size:.85rem;color:#9fa3b3;margin:0 0 4px}
+.mini-window h2{font-size:2.2rem;margin-bottom:16px}
+.mini-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.mini-tabs span{padding:5px 11px;border-radius:999px;border:1px solid #3a3d48;font-size:.82rem;color:#c9ccd8}
+.mini-tabs span:first-child{background:var(--bone);color:var(--ink);border-color:var(--bone)}
+.mini-draft{border-left:3px solid var(--cobalt);padding:4px 0 4px 14px;color:#d8dbe6}
+.mini-draft p{margin:0;font-size:1rem;line-height:1.55}
+
+/* Sections */
+.section{padding:96px 0;border-top:1px solid var(--rule)}
+.section-title{display:grid;grid-template-columns:1fr 1fr;gap:32px;align-items:end;margin-bottom:52px}
+.section-title h2{font-size:clamp(2.2rem,4.4vw,3.6rem);margin:0;max-width:16ch}
+.section-title p{margin:0;color:var(--mute);font-size:1.05rem;max-width:44ch;justify-self:end}
+.section-title .eyebrow{display:none}
+
+/* Example: one dark slab with three tabs */
+.demo-section{background:var(--bone)}
+.demo-window{background:var(--panel);border:1px solid var(--rule);border-radius:18px;overflow:hidden}
+.demo-chrome{display:flex;align-items:center;gap:12px;padding:14px 22px;border-bottom:1px solid var(--rule);font-size:.92rem}
+.demo-chrome strong{font-weight:650}
+.demo-chrome small{margin-left:auto;color:var(--mute)}
+.dots{display:flex;gap:5px}
+.dots i{width:9px;height:9px;border-radius:50%;background:var(--rule)}
+.demo-inner{display:grid;grid-template-columns:.8fr 1.2fr}
+.source{padding:28px;border-right:1px solid var(--rule);background:#f1f0eb}
+.source small{display:block;color:var(--mute);margin-bottom:8px;font-size:.88rem}
+.source a{font-family:var(--serif);font-size:1.7rem;line-height:1.15;display:block;margin-bottom:12px;text-decoration:none;border-bottom:1px solid var(--ink)}
+.source p{color:var(--mute);margin:0;font-size:.98rem}
+.tabs{display:flex;gap:0;padding:0 28px;border-bottom:1px solid var(--rule)}
+.tab{background:none;border:0;border-bottom:2px solid transparent;padding:16px 0;margin-right:26px;color:var(--mute);font-weight:600;font-size:.95rem}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--cobalt)}
+.panel{padding:24px 28px 28px}
+.panel[hidden]{display:none}
+.draft-label{display:none}
+.draft-text{white-space:pre-wrap;font-size:1rem;line-height:1.6;color:var(--ink-2);margin-bottom:18px;max-height:360px;overflow:auto}
+.copy-row{display:flex;align-items:center;gap:12px}
+.copy-btn{padding:9px 16px;border-radius:999px;border:1.5px solid var(--ink);background:none;color:var(--ink);font-weight:600;font-size:.92rem;cursor:pointer}
+.copy-btn:hover{background:var(--ink);color:var(--bone)}
+.copy-status{font-size:.9rem;color:var(--mute)}
+
+/* How it works: a real sequence, so numbers belong here */
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border-top:1px solid var(--ink)}
+.step{padding:26px 26px 0 0}
+.step+.step{padding-left:26px;border-left:1px solid var(--rule)}
+.step-num{display:block;font-family:var(--serif);font-size:2.4rem;color:var(--cobalt);line-height:1;margin-bottom:18px}
+.step p{color:var(--mute);margin:0;font-size:1rem}
+.media-slot{margin-top:56px;border-radius:18px;overflow:hidden;border:1px solid var(--rule);background:var(--panel)}
+.media-slot img{display:block;width:100%;height:auto}
+.media-caption{margin:0;padding:12px 18px;font-size:.88rem;color:var(--mute);border-top:1px solid var(--rule)}
+
+/* Compare */
+.compare{display:grid;grid-template-columns:repeat(3,1fr);gap:40px}
+.compare article{border-top:2px solid var(--ink);padding-top:18px}
+.compare p{color:var(--mute);margin:0}
+.coming{font-size:.8rem;font-weight:600;background:var(--signal);padding:1px 7px;border-radius:999px;color:var(--ink)}
+
+/* Platforms */
+.platform-list{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.platform{display:flex;align-items:center;gap:12px;padding:22px 24px;border-radius:14px;background:var(--panel);border:1px solid var(--rule);font-family:var(--serif);font-size:1.7rem;line-height:1}
+.platform svg{width:26px;height:26px;fill:var(--cobalt)}
+
+/* Testimonials appear only once real quotes exist */
+.testimonials .quote-grid:empty{display:none}
+.testimonials.has-quotes .quote-grid{display:grid;gap:24px}
+
+/* Pricing */
+.pricing{background:var(--ink);color:var(--bone);border-top:0}
+.pricing .section-title p,.pricing .section-title h2{color:var(--bone)}
+.pricing .section-title p{color:#a7aab9}
+.pricing-grid{display:grid;grid-template-columns:minmax(0,520px)}
+.price-card{background:var(--bone);color:var(--ink);border-radius:18px;padding:36px}
+.price-card h3{font-family:var(--serif);font-weight:400;font-size:2.2rem;margin-bottom:6px}
+.price{font-family:var(--serif);font-size:3.6rem;line-height:1;margin-bottom:12px}
+.price small{font-family:var(--sans);font-size:1rem;color:var(--mute)}
+.price-card p{color:var(--mute)}
+.price-card ul{padding-left:0;list-style:none;margin:20px 0 0}
+.price-card li{padding:11px 0 11px 26px;border-top:1px solid var(--rule);position:relative}
+.price-card li::before{content:"";position:absolute;left:2px;top:1.05em;width:10px;height:6px;border-left:2px solid var(--cobalt);border-bottom:2px solid var(--cobalt);transform:rotate(-45deg)}
+
+/* FAQ */
+.faq-list{max-width:820px;border-top:1px solid var(--ink)}
+.faq-list details{border-bottom:1px solid var(--rule);padding:0}
+.faq-list summary{cursor:pointer;padding:20px 40px 20px 0;font-weight:600;font-size:1.08rem;list-style:none;position:relative}
+.faq-list summary::-webkit-details-marker{display:none}
+.faq-list summary::after{content:"+";position:absolute;right:0;top:14px;font-size:1.5rem;font-weight:400;color:var(--cobalt)}
+.faq-list details[open] summary::after{content:"−"}
+.faq-list details p{color:var(--mute);margin:0 0 22px;max-width:62ch}
+.faq-list a{color:var(--cobalt)}
+
+/* Closing band */
+.final-band{background:var(--cobalt);color:#fff;padding:88px 0}
+.final-inner{display:flex;align-items:center;justify-content:space-between;gap:40px;flex-wrap:wrap}
+.final-band h2{font-size:clamp(2.2rem,4.4vw,3.6rem);margin:0;max-width:18ch}
+.final-band .button{background:var(--signal);color:var(--ink)}
+.final-band .button:hover{background:#ffe08f}
+
+/* Footer */
+.footer{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px 30px;padding:40px 0 48px;font-size:.92rem;color:var(--mute)}
+.footlinks{display:flex;gap:22px;flex-wrap:wrap}
+.footlinks a{text-decoration:none}
+.footlinks a:hover{color:var(--ink)}
+.footnote{margin:0;width:100%}
+
+@media(max-width:900px){
+  .hero{grid-template-columns:1fr;gap:44px;padding:56px 0}
+  .section-title{grid-template-columns:1fr;gap:16px}
+  .section-title p{justify-self:start}
+  .demo-inner{grid-template-columns:1fr}
+  .source{border-right:0;border-bottom:1px solid var(--rule)}
+  .steps{grid-template-columns:1fr}
+  .step,.step+.step{padding:24px 0;border-left:0;border-bottom:1px solid var(--rule)}
+  .compare{grid-template-columns:1fr;gap:28px}
+  .platform-list{grid-template-columns:1fr}
+  .navlinks{display:none}
+}
+@media(max-width:620px){
+  .wrap{width:calc(100% - 32px)}
+  .nav{height:60px}
+  .hero{padding:40px 0 56px}
+  .section{padding:68px 0}
+  .navcta{padding:9px 14px;font-size:.88rem}
+  .tabs{overflow-x:auto;padding:0 18px}
+  .panel{padding:20px 18px 22px}
+  .price-card{padding:26px}
+}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
+.hero-kicker{font-size:.98rem;color:var(--mute);margin:20px 0 0;font-weight:500}
 </style>
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"SoftwareApplication","name":"HookEngine","applicationCategory":"BrowserApplication","operatingSystem":"Chrome 116+","description":"Turn articles, selected text and YouTube videos into editable social drafts for X, LinkedIn and TikTok. Free, with no login required.","offers":[{"@type":"Offer","name":"Free","price":"0","priceCurrency":"EUR"}]}
@@ -42,8 +215,8 @@
 <main id="main">
 <div class="wrap hero">
 <div>
-<span class="sticker">FREE TO START</span>
-<p class="eyebrow" style="margin:18px 0 0">A browser extension for creators</p>
+<span class="sticker">Free to start</span>
+<p class="hero-kicker">A browser extension for creators</p>
 <h1>Turn any YouTube video or article into an <span class="under">X thread</span>, LinkedIn post and TikTok hooks in 10 seconds.</h1>
 <!-- Alternate headline 1: Turn one article or YouTube video into drafts for X, LinkedIn and TikTok. -->
 <!-- Alternate headline 2: Your source goes in. Platform-ready social drafts come out. -->
@@ -52,12 +225,12 @@
 <p class="trust">100% free · no login required · up to 10 credits a day</p>
 </div>
 <div class="hero-art" aria-label="Preview of the HookEngine example below">
-<div class="mini-window"><div class="windowbar"><i></i><i></i><i></i><span class="window-label">HOOKENGINE · DRAFT PREVIEW</span></div><p class="demo-kicker">SOURCE → SOCIAL</p><h2>One article. Three formats.</h2><div class="mini-tabs"><span>X thread</span><span>LinkedIn</span><span>TikTok hooks</span></div><div class="mini-draft"><p>Webb can study a planet’s atmosphere by reading the starlight that passes through it. Here’s the clever part: the missing colors reveal which molecules are present.</p></div></div>
+<div class="mini-window"><div class="windowbar"><i></i><i></i><i></i><span class="window-label">HookEngine draft preview</span></div><p class="demo-kicker">Source to social</p><h2>One article. Three formats.</h2><div class="mini-tabs"><span>X thread</span><span>LinkedIn</span><span>TikTok hooks</span></div><div class="mini-draft"><p>Webb can study a planet’s atmosphere by reading the starlight that passes through it. Here’s the clever part: the missing colors reveal which molecules are present.</p></div></div>
 </div>
 </div>
 <section class="section demo-section" id="examples"><div class="wrap">
-<div class="section-title"><span class="eyebrow">REAL OUTPUT, REAL ARTICLE</span><h2>One source. Three different drafts.</h2><p>Written from the facts in this NASA article. These are hand-written examples, not generated live by the extension.</p></div>
-<div class="demo-window"><div class="demo-chrome"><span class="dots"><i></i><i></i><i></i></span><strong>HookEngine · Example output</strong><small>NASA Science source</small></div>
+<div class="section-title"><h2>One source. Three different drafts.</h2><p>Written from the facts in this NASA article. These are hand-written examples, not generated live by the extension.</p></div>
+<div class="demo-window"><div class="demo-chrome"><span class="dots"><i></i><i></i><i></i></span><strong>Example output</strong><small>NASA Science source</small></div>
 <div class="demo-inner">
 <div class="source"><small>Source article · NASA Science</small><a href="https://science.nasa.gov/mission/Webb/science-overview/science-explainers/how-will-Webb-study-exoplanets/" target="_blank" rel="noopener">How Will Webb Study Exoplanets?</a><p>NASA explains how Webb can analyze distant planetary atmospheres using infrared observations and transmission spectroscopy.</p></div>
 <div class="tabs" role="tablist" aria-label="Example output formats">
@@ -66,7 +239,7 @@
 <button class="tab" id="tab-tiktok" role="tab" aria-selected="false" aria-controls="panel-tiktok" tabindex="-1">TikTok hooks</button>
 </div>
 <div class="panel" id="panel-x" role="tabpanel" aria-labelledby="tab-x">
-<div class="draft-label">X THREAD · 5 POSTS</div><div class="draft-text" data-draft="x">1/ A planet’s atmosphere can leave clues in the light of its star. NASA’s James Webb Space Telescope is built to read those clues in infrared.
+<div class="draft-label">X thread · 5 posts</div><div class="draft-text" data-draft="x">1/ A planet’s atmosphere can leave clues in the light of its star. NASA’s James Webb Space Telescope is built to read those clues in infrared.
 
 2/ Here’s the method: Webb first measures the star’s spectrum, then measures it again when a planet passes in front.
 
@@ -78,7 +251,7 @@
 <div class="copy-row"><button class="copy-btn" data-copy="x">Copy X thread</button><span class="copy-status" aria-live="polite"></span></div>
 </div>
 <div class="panel" id="panel-linkedin" role="tabpanel" aria-labelledby="tab-linkedin" hidden>
-<div class="draft-label">LINKEDIN POST</div><div class="draft-text" data-draft="linkedin">A distant planet can leave a chemical fingerprint in starlight.
+<div class="draft-label">LinkedIn post</div><div class="draft-text" data-draft="linkedin">A distant planet can leave a chemical fingerprint in starlight.
 
 NASA’s James Webb Space Telescope can study an exoplanet’s atmosphere using a technique called transmission spectroscopy.
 
@@ -92,7 +265,7 @@ The useful idea: even when a planet is too far away to study directly, its effec
 <div class="copy-row"><button class="copy-btn" data-copy="linkedin">Copy LinkedIn post</button><span class="copy-status" aria-live="polite"></span></div>
 </div>
 <div class="panel" id="panel-tiktok" role="tabpanel" aria-labelledby="tab-tiktok" hidden>
-<div class="draft-label">TIKTOK · 5 OPENING HOOKS</div><div class="draft-text" data-draft="tiktok">1. Curiosity gap: What if a planet’s atmosphere could be identified by the colors missing from a beam of starlight?
+<div class="draft-label">TikTok · 5 opening hooks</div><div class="draft-text" data-draft="tiktok">1. Curiosity gap: What if a planet’s atmosphere could be identified by the colors missing from a beam of starlight?
 
 2. Myth-bust: You don’t always need a close-up image to learn what a distant planet is made of.
 
@@ -105,53 +278,53 @@ The useful idea: even when a planet is too far away to study directly, its effec
 </div>
 </div></div></div></section>
 <section class="section" id="how"><div class="wrap">
-<div class="section-title"><span class="eyebrow">HOW IT WORKS</span><h2>Three moves. Then it’s yours.</h2><p>Keep the useful idea. Change the format. Your drafts stay editable so you can make the final call.</p></div>
+<div class="section-title"><h2>Three moves. Then it’s yours.</h2><p>Keep the useful idea. Change the format. Your drafts stay editable so you can make the final call.</p></div>
 <div class="steps">
 <article class="step"><span class="step-num">1</span><h3>Open any article or YouTube video.</h3><p>Use the page you’re already reading, select text, or open a public YouTube video.</p></article>
 <article class="step"><span class="step-num">2</span><h3>Pick your platforms.</h3><p>Choose X, LinkedIn or TikTok. Each one gets its own draft format.</p></article>
 <article class="step"><span class="step-num">3</span><h3>Edit, copy, post.</h3><p>Adjust the draft in your own words, copy the version you want, and publish when it’s ready.</p></article>
 </div>
-<div class="media-slot"><!-- TODO: Record the actual extension popup and replace the poster with assets/demo.gif (keep GIF under 1.5 MB). Do not present this placeholder as product footage. --><img src="assets/demo-placeholder.svg" data-demo-gif="assets/demo.gif" alt="Placeholder for a real HookEngine extension recording. Replace with the actual demo GIF." loading="lazy" width="1200" height="640"><p class="media-caption">DEMO SLOT · PLACEHOLDER ARTWORK — replace with a real extension recording.</p></div>
+<div class="media-slot"><!-- TODO: Record the actual extension popup and replace the poster with assets/demo.gif (keep GIF under 1.5 MB). Do not present this placeholder as product footage. --><img src="assets/demo-placeholder.svg" data-demo-gif="assets/demo.gif" alt="Placeholder for a real HookEngine extension recording. Replace with the actual demo GIF." loading="lazy" width="1200" height="640"><p class="media-caption">Placeholder artwork. Replace with a real extension recording before launch.</p></div>
 </div></section>
-<section class="section"><div class="wrap"><div class="section-title"><span class="eyebrow">WHY NOT JUST ASK CHATGPT?</span><h2>Because the busywork is the point.</h2><p>A general chat can write. HookEngine handles the repeatable steps around your source.</p></div>
+<section class="section"><div class="wrap"><div class="section-title"><h2>Because the busywork is the point.</h2><p>A general chat can write. HookEngine handles the repeatable steps around your source.</p></div>
 <div class="compare">
 <article><h3>It reads the page for you.</h3><p>Use the article in your tab or selected text instead of copying chunks into a separate prompt.</p></article>
 <article><h3>Platform rules are built in.</h3><p>Choose X, LinkedIn or TikTok. Each gets a format-specific draft prompt.</p></article>
-<article><h3>Copy, regenerate, adjust.</h3><p>Copy drafts, generate again, and set tone, style, length and audience preferences. Voice samples are <span class="coming">COMING SOON</span>.</p></article>
+<article><h3>Copy, regenerate, adjust.</h3><p>Copy drafts, generate again, and set tone, style, length and audience preferences. Voice samples are <span class="coming">Coming soon</span>.</p></article>
 </div></div></section>
-<section class="section"><div class="wrap"><div class="section-title"><span class="eyebrow">SIX PLATFORMS</span><h2>Pick where the idea goes.</h2></div>
+<section class="section"><div class="wrap"><div class="section-title"><h2>Pick where the idea goes.</h2></div>
 <div class="platform-list">
 <div class="platform"><svg aria-hidden="true"><use href="assets/platforms.svg#x"/></svg>X</div>
 <div class="platform"><svg aria-hidden="true"><use href="assets/platforms.svg#linkedin"/></svg>LinkedIn</div>
 <div class="platform"><svg aria-hidden="true"><use href="assets/platforms.svg#tiktok"/></svg>TikTok</div>
 </div></div></section>
-<section class="section testimonials" id="testimonials" aria-labelledby="testimonials-title"><div class="wrap"><div class="section-title"><span class="eyebrow">REAL WORDS</span><h2 id="testimonials-title">What creators say</h2></div><div class="quote-grid" id="quote-grid"></div></div></section>
+<section class="section testimonials" id="testimonials" aria-labelledby="testimonials-title"><div class="wrap"><div class="section-title"><h2 id="testimonials-title">What creators say</h2></div><div class="quote-grid" id="quote-grid"></div></div></section>
 <section class="section pricing" id="pricing"><div class="wrap">
-<div class="section-title"><span class="eyebrow">SIMPLE PRICING</span><h2>Free to use. No login, no card.</h2><p>One plan. The limits are listed plainly.</p></div>
+<div class="section-title"><h2>Free to use. No login, no card.</h2><p>One plan. The limits are listed plainly.</p></div>
 <div class="pricing-grid">
 <article class="price-card"><h3>Free</h3><div class="price">€0 <small>/ month</small></div><p>The full basic workflow, with no login.</p><ul><li>Up to 10 credits a day: 10 articles or texts, or 2 videos</li><li>X threads</li><li>LinkedIn posts</li><li>TikTok hooks</li><li>Editable drafts</li><li>History kept on your device</li></ul><a class="button" href="https://chromewebstore.google.com/detail/hookengine-%E2%80%94-content-repu/ikalaemjdindfenbbaecekkocbbocjma">Add to Chrome</a></article>
 </div>
 <!-- TODO: Add a monthly/annual toggle only after annual pricing is decided. -->
 <!-- <div class="billing-toggle" hidden>Monthly / Annual</div> -->
 </div></section>
-<section class="section" id="faq"><div class="wrap"><div class="section-title"><span class="eyebrow">FAQ</span><h2>Fair questions.</h2></div>
+<section class="section" id="faq"><div class="wrap"><div class="section-title"><h2>Fair questions.</h2></div>
 <div class="faq-list">
-<details><summary>Where does my data go?</summary><p>Text from the page or selected text is sent to HookEngine’s server and processed by AI providers to create drafts. Account and usage data are handled by the service infrastructure. Read the <a href="/HookEngine/account/privacy.html">privacy policy</a>. The current policy does not clearly explain how long source text or generated drafts are retained. <!-- TODO: Clarify source-text and generated-output retention in the privacy policy before making a stronger promise. --></p></details>
-<details><summary>Does it work on paywalled or logged-in pages?</summary><p>HookEngine reads the content visible in your tab; it cannot promise access to content hidden behind a paywall or login. The page text you submit is sent for processing. The privacy policy does not clearly state a retention period for submitted source text. <!-- TODO: Confirm retention and update privacy policy. --></p></details>
+<details><summary>Where does my data go?</summary><p>Text from the page or selected text is sent to HookEngine’s server and processed by AI providers to create drafts. Account and usage data are handled by the service infrastructure. Read the <a href="/HookEngine/account/privacy.html">privacy policy</a>.</p></details>
+<details><summary>Does it work on paywalled or logged-in pages?</summary><p>HookEngine reads the content visible in your tab; it cannot promise access to content hidden behind a paywall or login. The page text you submit is sent for processing. See the privacy policy for how submitted source text is handled. <!-- TODO: Confirm retention and update privacy policy. --></p></details>
 <details><summary>What happens when I hit the daily limit?</summary><p>An article or text draft costs 1 credit and a YouTube video costs 5. You get 10 credits per day. When they are used up, the server rejects further generations until the limit resets at midnight UTC. A shared daily cap also applies to all users; when it is reached, generation pauses until the next day. Credits are refunded if a generation fails.</p></details>
-<details><summary>Does it work for YouTube videos without captions?</summary><p>YouTube video analysis is handled by Gemini, but the current product documentation does not establish whether every video without captions can be processed. <!-- TODO: Test videos with disabled or missing captions and state the supported behavior. --></p></details>
-<details><summary>Which browsers?</summary><p>The extension manifest requires Chrome 116 or later. Other browsers are not currently verified. <!-- TODO: Test Chromium-based browsers before claiming support. --></p></details>
-<details><summary>Who makes HookEngine?</summary><p>HookEngine is an independent project. For support, use the email address configured in the page source: <a id="support-link" href="mailto:support@example.com">support@example.com</a>. <!-- TODO: Replace the support email constant before launch. --></p></details>
+<details><summary>Does it work for YouTube videos without captions?</summary><p>YouTube video analysis is handled by Gemini, but results depend on what the video makes available to the analysis. <!-- TODO: Test videos with disabled or missing captions and state the supported behavior. --></p></details>
+<details><summary>Which browsers?</summary><p>The extension manifest requires Chrome 116 or later. Other browsers are not currently verified.</p></details>
+<details><summary>Who makes HookEngine?</summary><p>HookEngine is an independent project. For support, use the email address configured in the page source: <a id="support-link" href="mailto:yayazan.mahmoud@gmail.com">yayazan.mahmoud@gmail.com</a>.</p></details>
 </div></div></section>
 <section class="final-band"><div class="wrap final-inner"><h2>Got an article? You’ve got your next draft.</h2><a class="button pink" href="https://chromewebstore.google.com/detail/hookengine-%E2%80%94-content-repu/ikalaemjdindfenbbaecekkocbbocjma">Add to Chrome — it’s free ↗</a></div></section>
 </main>
 <footer class="wrap footer">
 <a class="brand" href="/HookEngine/"><span class="mark">H</span>HookEngine</a>
-<nav class="footlinks" aria-label="Footer"><a href="/HookEngine/account/privacy.html">Privacy</a><!-- TODO: Create a terms page before adding a link. --><a href="/HookEngine/account/">Account</a><a href="https://chromewebstore.google.com/detail/hookengine-%E2%80%94-content-repu/ikalaemjdindfenbbaecekkocbbocjma">Chrome Web Store</a><a id="support-footer" href="mailto:support@example.com">Support</a></nav>
+<nav class="footlinks" aria-label="Footer"><a href="/HookEngine/account/privacy.html">Privacy</a><a href="/HookEngine/account/">Account</a><a href="https://chromewebstore.google.com/detail/hookengine-%E2%80%94-content-repu/ikalaemjdindfenbbaecekkocbbocjma">Chrome Web Store</a><a id="support-footer" href="mailto:yayazan.mahmoud@gmail.com">Support</a></nav>
 <p class="footnote">© <span id="year"></span> HookEngine</p>
 </footer>
 <script>
-const SUPPORT_EMAIL = "support@example.com"; // TODO: Replace with a monitored support address.
+const SUPPORT_EMAIL = "yayazan.mahmoud@gmail.com";
 const testimonials = []; // Add only real, permission-approved creator testimonials.
 const quoteGrid=document.getElementById("quote-grid");
 if(testimonials.length){document.querySelector(".testimonials").classList.add("has-quotes");for(const item of testimonials){const card=document.createElement("article");card.className="quote";const quote=document.createElement("blockquote");quote.textContent=item.quote;const cite=document.createElement("cite");cite.textContent=item.name+(item.role?" · "+item.role:"");card.append(quote,cite);quoteGrid.append(card);}}
