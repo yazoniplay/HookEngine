@@ -232,3 +232,6 @@ footer a { color: var(--text); font-weight: 600; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* Real extension icon in the header */
+.brand-icon { width: 24px; height: 24px; display: block; border-radius: 6px; }
