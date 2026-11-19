@@ -63,7 +63,7 @@ h1,h2,h3{font-family:var(--display);font-weight:700;letter-spacing:-.025em;line-
 .hero{padding:76px 0 84px;display:grid;grid-template-columns:1.05fr .95fr;gap:70px;align-items:center}
 .kicker{display:inline-block;font-size:.95rem;font-weight:600;margin:0 0 22px;padding-bottom:6px;border-bottom:2px solid var(--signal)}
 h1{font-size:clamp(3rem,7.4vw,6.3rem);line-height:.94;letter-spacing:-.04em;margin:0 0 26px;max-width:11ch}
-h1 .hl{background:var(--signal);padding:0 .08em;box-decoration-break:clone;-webkit-box-decoration-break:clone}
+h1 .hl{background:linear-gradient(var(--signal),var(--signal)) no-repeat 0 88%/0% 42%;padding:0 .08em;box-decoration-break:clone;-webkit-box-decoration-break:clone;animation:marker .8s .55s cubic-bezier(.6,0,.2,1) forwards}
 .lede{font-size:1.22rem;max-width:40ch;margin-bottom:34px;color:var(--ink-2)}
 .hero-actions{display:flex;gap:26px;align-items:center;flex-wrap:wrap}
 .text-link{font-weight:600}
@@ -203,7 +203,92 @@ mark{background:var(--signal);color:var(--ink);padding:0 2px}
   .price-list{padding:28px}
   .price-cta,.price-main{padding:28px}
 }
-@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
+/* Motion: one bouncy easing for everything, so the page feels like one toy */
+:root{--bounce:cubic-bezier(.34,1.56,.64,1);--out:cubic-bezier(.2,.8,.2,1)}
+@keyframes rise{from{opacity:0;transform:translateY(34px) rotate(-1.5deg)}to{opacity:1;transform:none}}
+@keyframes marker{to{background-size:100% 42%}}
+@keyframes pop{0%{transform:scale(.4) rotate(-12deg);opacity:0}70%{transform:scale(1.12) rotate(4deg);opacity:1}100%{transform:none}}
+@keyframes nudge{0%,100%{transform:translateX(0)}50%{transform:translateX(5px)}}
+@keyframes ticker{to{transform:translateX(-50%)}}
+@keyframes panelIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes underline{to{background-size:100% 2px}}
+@keyframes spin-in{from{transform:rotate(-90deg) scale(.6);opacity:0}to{transform:none;opacity:1}}
+
+/* Intro sequence on load */
+.kicker{border-bottom-color:transparent;background:linear-gradient(var(--signal),var(--signal)) no-repeat 0 100%/0% 2px;padding-bottom:6px;animation:rise .7s .05s var(--out) both,underline .6s .5s var(--out) forwards}
+.hero h1{animation:rise .9s .15s var(--out) both}
+.lede{animation:rise .8s .3s var(--out) both}
+.hero-actions{animation:rise .8s .42s var(--out) both}
+.trust{animation:rise .8s .5s var(--out) both}
+.flow{animation:rise 1s .3s var(--out) both}
+.flow .source-box,.flow .arrow-row,.flow .out{animation:rise .6s var(--out) both}
+.flow .arrow-row{animation-delay:.6s}
+.flow .out:nth-child(1){animation-delay:.75s}
+.flow .out:nth-child(2){animation-delay:.85s}
+.flow .out:nth-child(3){animation-delay:.95s}
+.arrow-row svg{animation:nudge 1.6s ease-in-out .5s infinite}
+
+/* Buttons: hard shadow that lifts on hover and sinks on press */
+.cta{transition:transform .25s var(--bounce),box-shadow .25s var(--bounce),background-color .2s,color .2s}
+.cta:hover{transform:translate(-4px,-4px);box-shadow:5px 5px 0 var(--ink)}
+.cta:active{transform:translate(0,0);box-shadow:0 0 0 var(--ink);transition-duration:.08s}
+.pricing .cta:hover{box-shadow:5px 5px 0 var(--signal)}
+.cta.light:hover{box-shadow:5px 5px 0 var(--paper)}
+.navcta:hover{box-shadow:3px 3px 0 var(--signal)}
+
+/* Text links draw an underline in on hover */
+.text-link{background:linear-gradient(var(--ink),var(--ink)) no-repeat 0 100%/0% 2px;transition:background-size .35s var(--out);text-decoration:none;padding-bottom:2px}
+.text-link:hover{background-size:100% 2px}
+.navlinks a{background:linear-gradient(var(--ink),var(--ink)) no-repeat 0 100%/0% 2px;transition:background-size .35s var(--out);text-decoration:none;padding-bottom:2px}
+.navlinks a:hover{background-size:100% 2px;text-decoration:none}
+
+/* Ticker strip */
+.ticker{overflow:hidden;background:var(--ink);color:var(--paper);border-block:2px solid var(--ink);padding:18px 0}
+.ticker-track{display:flex;width:max-content;animation:ticker 28s linear infinite}
+.ticker-track span{font-family:var(--display);font-weight:700;font-size:clamp(1.6rem,3.4vw,2.6rem);letter-spacing:-.02em;white-space:nowrap;padding-right:28px;display:flex;align-items:center;gap:28px}
+.ticker-track span::after{content:"";width:14px;height:14px;border-radius:50%;background:var(--signal);flex:none}
+.ticker:hover .ticker-track{animation-play-state:paused}
+
+/* Scroll reveals, triggered by IntersectionObserver */
+.reveal{opacity:0;transform:translateY(40px) rotate(-1deg);transition:opacity .7s var(--out),transform .9s var(--bounce);transition-delay:var(--d,0s)}
+.reveal.in{opacity:1;transform:none}
+.step .step-num{transform-origin:center}
+.step.in .step-num{animation:pop .7s var(--bounce) .15s backwards}
+.step.reveal.in:hover .step-num{transform:rotate(-8deg) scale(1.08);transition:transform .3s var(--bounce)}
+.platform{transition:transform .3s var(--bounce),background-color .25s,color .25s}
+.platform:hover{background:var(--signal);transform:rotate(-1.5deg) scale(1.02)}
+.platform:hover svg{fill:var(--ink)}
+.platform.reveal{transition:opacity .7s var(--out),transform .9s var(--bounce),background-color .25s,color .25s}
+.platform.reveal.in:hover{transform:rotate(-1.5deg) scale(1.02)}
+.row.reveal:hover h3{color:var(--ink);text-decoration:underline;text-decoration-color:var(--signal);text-decoration-thickness:5px;text-underline-offset:-4px}
+.row h3{transition:text-decoration-color .2s}
+.faq summary::after{transition:transform .35s var(--bounce)}
+.faq details[open] summary::after{transform:rotate(180deg)}
+.faq details[open] p{animation:rise .45s var(--out) both}
+.soon{transition:transform .3s var(--bounce)}
+.row:hover .soon{transform:rotate(-4deg) scale(1.08)}
+
+/* Example: panels slide in on tab change; tabs slide their background */
+.panel:not([hidden]){animation:panelIn .5s var(--out) both}
+.tab{transition:background-color .25s,color .25s}
+.draft-text{transition:color .2s}
+
+/* Price: stamp in when revealed */
+.price-box.reveal.in .price{animation:pop .8s var(--bounce) .25s both}
+.price-list li.reveal{transition-delay:var(--d,0s)}
+
+/* Closing band: big text bounces up once */
+.closing h2.reveal.in{animation:rise .9s var(--bounce) both}
+.closing .cta.big{transition:transform .25s var(--bounce),box-shadow .25s var(--bounce)}
+
+/* Reduced motion: keep content visible, drop movement */
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{scroll-behavior:auto!important;animation:none!important;transition:none!important}
+  .reveal{opacity:1;transform:none}
+  .h1 .hl,h1 .hl{background-size:100% 42%}
+  .kicker{background-size:100% 2px}
+  .ticker-track{animation:none}
+}
 </style>
 </head>
 <body>
@@ -244,6 +329,11 @@ mark{background:var(--signal);color:var(--ink);padding:0 2px}
 </div>
 </figure>
 </section>
+
+<div class="ticker" aria-hidden="true"><div class="ticker-track">
+<span>X threads</span><span>LinkedIn posts</span><span>TikTok hooks</span><span>From any article</span><span>From any YouTube video</span><span>Edit before you post</span>
+<span>X threads</span><span>LinkedIn posts</span><span>TikTok hooks</span><span>From any article</span><span>From any YouTube video</span><span>Edit before you post</span>
+</div></div>
 
 <section class="section" id="examples" aria-labelledby="examples-title">
 <div class="wrap">
@@ -387,6 +477,40 @@ The useful idea: even when a planet is too far away to study directly, its effec
 
 <script>
 document.getElementById("year").textContent = new Date().getFullYear();
+
+/* Scroll reveals: each group staggers in once, as it enters the viewport */
+const revealGroups = [
+  ".section .head",
+  ".step",
+  ".row",
+  ".platform",
+  ".price-box",
+  ".faq details",
+  ".example",
+  ".closing h2"
+];
+const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const revealTargets = [];
+revealGroups.forEach(selector => {
+  document.querySelectorAll(selector).forEach((el, index) => {
+    el.classList.add("reveal");
+    el.style.setProperty("--d", Math.min(index, 4) * 0.09 + "s");
+    revealTargets.push(el);
+  });
+});
+if (reduceMotion || !("IntersectionObserver" in window)) {
+  revealTargets.forEach(el => el.classList.add("in"));
+} else {
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add("in");
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { rootMargin: "0px 0px -8% 0px", threshold: 0.12 });
+  revealTargets.forEach(el => observer.observe(el));
+}
 
 const tabs = [...document.querySelectorAll('[role="tab"]')];
 function selectTab(tab, focus) {
