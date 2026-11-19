@@ -9,61 +9,58 @@
 </head>
 <body>
 <main class="app">
-
-  <header class="masthead">
-    <div class="bar">
-      <a class="brand" href="#" aria-label="HookEngine home"><span class="brand-mark" aria-hidden="true"></span><span>HookEngine</span></a>
-      <div class="top-actions">
-        <span id="statusLabel" class="status-label"><i></i>Ready</span>
-        <button id="settingsButton" class="icon-button" type="button" aria-label="Open settings" title="Settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Z"/><path d="m19.4 15 .1.1a1.8 1.8 0 0 1-2.5 2.5l-.1-.1a1.8 1.8 0 0 0-3 .9v.2a1.8 1.8 0 0 1-3.6 0v-.2a1.8 1.8 0 0 0-3-.9l-.1.1a1.8 1.8 0 0 1-2.5-2.5l.1-.1a1.8 1.8 0 0 0-.9-3h-.2a1.8 1.8 0 0 1 0-3.6h.2a1.8 1.8 0 0 0 .9-3l-.1-.1a1.8 1.8 0 0 1 2.5-2.5l.1.1a1.8 1.8 0 0 0 3-.9v-.2a1.8 1.8 0 0 1 3.6 0v.2a1.8 1.8 0 0 0 3 .9l.1-.1a1.8 1.8 0 0 1 2.5 2.5l-.1.1a1.8 1.8 0 0 0 .9 3h.2a1.8 1.8 0 0 1 0 3.6h-.2a1.8 1.8 0 0 0-.9 3Z"/></svg></button>
-        <button id="themeToggle" class="icon-button" type="button" aria-label="Switch theme" title="Switch theme">
-          <svg class="sun-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg><svg class="moon-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20.5 15.5A8.5 8.5 0 0 1 8.5 3.5 8.5 8.5 0 1 0 20.5 15.5Z"/></svg>
-        </button>
-      </div>
+  <header class="topbar">
+    <a class="brand" href="#" aria-label="HookEngine home"><span class="brand-mark" aria-hidden="true"></span><span>HookEngine</span></a>
+    <div class="top-actions">
+      <button id="settingsButton" class="icon-button settings-button" type="button" aria-label="Open settings" title="Settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Z"/><path d="m19.4 15 .1.1a1.8 1.8 0 0 1-2.5 2.5l-.1-.1a1.8 1.8 0 0 0-3 .9v.2a1.8 1.8 0 0 1-3.6 0v-.2a1.8 1.8 0 0 0-3-.9l-.1.1a1.8 1.8 0 0 1-2.5-2.5l.1-.1a1.8 1.8 0 0 0-.9-3h-.2a1.8 1.8 0 0 1 0-3.6h.2a1.8 1.8 0 0 0 .9-3l-.1-.1a1.8 1.8 0 0 1 2.5-2.5l.1.1a1.8 1.8 0 0 0 3-.9v-.2a1.8 1.8 0 0 1 3.6 0v.2a1.8 1.8 0 0 0 3 .9l.1-.1a1.8 1.8 0 0 1 2.5 2.5l-.1.1a1.8 1.8 0 0 0 .9 3h.2a1.8 1.8 0 0 1 0 3.6h-.2a1.8 1.8 0 0 0-.9 3Z"/></svg></button>
+      <span id="statusLabel" class="status-label"><i></i> Ready</span>
+      <button id="themeToggle" class="icon-button" type="button" aria-label="Switch theme" title="Switch theme">
+        <svg class="sun-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg><svg class="moon-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20.5 15.5A8.5 8.5 0 0 1 8.5 3.5 8.5 8.5 0 1 0 20.5 15.5Z"/></svg>
+      </button>
     </div>
-    <h1 class="headline">Turn one source into <span class="hl">three posts.</span></h1>
-    <p class="lede">Read an article, a selection or a YouTube video, then copy the drafts.</p>
-    <p id="usageLine" class="usage-line" hidden></p>
   </header>
 
-  <section class="step" aria-labelledby="step1-title">
-    <div class="step-head"><span class="num" aria-hidden="true">1</span><h2 id="step1-title">Choose a source</h2><span id="sourceLabel" class="source-label">No source</span></div>
+  <p id="usageLine" class="usage-line muted" hidden></p>
+
+  <section class="source-section">
+    <div class="section-head"><h1>Make posts from this page</h1><span id="sourceLabel" class="source-label">No source</span></div>
     <div class="source-actions">
       <button id="extractBtn" class="source-action source-action-primary" type="button">
-        <span class="source-action-copy"><strong>Read this page</strong><small>Take the article in this tab</small></span>
+        <span class="source-action-icon"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h8"/></svg></span>
+        <span class="source-action-copy"><strong>Read current page</strong><small>Extract the article from this tab</small></span>
         <span class="source-action-arrow" aria-hidden="true">→</span>
       </button>
-      <button id="analyzeVideoBtn" class="source-action" type="button">
-        <span class="source-action-copy"><strong>Analyze a YouTube video</strong><small>Costs 5 credits</small></span>
+      <button id="analyzeVideoBtn" class="source-action source-action-video" type="button">
+        <span class="source-action-icon youtube-icon"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" stroke="none" d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2 31 31 0 0 0 0 12a31 31 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1A31 31 0 0 0 24 12a31 31 0 0 0-.5-5.8Z"/><path fill="var(--bg)" stroke="none" d="m9.6 15.5 6.2-3.5-6.2-3.5z"/></svg></span>
+        <span class="source-action-copy"><strong>Analyze YouTube video</strong><small>Turn a video's content into drafts · 5 credits</small></span>
         <span class="source-action-arrow" aria-hidden="true">→</span>
       </button>
-      <button id="selectionBtn" class="selection-action" type="button">Use selected text instead</button>
+      <button id="selectionBtn" class="selection-action" type="button"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 5h16M4 9h10M4 13h16M4 17h10"/><path d="M18 16v5m-2.5-2.5h5"/></svg> Use selected text instead</button>
     </div>
-    <textarea id="sourceText" rows="5" maxlength="60000" placeholder="Or paste an article or transcript here"></textarea>
+    <textarea id="sourceText" rows="5" maxlength="60000" placeholder="Paste an article or transcript, or read the current page…"></textarea>
     <div class="source-meta"><span id="charCount">0 characters</span><button id="clearSourceBtn" class="text-button" type="button">Clear</button></div>
     <label class="field-label" for="sourceTitle">Title <span>Optional</span></label>
     <input id="sourceTitle" type="text" placeholder="Source title">
     <input id="sourceUrl" type="hidden">
   </section>
 
-  <section class="step" aria-labelledby="step2-title">
-    <div class="step-head"><span class="num" aria-hidden="true">2</span><h2 id="step2-title">Pick platforms</h2><span id="platformCount" class="source-label">3 selected</span></div>
+  <section class="platform-section">
+    <div class="section-head"><h2>Make drafts for</h2><span id="platformCount" class="source-label">3 selected</span></div>
     <div id="platformPicker" class="platform-picker">
-      <label class="platform-option"><input type="checkbox" value="x_thread" checked><span class="platform-name">X</span><span class="platform-detail">Thread</span></label>
-      <label class="platform-option"><input type="checkbox" value="linkedin_post" checked><span class="platform-name">LinkedIn</span><span class="platform-detail">Post</span></label>
-      <label class="platform-option"><input type="checkbox" value="tiktok_hooks" checked><span class="platform-name">TikTok</span><span class="platform-detail">Hooks</span></label>
+      <label class="platform-option"><input type="checkbox" value="x_thread" checked><span class="platform-icon"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" stroke="none" d="M18.9 2H22l-6.8 7.8L23.2 22h-6.3L12 14.6 5.6 22H2.4l7.3-8.4L1.8 2h6.5l4.5 6.8L18.9 2Zm-1.1 18h1.7L7.3 3.9H5.5L17.8 20Z"/></svg></span><span class="platform-copy"><span class="platform-name">X</span><span class="platform-detail">Thread</span></span></label>
+      <label class="platform-option"><input type="checkbox" value="linkedin_post" checked><span class="platform-icon"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" stroke="none" d="M20.4 2H3.6A1.6 1.6 0 0 0 2 3.6v16.8A1.6 1.6 0 0 0 3.6 22h16.8a1.6 1.6 0 0 0 1.6-1.6V3.6A1.6 1.6 0 0 0 20.4 2ZM8 18H5V9h3v9ZM6.5 7.8a1.7 1.7 0 1 1 0-3.4 1.7 1.7 0 0 1 0 3.4ZM19 18h-3v-4.4c0-1.1 0-2.5-1.5-2.5S12.8 12.3 12.8 13.5V18h-3V9h2.9v1.2h.1A3.2 3.2 0 0 1 15.7 8c3.1 0 3.3 2 3.3 4.5V18Z"/></svg></span><span class="platform-copy"><span class="platform-name">LinkedIn</span><span class="platform-detail">Post</span></span></label>
+      <label class="platform-option"><input type="checkbox" value="tiktok_hooks" checked><span class="platform-icon"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" stroke="none" d="M19.6 6.2a5.2 5.2 0 0 1-3.2-4.5V1h-4.1v15.2a2.8 2.8 0 1 1-2.8-2.8c.3 0 .6 0 .9.1v-4.2a7.3 7.3 0 1 0 6 7.2V8.8a9.2 9.2 0 0 0 5.4 1.7V6.4c-.8 0-1.5-.1-2.2-.2Z"/></svg></span><span class="platform-copy"><span class="platform-name">TikTok</span><span class="platform-detail">Hooks</span></span></label>
     </div>
   </section>
 
-  <section class="step" aria-labelledby="step3-title">
-    <div class="step-head"><span class="num" aria-hidden="true">3</span><h2 id="step3-title">Get drafts</h2></div>
-    <div id="loading" class="loading" hidden><span class="spinner"></span><span id="loadingText">Generating drafts…</span></div>
-    <p id="errorMessage" class="error" role="alert" hidden></p>
-    <p id="providerNote" class="provider-note" role="status" hidden></p>
-    <section id="results" class="results" hidden>
-      <div class="results-head"><h2>Drafts</h2><div class="results-actions"><span id="resultCount" class="source-label"></span><button id="copyAllBtn" class="text-button" type="button" hidden>Copy all</button><button id="clearResultsBtn" class="text-button" type="button" hidden>Clear</button></div></div>
-      <div id="outputList" class="output-list"></div>
-    </section>
+  <button id="generateBtn" class="generate-button" type="button"><span id="generateLabel">Generate drafts</span><span aria-hidden="true">→</span></button>
+  <div id="loading" class="loading" hidden><span class="spinner"></span><span id="loadingText">Generating drafts…</span></div>
+  <p id="errorMessage" class="error" role="alert" hidden></p>
+  <p id="providerNote" class="provider-note" role="status" hidden></p>
+
+  <section id="results" class="results" hidden>
+    <div class="results-head"><h2>Drafts</h2><div class="results-actions"><span id="resultCount" class="source-label"></span><button id="copyAllBtn" class="text-button" type="button" hidden>Copy all</button><button id="clearResultsBtn" class="text-button" type="button" hidden>Clear</button></div></div>
+    <div id="outputList" class="output-list"></div>
   </section>
 
   <section class="history-section" aria-labelledby="historyTitle">
@@ -72,11 +69,7 @@
     <ul id="historyList" class="history-list"></ul>
   </section>
 
-  <footer class="footer"><span>HookEngine</span><a href="https://yazoniplay.github.io/HookEngine/account/privacy.html" target="_blank" rel="noopener">Privacy</a></footer>
-
-  <div class="dock">
-    <button id="generateBtn" class="generate-button" type="button"><span id="generateLabel">Generate drafts</span><span aria-hidden="true">→</span></button>
-  </div>
+  <footer><span>HookEngine</span><a href="https://yazoniplay.github.io/HookEngine/account/privacy.html" target="_blank" rel="noopener">Privacy</a></footer>
 </main>
 <script type="module" src="sidepanel.js"></script>
 </body>
