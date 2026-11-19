@@ -2,46 +2,48 @@
    Direction: graphite and cobalt. Hierarchy comes from weight, spacing and hairline rules,
    not from stacked cards. Light and dark share one set of roles. */
 
+/* Palette matches the landing page: paper, ink, signal orange. Dark mode inverts the same roles. */
 :root {
   color-scheme: dark;
-  --bg: #0e0f13;
-  --panel: #16171d;
-  --raised: #1d1f27;
-  --field: #111218;
-  --line: #2a2d38;
-  --line-strong: #3b3f4d;
-  --text: #f3f3f7;
-  --muted: #a3a7b8;
-  --faint: #6f7385;
-  --accent: #8d9bff;
-  --accent-strong: #5f72ff;
-  --accent-ink: #0b0c12;
-  --signal: #ffd166;
-  --danger: #ff9b92;
-  --danger-bg: #3a1f22;
+  --bg: #0c0c0c;
+  --panel: #161616;
+  --raised: #1f1f1f;
+  --field: #111111;
+  --line: #2e2e2e;
+  --line-strong: #5a5a5a;
+  --text: #fafaf7;
+  --muted: #a8a8a0;
+  --faint: #76766f;
+  --accent: #ff5b2e;
+  --accent-strong: #ff5b2e;
+  --accent-ink: #0c0c0c;
+  --signal: #ff5b2e;
+  --danger: #ff8a70;
+  --danger-bg: #2a1510;
   --ok: #7fd6a0;
-  --focus: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
+  --focus: 0 0 0 2px var(--bg), 0 0 0 4px var(--signal);
 }
 
+/* Light mode is the landing page itself: paper background, ink text, orange as the highlight. */
 :root[data-theme="light"] {
   color-scheme: light;
-  --bg: #f4f5f9;
+  --bg: #fafaf7;
   --panel: #ffffff;
-  --raised: #eceef5;
-  --field: #fbfbfd;
-  --line: #d9dce8;
-  --line-strong: #b9bed0;
-  --text: #15161d;
-  --muted: #4f5366;
-  --faint: #7b8096;
-  --accent: #2b3bff;
-  --accent-strong: #1f2de0;
-  --accent-ink: #ffffff;
-  --signal: #ffd166;
-  --danger: #a3262e;
-  --danger-bg: #fdeceb;
+  --raised: #f1efe8;
+  --field: #ffffff;
+  --line: #d9d8d1;
+  --line-strong: #0c0c0c;
+  --text: #0c0c0c;
+  --muted: #5d5d66;
+  --faint: #7b7b84;
+  --accent: #0c0c0c;
+  --accent-strong: #0c0c0c;
+  --accent-ink: #fafaf7;
+  --signal: #ff5b2e;
+  --danger: #b3261e;
+  --danger-bg: #fbe7e4;
   --ok: #1d7a43;
-  --focus: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
+  --focus: 0 0 0 2px var(--bg), 0 0 0 4px var(--signal);
 }
 
 [hidden] { display: none !important; }
@@ -64,7 +66,7 @@ a { color: inherit; }
 .brand { display: flex; align-items: center; gap: 9px; text-decoration: none; font-size: 15px; font-weight: 750; letter-spacing: -.02em; }
 .brand-mark {
   display: grid; place-items: center; width: 26px; height: 26px; border-radius: 8px;
-  background: var(--accent-strong); color: #fff; font-size: 15px; font-weight: 800; line-height: 1;
+  background: var(--signal); color: #0c0c0c; font-size: 15px; font-weight: 800; line-height: 1;
 }
 .top-actions { display: flex; align-items: center; gap: 8px; }
 .status-label { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted); white-space: nowrap; padding: 0 4px; }
@@ -139,7 +141,7 @@ textarea:focus, input[type="text"]:focus { border-color: var(--accent); outline:
   border: 1px solid var(--line); border-radius: 10px; background: var(--panel);
 }
 .platform-option input { position: absolute; opacity: 0; pointer-events: none; }
-.platform-option:has(input:checked) { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--panel)); }
+.platform-option:has(input:checked) { border-color: var(--text); background: color-mix(in srgb, var(--signal) 22%, var(--panel)); }
 .platform-option:has(input:focus-visible) { box-shadow: var(--focus); }
 .platform-icon { display: grid; place-items: center; flex: 0 0 22px; width: 22px; height: 22px; color: var(--text); }
 .platform-icon svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.65; stroke-linecap: round; stroke-linejoin: round; }
@@ -151,10 +153,9 @@ textarea:focus, input[type="text"]:focus { border-color: var(--accent); outline:
 /* Generate */
 .generate-button {
   width: 100%; margin-top: 16px; padding: 13px 16px; border: 0; border-radius: 10px;
-  background: var(--accent-strong); color: #fff; font-size: 14px; font-weight: 700;
+  background: var(--accent-strong); color: var(--accent-ink); font-size: 14px; font-weight: 700;
   display: flex; align-items: center; justify-content: space-between;
 }
-:root[data-theme="light"] .generate-button { background: var(--accent); }
 .generate-button:hover:not(:disabled) { filter: brightness(1.08); }
 .generate-button span:last-child { font-size: 16px; }
 
