@@ -23,7 +23,9 @@ const context = {
 context.chrome = {
   runtime: {
     id: "hookengine-test",
-    onMessage: { addListener(listener) { context.messageListener = listener; } }
+    onMessage: { addListener(listener) { context.messageListener = listener; } },
+    onInstalled: { addListener(listener) { context.installListener = listener; } },
+    getURL(path) { return "chrome-extension://hookengine-test/" + path; }
   },
   storage: {
     local: {
@@ -32,7 +34,7 @@ context.chrome = {
       async remove(key) { storage.delete(key); }
     }
   },
-  tabs: { async query() { return []; } },
+  tabs: { async query() { return []; }, async create() {} },
   scripting: { async executeScript() { return [{ result: null }]; } }
 };
 context.fetch = async () => { throw new Error("Unexpected fetch in test"); };
@@ -408,4 +410,13 @@ test("all manifest icon assets are valid PNGs at their declared dimensions", asy
     assert.equal(png.readUInt32BE(16), size);
     assert.equal(png.readUInt32BE(20), size);
   }
+});
+
+test("first install opens the welcome page; updates do not", async () => {
+  const created = [];
+  context.chrome.tabs.create = async (options) => { created.push(options); };
+  await context.installListener({ reason: "update" });
+  await context.installListener({ reason: "install" });
+  assert.equal(created.length, 1);
+  assert.equal(created[0].url, "chrome-extension://hookengine-test/welcome.html");
 });

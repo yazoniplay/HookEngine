@@ -396,6 +396,12 @@ async function handleGenerationMessage(message) {
   };
 }
 
+// First install opens the welcome page. Updates and reloads stay quiet.
+chrome.runtime.onInstalled.addListener((details) => {
+  if (details?.reason !== "install") return;
+  chrome.tabs.create({ url: chrome.runtime.getURL("welcome.html") });
+});
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   const supported = [
     "HOOKENGINE_EXTRACT_ACTIVE_TAB",

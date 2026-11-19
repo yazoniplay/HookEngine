@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Welcome to HookEngine</title>
+<style>
+:root{--paper:#fafaf7;--ink:#0c0c0c;--mute:#5d5d66;--signal:#ff5b2e;--line:#d9d8d1;--sans:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:var(--paper);color:var(--ink);font:400 17px/1.6 var(--sans);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+main{min-height:100vh;display:flex;flex-direction:column;justify-content:center;max-width:880px;margin:0 auto;padding:64px 28px}
+
+/* Wordmark: letters rise in one by one, the dot drops and lands */
+.word{display:flex;align-items:center;gap:0;font-size:clamp(3.2rem,11vw,7rem);font-weight:800;letter-spacing:-.05em;line-height:.9;position:relative}
+.word .ch{display:inline-block;opacity:0;transform:translateY(60px);animation:rise .8s cubic-bezier(.2,.9,.25,1.25) forwards}
+.dot{position:relative;display:inline-block;width:.22em;height:.22em;border-radius:50%;background:var(--signal);margin-left:.12em;transform:translateY(-240px);animation:drop .9s cubic-bezier(.5,0,.6,1.4) .95s forwards}
+@keyframes rise{to{opacity:1;transform:none}}
+@keyframes drop{0%{transform:translateY(-240px);opacity:1}70%{transform:translateY(0) scaleX(1.25) scaleY(.7)}85%{transform:translateY(-10px) scaleX(.95) scaleY(1.05)}100%{transform:none}}
+
+.intro{margin:28px 0 0;font-size:clamp(1.25rem,3vw,1.7rem);font-weight:650;letter-spacing:-.02em;line-height:1.2;max-width:22ch;opacity:0;animation:fade .6s 1.9s forwards}
+@keyframes fade{to{opacity:1}}
+
+/* The demo: a sentence highlights, then three drafts stamp in */
+.demo{margin-top:44px;border:2px solid var(--ink);background:#fff;opacity:0;animation:fade .5s 2.3s forwards}
+.src{padding:18px 20px;border-bottom:2px solid var(--ink);font-size:15px;line-height:1.5}
+.src small{display:block;color:var(--mute);font-size:12px;margin-bottom:6px}
+.hi{background:linear-gradient(var(--signal),var(--signal)) no-repeat 0 88%/0% 42%;animation:sweep .7s 2.6s cubic-bezier(.6,0,.2,1) forwards}
+@keyframes sweep{to{background-size:100% 42%}}
+.out{display:grid;grid-template-columns:110px 1fr;border-bottom:1px solid var(--line);opacity:0;transform:translateX(40px) rotate(1.5deg);animation:stamp .6s var(--d) cubic-bezier(.34,1.56,.64,1) forwards}
+.out:last-child{border-bottom:0}
+.out-l{padding:14px;font-weight:800;font-size:13px;border-right:1px solid var(--line);background:#f1efe8}
+.out-b{padding:14px 16px;font-size:14px;line-height:1.5;color:#26262a}
+@keyframes stamp{to{opacity:1;transform:none}}
+
+.steps{margin-top:40px;display:grid;gap:14px;opacity:0;animation:fade .6s 3.6s forwards}
+.step{display:flex;gap:14px;align-items:baseline;font-size:16px}
+.num{flex:none;display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--signal);font-weight:800;font-size:14px;color:var(--ink)}
+.step b{font-weight:750}
+.step span.k{color:var(--mute)}
+kbd{font:600 13px/1 var(--sans);padding:3px 7px;border:1.5px solid var(--ink);border-radius:4px;background:#fff}
+
+.done{margin-top:36px;display:flex;align-items:center;gap:20px;flex-wrap:wrap;opacity:0;animation:fade .5s 4s forwards}
+.cta{display:inline-flex;align-items:center;gap:10px;padding:14px 22px;border:2px solid var(--ink);background:var(--ink);color:var(--paper);font:800 16px/1 var(--sans);cursor:pointer;transition:transform .2s cubic-bezier(.34,1.56,.64,1),box-shadow .2s}
+.cta:hover{transform:translate(-3px,-3px);box-shadow:4px 4px 0 var(--signal);background:var(--ink)}
+.cta:focus-visible{outline:3px solid var(--signal);outline-offset:3px}
+.fine{font-size:13px;color:var(--mute)}
+
+/* Confetti: a short burst of orange squares on load */
+.bit{position:fixed;top:40%;left:50%;width:10px;height:10px;background:var(--signal);pointer-events:none;animation:burst 1.1s cubic-bezier(.1,.7,.3,1) forwards;opacity:0}
+@keyframes burst{0%{opacity:1;transform:translate(0,0) rotate(0)}100%{opacity:0;transform:translate(var(--x),var(--y)) rotate(var(--r))}}
+
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}.word .ch,.dot,.intro,.demo,.out,.steps,.done{opacity:1;transform:none}.dot{transform:none}.hi{background-size:100% 42%}.bit{display:none}}
+</style>
+</head>
+<body>
+<main>
+  <h1 class="word" aria-label="HookEngine"><span class="ch" style="animation-delay:.05s">H</span><span class="ch" style="animation-delay:.12s">o</span><span class="ch" style="animation-delay:.19s">o</span><span class="ch" style="animation-delay:.26s">k</span><span class="ch" style="animation-delay:.33s">E</span><span class="ch" style="animation-delay:.4s">n</span><span class="ch" style="animation-delay:.47s">g</span><span class="ch" style="animation-delay:.54s">i</span><span class="ch" style="animation-delay:.61s">n</span><span class="ch" style="animation-delay:.68s">e</span><span class="dot" aria-hidden="true"></span></h1>
+  <p class="intro">One source in. Three posts out. Let’s set you up.</p>
+
+  <div class="demo" aria-hidden="true">
+    <div class="src"><small>Article</small>Webb can study an exoplanet’s atmosphere by watching starlight pass through it, and <span class="hi">the missing wavelengths reveal the molecules</span>.</div>
+    <div class="out" style="--d:3s"><div class="out-l">X thread</div><div class="out-b">1/ A planet’s atmosphere can leave clues in the light of its star.</div></div>
+    <div class="out" style="--d:3.2s"><div class="out-l">LinkedIn</div><div class="out-b">A distant planet can leave a chemical fingerprint in starlight.</div></div>
+    <div class="out" style="--d:3.4s"><div class="out-l">TikTok</div><div class="out-b">What if a planet’s air could be read from the colors missing in a beam of light?</div></div>
+  </div>
+
+  <ol class="steps" style="list-style:none;padding:0;margin-left:0">
+    <li class="step"><span class="num">1</span><span><b>Pin HookEngine.</b> <span class="k">Click the puzzle icon in Chrome, then the pin next to HookEngine.</span></span></li>
+    <li class="step"><span class="num">2</span><span><b>Open any article or video.</b> <span class="k">Click HookEngine and press <kbd>Generate drafts</kbd>.</span></span></li>
+  </ol>
+
+  <div class="done">
+    <button class="cta" id="start" type="button">Start making posts <span aria-hidden="true">→</span></button>
+    <span class="fine">Free. No login. Up to 10 credits a day.</span>
+  </div>
+</main>
+<script src="welcome.js"></script>
+</body>
+</html>
