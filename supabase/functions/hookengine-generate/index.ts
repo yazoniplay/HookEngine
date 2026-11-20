@@ -400,6 +400,7 @@ function promptFor(
     "Repurpose the supplied source into platform-native drafts.",
     "Preserve its meaning. Never invent statistics, quotes, events, facts or personal experiences.",
     "Writing preferences: " + JSON.stringify(preferences),
+    "AUTHOR VOICE: first infer the author's observable writing style from the source text, such as sentence length, formality, directness, how they explain ideas and how they use examples. Write the drafts in that same broad voice so they sound natural and spoken rather than like generic AI copy. Do not impersonate the author, do not claim to be them, and do not copy distinctive phrases verbatim. The drafts are for the person publishing them, so keep them in their own words and use only facts from the source.",
     outputShape,
     "Source title: " + JSON.stringify(title.slice(0, 300)),
     "Requested formats:\n" + instructions,
