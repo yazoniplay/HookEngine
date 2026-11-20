@@ -25,6 +25,7 @@ const GROQ_MODEL = Deno.env.get("GROQ_MODEL") || "llama-3.3-70b-versatile";
 const GROQ_VIDEO_MODEL = Deno.env.get("GROQ_VIDEO_MODEL") || "qwen/qwen3.6-27b";
 const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY") || "";
 const OPENROUTER_VIDEO_MODEL = Deno.env.get("OPENROUTER_VIDEO_MODEL") || "qwen/qwen3.6-flash";
+const OPENROUTER_TEXT_MODEL = Deno.env.get("OPENROUTER_TEXT_MODEL") || "qwen/qwen3.6-flash";
 const OLLAMA_API_KEY = Deno.env.get("OLLAMA_API_KEY") || "";
 const OLLAMA_MODEL = Deno.env.get("OLLAMA_MODEL") || "gpt-oss:20b";
 const OLLAMA_VIDEO_MODEL = Deno.env.get("OLLAMA_VIDEO_MODEL") || "gemma4";
@@ -451,16 +452,21 @@ async function geminiText(prompt: string, platforms: string[], variationCount: n
 }
 
 async function compatibleText(
-  provider: "Groq" | "Ollama",
+  provider: "Groq" | "OpenRouter" | "Ollama",
   prompt: string,
   platforms: string[],
   variationCount: number,
 ): Promise<TextGenerationResult> {
+  const isOpenAICompatible = provider !== "Ollama";
   const isGroq = provider === "Groq";
-  const key = isGroq ? GROQ_API_KEY : OLLAMA_API_KEY;
+  const key = provider === "Groq" ? GROQ_API_KEY : provider === "OpenRouter" ? OPENROUTER_API_KEY : OLLAMA_API_KEY;
   if (!key) throw new Error(provider + " is not configured.");
-  const url = isGroq ? "https://api.groq.com/openai/v1/chat/completions" : "https://ollama.com/api/chat";
-  const model = isGroq ? GROQ_MODEL : OLLAMA_MODEL;
+  const url = provider === "Groq"
+    ? "https://api.groq.com/openai/v1/chat/completions"
+    : provider === "OpenRouter"
+    ? "https://openrouter.ai/api/v1/chat/completions"
+    : "https://ollama.com/api/chat";
+  const model = provider === "Groq" ? GROQ_MODEL : provider === "OpenRouter" ? OPENROUTER_TEXT_MODEL : OLLAMA_MODEL;
   const response = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: "Bearer " + key },
@@ -472,7 +478,7 @@ async function compatibleText(
         { role: "user", content: prompt },
       ],
       response_format: { type: "json_object" },
-      ...(isGroq
+      ...(isOpenAICompatible
         ? { temperature: 0.7, max_tokens: 6000 }
         : { stream: false, format: "json", options: { temperature: 0.7, num_predict: 6000 } }),
     }),
@@ -483,12 +489,12 @@ async function compatibleText(
     (error as Error & { status?: number }).status = response.status;
     throw error;
   }
-  const raw = isGroq ? data?.choices?.[0]?.message?.content : data?.message?.content;
+  const raw = isOpenAICompatible ? data?.choices?.[0]?.message?.content : data?.message?.content;
   const outputs = parseOutputs(typeof raw === "string" ? raw : "", platforms, variationCount);
   if (!outputs) throw new Error(provider + " returned an invalid draft format.");
-  const usage = isGroq ? data?.usage || {} : {};
-  const inputTokens = isGroq ? usage.prompt_tokens : data?.prompt_eval_count;
-  const outputTokens = isGroq ? usage.completion_tokens : data?.eval_count;
+  const usage = isOpenAICompatible ? data?.usage || {} : {};
+  const inputTokens = isOpenAICompatible ? usage.prompt_tokens : data?.prompt_eval_count;
+  const outputTokens = isOpenAICompatible ? usage.completion_tokens : data?.eval_count;
   return {
     outputs,
     model,
@@ -502,6 +508,7 @@ async function generateText(prompt: string, platforms: string[], variationCount:
     () => geminiText(prompt, platforms, variationCount),
     [
       ...(GROQ_API_KEY ? [{ name: "Groq", run: () => compatibleText("Groq", prompt, platforms, variationCount) }] : []),
+      ...(OPENROUTER_API_KEY ? [{ name: "OpenRouter", run: () => compatibleText("OpenRouter", prompt, platforms, variationCount) }] : []),
       ...(OLLAMA_API_KEY ? [{ name: "Ollama", run: () => compatibleText("Ollama", prompt, platforms, variationCount) }] : []),
     ],
     (provider, error) => console.error(provider + " fallback failed", safeErrorStatus(error)),
