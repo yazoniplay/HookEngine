@@ -1,50 +1,143 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1.0">
-    <title>Privacy Policy - HookEngine</title>
-    <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 40px 20px; }
-        h1 { color: #000; border-bottom: 2px solid #eee; padding-bottom: 10px; }
-        h2 { color: #444; margin-top: 30px; }
-        p { margin-bottom: 15px; }
-    </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#fafaf7">
+<meta name="robots" content="index,follow">
+<title>Privacy policy | HookEngine</title>
+<link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#fafaf7; --ink:#0c0c0c; --ink-2:#26262a; --mute:#5d5d66; --rule:#d9d8d1;
+  --signal:#ff5b2e; --tint:#f1efe8; --white:#ffffff;
+  --display:"Familjen Grotesk", "Helvetica Neue", Arial, sans-serif;
+  --body:"IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:400 17px/1.6 var(--body);-webkit-font-smoothing:antialiased}
+a{color:inherit}
+p,h1,h2{margin-top:0}
+h1,h2{font-family:var(--display);font-weight:700;letter-spacing:-.025em;line-height:1.02}
+:focus-visible{outline:3px solid var(--signal);outline-offset:3px}
+.wrap{width:min(1180px,calc(100% - 56px));margin-inline:auto}
+
+/* Header: same bar as the landing page */
+.top{position:sticky;top:0;z-index:5;background:var(--paper);border-bottom:2px solid var(--ink)}
+.nav{height:70px;display:flex;align-items:center;justify-content:space-between;gap:24px}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;font-family:var(--display);font-weight:700;font-size:1.2rem;letter-spacing:-.02em}
+.dot{width:12px;height:12px;border-radius:50%;background:var(--signal);flex:none}
+.navlinks{display:flex;gap:28px;font-size:.95rem;font-weight:500}
+.navlinks a{text-decoration:none}
+.navlinks a:hover{text-decoration:underline;text-underline-offset:4px}
+.cta{display:inline-flex;align-items:center;gap:10px;background:var(--ink);color:var(--paper);padding:10px 16px;font-weight:600;text-decoration:none;border:2px solid var(--ink);font-size:.92rem}
+.cta:hover{background:var(--signal);color:var(--ink)}
+
+/* Document */
+.doc{padding:84px 0 40px;display:grid;grid-template-columns:.8fr 1.2fr;gap:70px;align-items:start}
+.kicker{display:inline-block;font-size:.95rem;font-weight:600;margin:0 0 22px;padding-bottom:6px;border-bottom:2px solid var(--signal)}
+h1{font-size:clamp(3rem,6.4vw,5.4rem);line-height:.96;letter-spacing:-.04em;margin:0 0 22px}
+.updated{color:var(--mute);margin:0;font-size:.98rem}
+.body{border-top:2px solid var(--ink)}
+.body section{padding:30px 0;border-bottom:1px solid var(--rule)}
+.body section:last-child{border-bottom:0}
+.body h2{font-size:1.5rem;margin:0 0 14px}
+.body p{margin:0 0 14px;color:var(--ink-2);max-width:66ch}
+.body ul{margin:0 0 14px;padding-left:20px;color:var(--ink-2);max-width:66ch}
+.body li{margin-bottom:10px}
+.body strong{color:var(--ink)}
+
+/* Footer */
+.footer{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px 32px;padding:36px 0 44px;font-size:.92rem;color:var(--mute);border-top:2px solid var(--ink);margin-top:40px}
+.footlinks{display:flex;gap:24px;flex-wrap:wrap}
+.footlinks a{text-decoration:none}
+.footlinks a:hover{color:var(--ink);text-decoration:underline}
+.footnote{margin:0;width:100%}
+
+@media(max-width:920px){
+  .doc{grid-template-columns:1fr;gap:28px;padding:52px 0 24px}
+  .navlinks{display:none}
+}
+@media(max-width:620px){
+  .wrap{width:calc(100% - 36px)}
+  .nav{height:62px}
+}
+</style>
 </head>
 <body>
-    <h1>Privacy Policy</h1>
-    <p>Last Updated: November 18, 2026</p>
-    <h2>1. Introduction</h2>
-    <p>HookEngine is a free Chrome extension. You do not need an account to use it. This policy explains what information the extension and its service process, and why.</p>
-    <h2>2. Information We Process</h2>
-    <p>To create drafts, the extension sends the following to HookEngine's server:</p>
-    <ul>
-        <li><strong>Source content:</strong> the article text, selected text or transcript you choose to generate from, the optional title, the page address for YouTube videos, and the platforms you select.</li>
-        <li><strong>Connection data for daily limits:</strong> your IP address is combined with a secret salt and converted into a one-way hash. We store only that hash and a count of credits used that day. The raw IP address is never stored or logged. Hashes are removed by a scheduled cleanup after a short retention period (kept for the current UTC day only, then removed).</li>
-    </ul>
-    <h2>3. Information Stored On Your Device</h2>
-    <p>Your draft history is kept in your browser's local storage, the most recent 20 generations. It is not sent to HookEngine. You can clear it at any time from the extension's History section. Uninstalling the extension removes it.</p>
-    <h2>4. How We Use Information</h2>
-    <p>We use the information above only to:</p>
-    <ul>
-        <li>Create the drafts you request.</li>
-        <li>Enforce the daily credit limit per connection and the shared daily cap.</li>
-        <li>Keep the service running and protect it from abuse.</li>
-    </ul>
-    <h2>5. Third-Party Services</h2>
-    <p>HookEngine uses the following services to operate:</p>
-    <ul>
-        <li><strong>AI providers:</strong> your source content is processed by AI models to generate drafts. Depending on availability, providers include Google Gemini, Groq, OpenRouter and Ollama. Each provider handles the content under its own terms. We do not sell your content.</li>
-        <li><strong>Hosting and database:</strong> Supabase hosts HookEngine's functions and the database that holds the limit counters described above.</li>
-    </ul>
-    <p>The extension does not use advertising or analytics services.</p>
-    <h2>6. Accounts Created Before This Change</h2>
-    <p>Earlier versions of HookEngine used sign-in accounts. The extension no longer uses them, and any saved sign-in is removed from your browser when the extension runs. If you have an existing account and want its data deleted, contact us through the support address on the HookEngine landing page.</p>
-    <h2>7. Your Choices</h2>
-    <p>You control what you submit, and you can clear your local history at any time. You can request deletion of any server-side data associated with you through the support address above.</p>
-    <h2>8. Changes to This Policy</h2>
-    <p>We will update this page when our data practices change, and the date above will change with it.</p>
-    <h2>9. Contact</h2>
-    <p>For questions about this policy, use the support address listed on the HookEngine landing page.</p>
+<header class="top"><div class="wrap nav">
+<a class="brand" href="../" aria-label="HookEngine home"><span class="dot" aria-hidden="true"></span>HookEngine</a>
+<a class="cta" href="https://chromewebstore.google.com/detail/hookengine-%E2%80%94-content-repu/ikalaemjdindfenbbaecekkocbbocjma">Add to Chrome <span aria-hidden="true">↗</span></a>
+</div></header>
+
+<main class="wrap doc">
+<div>
+<p class="kicker">Privacy</p>
+<h1>Privacy policy</h1>
+<p class="updated">Last updated: November 18, 2026</p>
+</div>
+
+<div class="body">
+<section>
+<h2>Introduction</h2>
+<p>HookEngine is a free Chrome extension. You do not need an account to use it. This policy explains what information the extension and its service process, and why.</p>
+</section>
+<section>
+<h2>Information we process</h2>
+<p>To create drafts, the extension sends the following to HookEngine's server:</p>
+<ul>
+<li><strong>Source content:</strong> the article text, selected text or transcript you choose to generate from, the optional title, the page address for YouTube videos, and the platforms you select.</li>
+<li><strong>Connection data for daily limits:</strong> your IP address is combined with a secret salt and converted into a one-way hash. We store only that hash and a count of credits used that day. The raw IP address is never stored or logged. Hashes are removed by a scheduled cleanup after a short retention period (kept for the current UTC day only, then removed).</li>
+</ul>
+</section>
+<section>
+<h2>Information stored on your device</h2>
+<p>Your draft history is kept in your browser's local storage, the most recent 20 generations. It is not sent to HookEngine. You can clear it at any time from the extension's History section. Uninstalling the extension removes it.</p>
+</section>
+<section>
+<h2>How we use information</h2>
+<p>We use the information above only to:</p>
+<ul>
+<li>Create the drafts you request.</li>
+<li>Enforce the daily credit limit per connection and the shared daily cap.</li>
+<li>Keep the service running and protect it from abuse.</li>
+</ul>
+</section>
+<section>
+<h2>Third-party services</h2>
+<p>HookEngine uses the following services to operate:</p>
+<ul>
+<li><strong>AI providers:</strong> your source content is processed by AI models to generate drafts. Depending on availability, providers include Google Gemini, Groq, OpenRouter and Ollama. Each provider handles the content under its own terms. We do not sell your content.</li>
+<li><strong>Hosting and database:</strong> Supabase hosts HookEngine's functions and the database that holds the limit counters described above.</li>
+</ul>
+<p>The extension does not use advertising or analytics services.</p>
+</section>
+<section>
+<h2>Accounts created before this change</h2>
+<p>Earlier versions of HookEngine used sign-in accounts. The extension no longer uses them, and any saved sign-in is removed from your browser when the extension runs. If you have an existing account and want its data deleted, contact us through the support address below.</p>
+</section>
+<section>
+<h2>Your choices</h2>
+<p>You control what you submit, and you can clear your local history at any time. You can request deletion of any server-side data associated with you through the support address below.</p>
+</section>
+<section>
+<h2>Changes to this policy</h2>
+<p>We will update this page when our data practices change, and the date above will change with it.</p>
+</section>
+<section>
+<h2>Contact</h2>
+<p>For questions about this policy, email <a href="mailto:yayazan.mahmoud@gmail.com">yayazan.mahmoud@gmail.com</a>.</p>
+</section>
+</div>
+</main>
+
+<footer class="wrap footer">
+<a class="brand" href="../"><span class="dot" aria-hidden="true"></span>HookEngine</a>
+<nav class="footlinks" aria-label="Footer"><a href="privacy.html">Privacy</a><a href="https://chromewebstore.google.com/detail/hookengine-%E2%80%94-content-repu/ikalaemjdindfenbbaecekkocbbocjma">Chrome Web Store</a><a href="mailto:yayazan.mahmoud@gmail.com">Support</a></nav>
+<p class="footnote">© <span id="year"></span> HookEngine</p>
+</footer>
+<script>document.getElementById("year").textContent = new Date().getFullYear();</script>
 </body>
 </html>
