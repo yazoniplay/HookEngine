@@ -369,7 +369,7 @@ async function handleGenerationMessage(message) {
   const resolved = await resolveYouTubeGenerationSource(originalPayload);
   const data = await generateAnonymously(resolved.payload);
   const outputs = data.outputs || Object.fromEntries(
-    ["x_thread", "linkedin_post", "tiktok_hooks", "instagram_caption", "threads_posts", "facebook_post"]
+    ["x_thread", "linkedin_post", "tiktok_hooks"]
       .filter(key => typeof data[key] === "string")
       .map(key => [key, data[key]])
   );

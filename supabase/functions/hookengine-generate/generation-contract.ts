@@ -1,12 +1,7 @@
 export const VARIATION_SEPARATOR = "\n\n---HOOKENGINE-VARIATION---\n\n";
 
 export const FREE_PLATFORMS = ["x_thread", "linkedin_post", "tiktok_hooks"] as const;
-export const ALL_PLATFORMS = [
-  ...FREE_PLATFORMS,
-  "instagram_caption",
-  "threads_posts",
-  "facebook_post",
-] as const;
+export const ALL_PLATFORMS = FREE_PLATFORMS;
 
 const TONES = new Set(["balanced", "professional", "conversational", "confident", "witty", "educational", "inspiring"]);
 const STYLES = new Set(["platform_native", "storytelling", "direct", "analytical", "personal", "bold"]);
@@ -297,9 +292,6 @@ const VIDEO_DRAFT_MIN_WORDS: Record<string, number> = {
   x_thread: 150,
   linkedin_post: 160,
   tiktok_hooks: 130,
-  instagram_caption: 110,
-  threads_posts: 100,
-  facebook_post: 120,
 };
 
 function wordCount(value: string): number {
