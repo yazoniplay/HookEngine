@@ -753,7 +753,8 @@ async function generateYouTubeGemini(
       parsed.outputs[platform] = repaired[platform];
     }
     qualityIssues = [...videoDraftQualityIssues(parsed.outputs, platforms, variationCount), ...draftPolicyIssues(parsed.outputs, platforms, transcript)];
-    if (qualityIssues.length) {
+    // Only length failures block the result. Policy issues are repaired once above but never fail the request.
+    if (videoDraftQualityIssues(parsed.outputs, platforms, variationCount).length) {
       console.error("YouTube social drafts remained below minimum depth after platform repair.", qualityIssues);
       throw new Error("The video did not produce sufficiently detailed social drafts. Please try again with another video.");
     }
