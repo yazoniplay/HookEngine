@@ -417,3 +417,47 @@ export function interactionsSchemaFor(platforms: string[], variationCount: numbe
     additionalProperties: false,
   };
 }
+
+const FIRST_PERSON_EXPERIENCE = /\b(?:I|I['’]ve|I['’]m|we|we['’]ve|my)\s+(?:spent|tested|tried|waited|went|visited|found|played|have been|am|was|started|finally|watched|wasted)\b|\bmy (?:favou?rite|take|verdict)\b|\bbest (?:game|movie|book|album|show|thing) I(?:['’]ve| have)\b/i;
+const UNSUPPORTED_CLAIM = /\b(?:first[- ]ever|first[- ]time ever|for the very first time|the very first|unprecedented|impossible|decades-long|first direct observation|most (?:scientists|people|experts|players|fans) (?:thought|think|believe|believed))\b/i;
+
+function sourceWords(text: string): string[] {
+  return text.toLowerCase().match(/[\p{L}\p{N}]+/gu) || [];
+}
+
+// Flags drafts that write personal experiences, claims the source does not make, or copied source wording.
+export function draftPolicyIssues(
+  outputs: Record<string, string[]>,
+  platforms: string[],
+  sourceText: string,
+): string[] {
+  const issues: string[] = [];
+  const words = sourceWords(sourceText);
+  const sourceGrams = new Set<string>();
+  for (let i = 0; i + 8 <= words.length; i++) sourceGrams.add(words.slice(i, i + 8).join(" "));
+  const sourceLower = sourceText.toLowerCase();
+
+  for (const platform of platforms) {
+    const drafts = outputs[platform] || [];
+    drafts.forEach((draft, index) => {
+      const label = platform + (drafts.length > 1 ? " version " + (index + 1) : "");
+      if (FIRST_PERSON_EXPERIENCE.test(draft)) {
+        issues.push(label + ": writes a personal experience or opinion as the poster; attribute it to the source's speaker or remove it");
+      }
+      const claim = draft.match(UNSUPPORTED_CLAIM);
+      if (claim && !sourceLower.includes(claim[0].toLowerCase())) {
+        issues.push(label + ": claims \"" + claim[0] + "\" without support in the source; remove it or hedge it");
+      }
+      if (sourceGrams.size) {
+        const draftWords = sourceWords(draft);
+        for (let i = 0; i + 8 <= draftWords.length; i++) {
+          if (sourceGrams.has(draftWords.slice(i, i + 8).join(" "))) {
+            issues.push(label + ": copies wording from the source; rewrite it in new words");
+            break;
+          }
+        }
+      }
+    });
+  }
+  return issues;
+}
