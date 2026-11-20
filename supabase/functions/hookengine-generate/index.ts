@@ -711,46 +711,14 @@ async function generateYouTube(
   variationCount: number,
   transcript: string,
 ): Promise<TextGenerationResult & { analysis: string; provider: string; fallbackUsed: boolean }> {
-  const attempts: Array<{ name: "Gemini" | "OpenRouter" | "Groq" | "Ollama"; run: () => Promise<TextGenerationResult & { analysis: string; provider: string; fallbackUsed: boolean }> }> = [
-    ...(GEMINI_API_KEY ? [{ name: "Gemini" as const, run: () => generateYouTubeGemini(url, title, platforms, preferences, variationCount, transcript) }] : []),
-    ...(OPENROUTER_API_KEY ? [{
-      name: "OpenRouter" as const,
-      run: async () => runFallbackVideoGeneration("OpenRouter", url, title, platforms, preferences, variationCount, transcript),
-    }] : []),
-    ...(GROQ_API_KEY ? [{
-      name: "Groq" as const,
-      run: async () => runFallbackVideoGeneration("Groq", url, title, platforms, preferences, variationCount, transcript),
-    }] : []),
-    ...(OLLAMA_API_KEY ? [{
-      name: "Ollama" as const,
-      run: async () => runFallbackVideoGeneration("Ollama", url, title, platforms, preferences, variationCount, transcript),
-    }] : []),
-  ];
-
-  let storyboard: VideoStoryboardContext | undefined;
-  for (const attempt of attempts) {
-    try {
-      if (attempt.name === "Groq" || attempt.name === "Ollama") {
-        storyboard ??= await loadYouTubeStoryboardContext(url);
-      }
-      if (attempt.name === "Gemini") return await attempt.run();
-      const result = await runFallbackVideoGeneration(
-        attempt.name,
-        url,
-        title,
-        platforms,
-        preferences,
-        variationCount,
-        transcript,
-        storyboard,
-      );
-      return result;
-    } catch (error) {
-      const detail = error instanceof Error ? error.message.slice(0, 500) : "Unknown provider error.";
-      console.error("YouTube video provider failed.", attempt.name, safeErrorStatus(error), detail);
-    }
+  // YouTube analysis uses Gemini only. The OpenRouter, Groq and Ollama video paths are not reliable enough to fall back to.
+  try {
+    return await generateYouTubeGemini(url, title, platforms, preferences, variationCount, transcript);
+  } catch (error) {
+    const detail = error instanceof Error ? error.message.slice(0, 500) : "Unknown provider error.";
+    console.error("YouTube Gemini analysis failed.", safeErrorStatus(error), detail);
+    throw new Error("AI providers are temporarily unavailable. Please try again shortly.");
   }
-  throw new Error("AI providers are temporarily unavailable. Please try again shortly.");
 }
 
 async function runFallbackVideoGeneration(
