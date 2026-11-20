@@ -179,6 +179,44 @@ async function loadYouTubeStoryboardContext(url: string): Promise<VideoStoryboar
   return { sheets, ollamaImages };
 }
 
+const TONE_RULES: Record<string, string> = {
+  balanced: "Tone: balanced and clear.",
+  professional: "Tone: professional and measured.",
+  conversational: "Tone: conversational, plain and relaxed, like talking to a friend.",
+  confident: "Tone: confident and assertive.",
+  witty: "Tone: witty. Every draft needs at least one light joke, playful turn of phrase or sharp observation taken from the source. Never mock people.",
+  educational: "Tone: educational. Explain clearly and define any term a newcomer may not know.",
+  inspiring: "Tone: uplifting and motivating, without empty hype.",
+};
+const STYLE_RULES: Record<string, string> = {
+  platform_native: "Style: use the natural structure of each platform.",
+  storytelling: "Style: storytelling. Each draft is a short story with a concrete setup, a turn and a payoff, built only from events and details in the source.",
+  direct: "Style: direct and concise. State the point in the first sentence and cut every unnecessary word.",
+  analytical: "Style: analytical. Lead with an insight, then explain the reasoning using the source's evidence.",
+  personal: "Style: personal. Use first person only for the source's own speaker or author. Never invent experiences, feelings or opinions for the person posting.",
+  bold: "Style: bold. Open with a specific, bold claim taken from the source, then deliver tightly.",
+};
+const LENGTH_RULES: Record<string, string> = {
+  platform_default: "Length: each platform's default length.",
+  short: "Length: short. Use the minimum each platform needs.",
+  medium: "Length: medium. Give each draft a moderate amount of detail.",
+  detailed: "Length: detailed. Include the source's specifics in each draft.",
+};
+
+function preferenceRules(preferences: GenerationPreferences): string {
+  const rules = [
+    "WRITING PREFERENCES (follow every one in every draft):",
+    TONE_RULES[preferences.tone] ?? TONE_RULES.balanced,
+    STYLE_RULES[preferences.style] ?? STYLE_RULES.platform_native,
+    LENGTH_RULES[preferences.length] ?? LENGTH_RULES.platform_default,
+  ];
+  const audience = preferences.audience.trim().slice(0, 160);
+  if (audience) {
+    rules.push("Audience: write for " + JSON.stringify(audience) + ". Address this audience directly in at least one draft.");
+  }
+  return rules.join("\n");
+}
+
 function videoPrompt(
   title: string,
   platforms: string[],
@@ -203,8 +241,8 @@ function videoPrompt(
     "VOICE ADAPTATION: write the social drafts with the same broad conversational feel and communication traits identified in the delivery profile, so they sound natural and spoken rather than like generic AI copy. Preserve the speaker's level of energy, directness, complexity and explanatory rhythm. Do not impersonate the person, claim to be them, or copy distinctive catchphrases verbatim.",
     "SOCIAL DRAFT DEPTH: do not make the platform drafts short summaries of the video. Treat each requested format as a finished, publishable piece of content. Follow the per-platform length and structure guidance below; use the available output budget for substance, not filler. Include the speaker's actual reasoning, examples, useful specifics and nuance where supported. Avoid generic introductions, repeated points and vague motivational language. If the video genuinely lacks enough material for a requested length, write the strongest complete version the source supports rather than padding or inventing details.",
     "Keep the video_analysis and social drafts separate: the analysis explains the whole video, while each social draft should independently communicate a coherent, valuable idea to its platform's audience.",
-    "Use the transcript for accurate wording and sequence when supplied, and use the video frames for visual context. Never invent facts, quotes, examples, timestamps or details. Do not fabricate timestamps; only include them when directly available and reliable. Every number, name, price, date and quote in a draft must appear in the transcript or the video analysis. Each platform draft takes a different angle, and no point appears in more than one draft. Rewrite transcript sentences in new words instead of copying them.",
-    "Writing preferences: " + JSON.stringify(preferences),
+    "Use the transcript for accurate wording and sequence when supplied, and use the video frames for visual context. Never invent facts, quotes, examples, timestamps or details. Do not fabricate timestamps; only include them when directly available and reliable. Every number, name, price, date and quote in a draft must appear in the transcript or the video analysis. Each platform draft takes a different angle, and no point appears in more than one draft. Rewrite transcript sentences in new words instead of copying them. Do not reuse an analogy, example or key phrase across platforms. Do not describe anything as first, unprecedented, impossible or long-expected unless the transcript or the video analysis says so. Never write as if the person posting had the experience or the opinion; attribute experiences to the video's speaker only, and keep any hedge the source uses such as "may have" or "appears to".",
+    preferenceRules(preferences),
     outputShape,
     "Video title: " + JSON.stringify(title.slice(0, 300)),
     "Requested formats:\n" + instructions,
@@ -401,9 +439,10 @@ function promptFor(
   return [
     "Repurpose the supplied source into platform-native drafts.",
     "Preserve its meaning. Never invent statistics, quotes, events, facts or personal experiences.",
-    "Writing preferences: " + JSON.stringify(preferences),
+    preferenceRules(preferences),
     "AUTHOR VOICE: first infer the author's observable writing style from the source text, such as sentence length, formality, directness, how they explain ideas and how they use examples. Write the drafts in that same broad voice so they sound natural and spoken rather than like generic AI copy. Do not impersonate the author, do not claim to be them, and do not copy distinctive phrases verbatim. The drafts are for the person publishing them, so keep them in their own words and use only facts from the source.",
     "NO REPETITION: make each point appear once across all outputs. Do not copy source sentences into hooks, posts or scripts; rewrite them in new words. Each hook must argue a different idea, and the script must be a fresh spoken telling rather than a restatement of the source.",
+    "ACCURACY AND VOICE: never write as if the person posting had the experience or the opinion. Do not describe anything as first, unprecedented, impossible or long-expected unless the source says so, and keep any hedge the source uses such as \"may have\" or \"appears to\".",
     outputShape,
     "Source title: " + JSON.stringify(title.slice(0, 300)),
     "Requested formats:\n" + instructions,
@@ -549,8 +588,8 @@ async function generateYouTubeGemini(
     "VOICE ADAPTATION: write the social drafts with the same broad conversational feel and communication traits identified in the delivery profile, so they sound natural and spoken rather than like generic AI copy. Preserve the speaker's level of energy, directness, complexity and explanatory rhythm. Do not impersonate the person, claim to be them, or copy distinctive catchphrases verbatim.",
     "SOCIAL DRAFT DEPTH: do not make the platform drafts short summaries of the video. Treat each requested format as a finished, publishable piece of content. Follow the per-platform length and structure guidance below; use the available output budget for substance, not filler. Include the speaker's actual reasoning, examples, useful specifics and nuance where supported. Avoid generic introductions, repeated points and vague motivational language. If the video genuinely lacks enough material for a requested length, write the strongest complete version the source supports rather than padding or inventing details.",
     "Keep the video_analysis and social drafts separate: the analysis explains the whole video, while each social draft should independently communicate a coherent, valuable idea to its platform's audience.",
-    "Use the transcript for accurate wording and sequence when supplied, and use the video for visual context. Never invent facts, quotes, examples, timestamps or details. Do not fabricate timestamps; only include them when directly available and reliable. Every number, name, price, date and quote in a draft must appear in the transcript or the video analysis. Each platform draft takes a different angle, and no point appears in more than one draft. Rewrite transcript sentences in new words instead of copying them.",
-    "Writing preferences: " + JSON.stringify(preferences),
+    "Use the transcript for accurate wording and sequence when supplied, and use the video for visual context. Never invent facts, quotes, examples, timestamps or details. Do not fabricate timestamps; only include them when directly available and reliable. Every number, name, price, date and quote in a draft must appear in the transcript or the video analysis. Each platform draft takes a different angle, and no point appears in more than one draft. Rewrite transcript sentences in new words instead of copying them. Do not reuse an analogy, example or key phrase across platforms. Do not describe anything as first, unprecedented, impossible or long-expected unless the transcript or the video analysis says so. Never write as if the person posting had the experience or the opinion; attribute experiences to the video's speaker only, and keep any hedge the source uses such as "may have" or "appears to".",
+    preferenceRules(preferences),
     outputShape,
     "Video title: " + JSON.stringify(title.slice(0, 300)),
     "Requested formats:\n" + instructions,
@@ -641,7 +680,7 @@ async function generateYouTubeGemini(
         "Platform: " + platform,
         "Platform requirements: " + PLATFORM_GUIDANCE[platform],
         "Minimum words per variation: " + ({ x_thread: 150, linkedin_post: 160, tiktok_hooks: 130, instagram_caption: 110, threads_posts: 100, facebook_post: 120 } as Record<string, number>)[platform],
-        "Writing preferences: " + JSON.stringify(preferences),
+        preferenceRules(preferences),
         "Video analysis for context: " + parsed.analysis,
         "Previous short drafts (rewrite them substantially; do not merely rephrase): " + JSON.stringify(failedDrafts),
         transcriptSection,
@@ -779,7 +818,7 @@ async function runFallbackVideoGeneration(
         "Video title: " + JSON.stringify(title.slice(0, 300)),
         "Platform: " + platform,
         "Platform requirements: " + PLATFORM_GUIDANCE[platform],
-        "Writing preferences: " + JSON.stringify(preferences),
+        preferenceRules(preferences),
         "Video analysis for context: " + parsed.analysis,
         "Previous short drafts (rewrite them substantially): " + JSON.stringify(parsed.outputs[platform] || []),
         transcript.trim() ? "TRANSCRIPT:\n" + transcript.slice(0, 60000) : "",
