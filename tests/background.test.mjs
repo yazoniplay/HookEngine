@@ -156,13 +156,6 @@ test("the popup entry point loads the popup application as a module", async () =
   assert.match(popup, /<script type="module" src="sidepanel\.js"><\/script>/);
 });
 
-test("transient session verification failures preserve the saved login", async () => {
-  const auth = await readFile(new URL("../extension/auth.js", import.meta.url), "utf8");
-  assert.match(auth, /session is preserved/);
-  assert.match(auth, /session has been kept/);
-  assert.match(auth, /writeStoredSession\(null\)/);
-});
-
 test("the popup clears any login left by earlier versions", async () => {
   const popup = await readFile(new URL("../sidepanel.js", import.meta.url), "utf8");
   assert.match(popup, /removeLegacySession\(\)/);

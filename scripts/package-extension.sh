@@ -13,7 +13,7 @@ mkdir -p "$DIST_DIR"
 required_files=(
   manifest.json background.js content.js popup.html sidepanel.js styles.css
   settings.html settings.js settings.css
-  extension/auth.js extension/config.js extension/usage-display.mjs
+  extension/config.js
   vendor/readability.js
   icons/icon16.png icons/icon32.png icons/icon48.png icons/icon128.png
 )
@@ -36,9 +36,7 @@ zip -r -X "$ZIP_PATH" \
   settings.css \
   icons \
   vendor \
-  extension/auth.js \
   extension/config.js \
-  extension/usage-display.mjs
 
 # Verify the archive contains every required file.
 for file in "${required_files[@]}"; do
