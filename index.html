@@ -4,14 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#fafaf7">
-<meta name="description" content="Turn a YouTube video or article into an X thread, LinkedIn post and TikTok hooks. Edit your drafts in HookEngine.">
+<meta name="description" content="Turn a YouTube video or article into X threads, LinkedIn posts, TikTok hooks, YouTube Shorts scripts, Reddit posts and Facebook posts. Edit your drafts in HookEngine.">
 <meta name="robots" content="index,follow">
-<title>YouTube video to X thread, LinkedIn & TikTok | HookEngine</title>
+<title>YouTube video to social posts | HookEngine</title>
 <link rel="canonical" href="https://yazoniplay.github.io/HookEngine/">
 <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
 <meta property="og:type" content="website">
 <meta property="og:title" content="HookEngine — Article in. Social drafts out.">
-<meta property="og:description" content="Turn a YouTube video or article into an X thread, LinkedIn post and TikTok hooks.">
+<meta property="og:description" content="Turn a YouTube video or article into X threads, LinkedIn posts, TikTok hooks, YouTube Shorts scripts, Reddit posts and Facebook posts.">
 <meta property="og:url" content="https://yazoniplay.github.io/HookEngine/">
 <meta property="og:image" content="https://yazoniplay.github.io/HookEngine/assets/og-image.svg">
 <meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
@@ -131,6 +131,8 @@ mark{background:var(--signal);color:var(--ink);padding:0 2px}
 .platforms{display:grid;grid-template-columns:repeat(3,1fr);border:2px solid var(--ink);background:var(--white)}
 .platform{display:flex;align-items:center;gap:14px;padding:30px 26px;font-family:var(--display);font-weight:700;font-size:1.9rem;letter-spacing:-.02em}
 .platform+.platform{border-left:2px solid var(--ink)}
+.platform:nth-child(4){border-left:0}
+.platform:nth-child(n+4){border-top:2px solid var(--ink)}
 .platform svg{width:30px;height:30px;fill:var(--ink)}
 
 /* Pricing */
@@ -307,7 +309,7 @@ mark{background:var(--signal);color:var(--ink);padding:0 2px}
 <div>
 <p class="kicker">A Chrome extension for creators</p>
 <h1 id="hero-title">Turn one <span class="hl">source</span> into three posts.</h1>
-<p class="lede">Open a YouTube video or an article. HookEngine drafts an X thread, a LinkedIn post and TikTok hooks from it. You edit, copy and post.</p>
+<p class="lede">Open a YouTube video or an article. HookEngine drafts X threads, LinkedIn posts, TikTok hooks, YouTube Shorts scripts, Reddit posts and Facebook posts from it. You edit, copy and post.</p>
 <div class="hero-actions">
 <a class="cta big" href="https://chromewebstore.google.com/detail/hookengine-%E2%80%94-content-repu/ikalaemjdindfenbbaecekkocbbocjma">Add to Chrome, it’s free <span aria-hidden="true">↗</span></a>
 <a class="text-link" href="#examples">See an example ↓</a>
@@ -331,8 +333,8 @@ mark{background:var(--signal);color:var(--ink);padding:0 2px}
 </section>
 
 <div class="ticker" aria-hidden="true"><div class="ticker-track">
-<span>X threads</span><span>LinkedIn posts</span><span>TikTok hooks</span><span>From any article</span><span>From any YouTube video</span><span>Edit before you post</span>
-<span>X threads</span><span>LinkedIn posts</span><span>TikTok hooks</span><span>From any article</span><span>From any YouTube video</span><span>Edit before you post</span>
+<span>X threads</span><span>LinkedIn posts</span><span>TikTok hooks</span><span>YouTube Shorts scripts</span><span>Reddit posts</span><span>Facebook posts</span><span>From any article</span><span>From any YouTube video</span><span>Edit before you post</span>
+<span>X threads</span><span>LinkedIn posts</span><span>TikTok hooks</span><span>YouTube Shorts scripts</span><span>Reddit posts</span><span>Facebook posts</span><span>From any article</span><span>From any YouTube video</span><span>Edit before you post</span>
 </div></div>
 
 <section class="section" id="examples" aria-labelledby="examples-title">
@@ -395,7 +397,7 @@ NASA’s James Webb Space Telescope relies on specialized instruments called spe
 <div class="head"><h2 id="how-title">Three steps. Then it’s yours.</h2><p>Keep the useful idea and change the format. Every draft stays editable, so you make the final call.</p></div>
 <div class="steps">
 <article class="step"><span class="step-num">1</span><h3>Open a source</h3><p>Use the article you’re reading, select some text, or open a public YouTube video.</p></article>
-<article class="step"><span class="step-num">2</span><h3>Pick platforms</h3><p>Choose X, LinkedIn or TikTok. Each gets its own draft format.</p></article>
+<article class="step"><span class="step-num">2</span><h3>Pick platforms</h3><p>Choose any of the six formats. Each gets its own draft format.</p></article>
 <article class="step"><span class="step-num">3</span><h3>Edit, copy, post</h3><p>Adjust the draft in your own words, copy the version you want, and publish when it’s ready.</p></article>
 </div>
 </div>
@@ -414,11 +416,14 @@ NASA’s James Webb Space Telescope relies on specialized instruments called spe
 
 <section class="section" aria-labelledby="platforms-title">
 <div class="wrap">
-<div class="head"><h2 id="platforms-title">Pick where the idea goes.</h2><p>Three platforms are available without an account.</p></div>
+<div class="head"><h2 id="platforms-title">Pick where the idea goes.</h2><p>All six are free, and none needs an account.</p></div>
 <div class="platforms">
 <div class="platform"><svg aria-hidden="true"><use href="assets/platforms.svg#x"/></svg>X</div>
 <div class="platform"><svg aria-hidden="true"><use href="assets/platforms.svg#linkedin"/></svg>LinkedIn</div>
 <div class="platform"><svg aria-hidden="true"><use href="assets/platforms.svg#tiktok"/></svg>TikTok</div>
+<div class="platform"><svg aria-hidden="true"><use href="assets/platforms.svg#youtube"/></svg>YouTube Shorts</div>
+<div class="platform"><svg aria-hidden="true"><use href="assets/platforms.svg#reddit"/></svg>Reddit</div>
+<div class="platform"><svg aria-hidden="true"><use href="assets/platforms.svg#facebook"/></svg>Facebook</div>
 </div>
 </div>
 </section>
@@ -434,7 +439,7 @@ NASA’s James Webb Space Telescope relies on specialized instruments called spe
 <div>
 <ul class="price-list">
 <li>Up to 10 credits a day: 10 articles or texts, or 2 videos</li>
-<li>X threads, LinkedIn posts and TikTok hooks</li>
+<li>X threads, LinkedIn posts, TikTok hooks, YouTube Shorts scripts, Reddit posts and Facebook posts</li>
 <li>Editable drafts</li>
 <li>History kept on your device</li>
 </ul>
