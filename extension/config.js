@@ -14,5 +14,8 @@ export const VARIATION_SEPARATOR = "\n\n---HOOKENGINE-VARIATION---\n\n";
 export const PLATFORM_LABELS = Object.freeze({
   x_thread: "X thread",
   linkedin_post: "LinkedIn post",
-  tiktok_hooks: "TikTok hooks"
+  tiktok_hooks: "TikTok hooks",
+  youtube_shorts_script: "YouTube Shorts script",
+  reddit_post: "Reddit post",
+  facebook_post: "Facebook post"
 });
