@@ -437,11 +437,16 @@ function sourceWords(text: string): string[] {
 }
 
 // Flags drafts that write personal experiences, claims the source does not make, or copied source wording.
+const COMMON_CAPITALISED = new Set(["i", "the", "a", "an", "this", "that", "these", "here", "what", "why", "how", "is", "are", "do", "you", "your", "we", "it", "if", "when", "who", "and", "but", "or", "so", "in", "on", "at", "for", "to", "of", "with", "not", "no", "yes", "also", "my"]);
+
+// groundingText is what names, products and numbers must come from. It defaults to sourceText.
 export function draftPolicyIssues(
   outputs: Record<string, string[]>,
   platforms: string[],
   sourceText: string,
+  groundingText: string = sourceText,
 ): string[] {
+  const groundWords = new Set(sourceWords(groundingText));
   const issues: string[] = [];
   const words = sourceWords(sourceText);
   const sourceGrams = new Set<string>();
@@ -452,6 +457,16 @@ export function draftPolicyIssues(
     const drafts = outputs[platform] || [];
     drafts.forEach((draft, index) => {
       const label = platform + (drafts.length > 1 ? " version " + (index + 1) : "");
+      if (groundingText.trim()) {
+        const names = draft.match(/\p{Lu}[\p{L}\p{N}]*/gu) || [];
+        const unknown = names.find((name) => {
+          const lower = name.toLowerCase();
+          return !groundWords.has(lower) && !COMMON_CAPITALISED.has(lower);
+        });
+        if (unknown) {
+          issues.push(label + ": names \"" + unknown + "\", which does not appear in the transcript; remove it or replace it with a term from the transcript");
+        }
+      }
       const claim = draft.match(UNSUPPORTED_CLAIM);
       if (claim && !sourceLower.includes(claim[0].toLowerCase())) {
         issues.push(label + ": claims \"" + claim[0] + "\" without support in the source; remove it or hedge it");

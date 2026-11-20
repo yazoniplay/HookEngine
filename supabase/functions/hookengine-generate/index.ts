@@ -242,7 +242,7 @@ function videoPrompt(
     "VOICE ADAPTATION: write the social drafts with the same broad conversational feel and communication traits identified in the delivery profile, so they sound natural and spoken rather than like generic AI copy. Preserve the speaker's level of energy, directness, complexity and explanatory rhythm. Do not impersonate the person, claim to be them, or copy distinctive catchphrases verbatim.",
     "SOCIAL DRAFT DEPTH: do not make the platform drafts short summaries of the video. Treat each requested format as a finished, publishable piece of content. Follow the per-platform length and structure guidance below; use the available output budget for substance, not filler. Include the speaker's actual reasoning, examples, useful specifics and nuance where supported. Avoid generic introductions, repeated points and vague motivational language. If the video genuinely lacks enough material for a requested length, write the strongest complete version the source supports rather than padding or inventing details.",
     "Keep the video_analysis and social drafts separate: the analysis explains the whole video, while each social draft should independently communicate a coherent, valuable idea to its platform's audience.",
-    "Use the transcript for accurate wording and sequence when supplied, and use the video frames for visual context. Never invent facts, quotes, examples, timestamps or details. Do not fabricate timestamps; only include them when directly available and reliable. Every number, name, price, date and quote in a draft must appear in the transcript or the video analysis. Each platform draft takes a different angle, and no point appears in more than one draft. Rewrite transcript sentences in new words instead of copying them. Do not reuse an analogy, example or key phrase across platforms. Do not describe anything as first, unprecedented, impossible or long-expected unless the transcript or the video analysis says so. First person is fine when it describes what the video shows the speaker doing. Never invent experiences or opinions that the transcript or the analysis do not show, and keep any hedge the source uses such as 'may have' or 'appears to'.",
+    "Use the transcript for accurate wording and sequence when supplied, and use the video frames for visual context. Never invent facts, quotes, examples, timestamps or details. Do not fabricate timestamps; only include them when directly available and reliable. Every number, name, price, date and quote in a draft must appear in the transcript or the video analysis. Each platform draft takes a different angle, and no point appears in more than one draft. Rewrite transcript sentences in new words instead of copying them. When a transcript is supplied, it is the only source for names, products, places, numbers and quotes; leave out anything it does not contain. Do not reuse an analogy, example or key phrase across platforms. Do not describe anything as first, unprecedented, impossible or long-expected unless the transcript or the video analysis says so. First person is fine when it describes what the video shows the speaker doing. Never invent experiences or opinions that the transcript or the analysis do not show, and keep any hedge the source uses such as 'may have' or 'appears to'.",
     preferenceRules(preferences),
     outputShape,
     "Video title: " + JSON.stringify(title.slice(0, 300)),
@@ -607,7 +607,7 @@ async function generateYouTubeGemini(
     "VOICE ADAPTATION: write the social drafts with the same broad conversational feel and communication traits identified in the delivery profile, so they sound natural and spoken rather than like generic AI copy. Preserve the speaker's level of energy, directness, complexity and explanatory rhythm. Do not impersonate the person, claim to be them, or copy distinctive catchphrases verbatim.",
     "SOCIAL DRAFT DEPTH: do not make the platform drafts short summaries of the video. Treat each requested format as a finished, publishable piece of content. Follow the per-platform length and structure guidance below; use the available output budget for substance, not filler. Include the speaker's actual reasoning, examples, useful specifics and nuance where supported. Avoid generic introductions, repeated points and vague motivational language. If the video genuinely lacks enough material for a requested length, write the strongest complete version the source supports rather than padding or inventing details.",
     "Keep the video_analysis and social drafts separate: the analysis explains the whole video, while each social draft should independently communicate a coherent, valuable idea to its platform's audience.",
-    "Use the transcript for accurate wording and sequence when supplied, and use the video for visual context. Never invent facts, quotes, examples, timestamps or details. Do not fabricate timestamps; only include them when directly available and reliable. Every number, name, price, date and quote in a draft must appear in the transcript or the video analysis. Each platform draft takes a different angle, and no point appears in more than one draft. Rewrite transcript sentences in new words instead of copying them. Do not reuse an analogy, example or key phrase across platforms. Do not describe anything as first, unprecedented, impossible or long-expected unless the transcript or the video analysis says so. First person is fine when it describes what the video shows the speaker doing. Never invent experiences or opinions that the transcript or the analysis do not show, and keep any hedge the source uses such as 'may have' or 'appears to'.",
+    "Use the transcript for accurate wording and sequence when supplied, and use the video for visual context. Never invent facts, quotes, examples, timestamps or details. Do not fabricate timestamps; only include them when directly available and reliable. Every number, name, price, date and quote in a draft must appear in the transcript or the video analysis. Each platform draft takes a different angle, and no point appears in more than one draft. Rewrite transcript sentences in new words instead of copying them. When a transcript is supplied, it is the only source for names, products, places, numbers and quotes; leave out anything it does not contain. Do not reuse an analogy, example or key phrase across platforms. Do not describe anything as first, unprecedented, impossible or long-expected unless the transcript or the video analysis says so. First person is fine when it describes what the video shows the speaker doing. Never invent experiences or opinions that the transcript or the analysis do not show, and keep any hedge the source uses such as 'may have' or 'appears to'.",
     preferenceRules(preferences),
     outputShape,
     "Video title: " + JSON.stringify(title.slice(0, 300)),
@@ -684,7 +684,7 @@ async function generateYouTubeGemini(
   // Repair each failing platform independently. Bundling several formats and the
   // full video analysis into one repair response caused Gemini to keep compressing
   // every draft instead of expanding the formats that actually failed.
-  let qualityIssues = [...videoDraftQualityIssues(parsed.outputs, platforms, variationCount), ...draftPolicyIssues(parsed.outputs, platforms, transcript + "\n" + parsed.analysis)];
+  let qualityIssues = [...videoDraftQualityIssues(parsed.outputs, platforms, variationCount), ...draftPolicyIssues(parsed.outputs, platforms, transcript + "\n" + parsed.analysis, transcript)];
   if (qualityIssues.length) {
     console.warn("YouTube social drafts failed depth checks; repairing platforms separately.", qualityIssues);
     const failingPlatforms = [...new Set(qualityIssues.map((issue) => issue.split(":")[0].replace(/ version \\d+$/, "")))];
@@ -752,12 +752,12 @@ async function generateYouTubeGemini(
       if (!repaired) throw new Error("The " + platform + " drafts returned an invalid format. Please try again.");
       const score = (drafts: string[]) =>
         videoDraftQualityIssues({ [platform]: drafts }, [platform], variationCount).length +
-        draftPolicyIssues({ [platform]: drafts }, [platform], transcript + "\n" + parsed.analysis).length;
+        draftPolicyIssues({ [platform]: drafts }, [platform], transcript + "\n" + parsed.analysis, transcript).length;
       if (score(repaired[platform] || []) <= score(parsed.outputs[platform] || [])) {
         parsed.outputs[platform] = repaired[platform];
       }
     }
-    qualityIssues = [...videoDraftQualityIssues(parsed.outputs, platforms, variationCount), ...draftPolicyIssues(parsed.outputs, platforms, transcript + "\n" + parsed.analysis)];
+    qualityIssues = [...videoDraftQualityIssues(parsed.outputs, platforms, variationCount), ...draftPolicyIssues(parsed.outputs, platforms, transcript + "\n" + parsed.analysis, transcript)];
     // Only length failures block the result. Policy issues are repaired once above but never fail the request.
     if (videoDraftQualityIssues(parsed.outputs, platforms, variationCount).length) {
       console.error("YouTube social drafts remained below minimum depth after platform repair.", qualityIssues);
@@ -823,7 +823,7 @@ async function runFallbackVideoGeneration(
   const result = await fallbackVideoRaw(provider, url, prompt, storyboard);
   const parsed = parseVideoOutputs(result.raw, platforms, variationCount);
   if (!parsed) throw new Error(provider + " returned an invalid video analysis or draft format.");
-  let qualityIssues = [...videoDraftQualityIssues(parsed.outputs, platforms, variationCount), ...draftPolicyIssues(parsed.outputs, platforms, transcript + "\n" + parsed.analysis)];
+  let qualityIssues = [...videoDraftQualityIssues(parsed.outputs, platforms, variationCount), ...draftPolicyIssues(parsed.outputs, platforms, transcript + "\n" + parsed.analysis, transcript)];
   if (qualityIssues.length) {
     console.warn("Video fallback drafts failed depth checks; repairing each platform separately.", provider, qualityIssues);
     const failingPlatforms = [...new Set(qualityIssues.map((issue) => issue.split(":")[0].replace(/ version \\d+$/, "")))];
@@ -857,12 +857,12 @@ async function runFallbackVideoGeneration(
       if (!repaired) throw new Error(provider + " returned an invalid repaired " + platform + " draft.");
       const score = (drafts: string[]) =>
         videoDraftQualityIssues({ [platform]: drafts }, [platform], variationCount).length +
-        draftPolicyIssues({ [platform]: drafts }, [platform], transcript + "\n" + parsed.analysis).length;
+        draftPolicyIssues({ [platform]: drafts }, [platform], transcript + "\n" + parsed.analysis, transcript).length;
       if (score(repaired[platform] || []) <= score(parsed.outputs[platform] || [])) {
         parsed.outputs[platform] = repaired[platform];
       }
     }
-    qualityIssues = [...videoDraftQualityIssues(parsed.outputs, platforms, variationCount), ...draftPolicyIssues(parsed.outputs, platforms, transcript + "\n" + parsed.analysis)];
+    qualityIssues = [...videoDraftQualityIssues(parsed.outputs, platforms, variationCount), ...draftPolicyIssues(parsed.outputs, platforms, transcript + "\n" + parsed.analysis, transcript)];
     if (qualityIssues.length) {
       throw new Error(provider + " could not meet the required draft depth: " + qualityIssues.join("; ").slice(0, 350));
     }
