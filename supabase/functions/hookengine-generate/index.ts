@@ -752,12 +752,12 @@ async function generateYouTubeGemini(
       if (!repaired) throw new Error("The " + platform + " drafts returned an invalid format. Please try again.");
       const score = (drafts: string[]) =>
         videoDraftQualityIssues({ [platform]: drafts }, [platform], variationCount).length +
-        draftPolicyIssues({ [platform]: drafts }, [platform], transcript).length;
+        draftPolicyIssues({ [platform]: drafts }, [platform], transcript + "\n" + parsed.analysis).length;
       if (score(repaired[platform] || []) <= score(parsed.outputs[platform] || [])) {
         parsed.outputs[platform] = repaired[platform];
       }
     }
-    qualityIssues = [...videoDraftQualityIssues(parsed.outputs, platforms, variationCount), ...draftPolicyIssues(parsed.outputs, platforms, transcript)];
+    qualityIssues = [...videoDraftQualityIssues(parsed.outputs, platforms, variationCount), ...draftPolicyIssues(parsed.outputs, platforms, transcript + "\n" + parsed.analysis)];
     // Only length failures block the result. Policy issues are repaired once above but never fail the request.
     if (videoDraftQualityIssues(parsed.outputs, platforms, variationCount).length) {
       console.error("YouTube social drafts remained below minimum depth after platform repair.", qualityIssues);
@@ -857,12 +857,12 @@ async function runFallbackVideoGeneration(
       if (!repaired) throw new Error(provider + " returned an invalid repaired " + platform + " draft.");
       const score = (drafts: string[]) =>
         videoDraftQualityIssues({ [platform]: drafts }, [platform], variationCount).length +
-        draftPolicyIssues({ [platform]: drafts }, [platform], transcript).length;
+        draftPolicyIssues({ [platform]: drafts }, [platform], transcript + "\n" + parsed.analysis).length;
       if (score(repaired[platform] || []) <= score(parsed.outputs[platform] || [])) {
         parsed.outputs[platform] = repaired[platform];
       }
     }
-    qualityIssues = [...videoDraftQualityIssues(parsed.outputs, platforms, variationCount), ...draftPolicyIssues(parsed.outputs, platforms, transcript)];
+    qualityIssues = [...videoDraftQualityIssues(parsed.outputs, platforms, variationCount), ...draftPolicyIssues(parsed.outputs, platforms, transcript + "\n" + parsed.analysis)];
     if (qualityIssues.length) {
       throw new Error(provider + " could not meet the required draft depth: " + qualityIssues.join("; ").slice(0, 350));
     }
