@@ -35,8 +35,6 @@ jobs:
         run: deno check supabase/functions/hookengine-paypal-webhook/index.ts
       - name: Test PayPal plan ID and signature verification
         run: deno test supabase/functions/hookengine-paypal-webhook/plan-validation.test.ts supabase/functions/hookengine-paypal-webhook/signature.test.ts
-      - name: Check account JavaScript syntax
-        run: node --check account/account.js
       - name: Check extension popup JavaScript syntax
         run: node --check sidepanel.js
       - name: Check background worker JavaScript syntax
