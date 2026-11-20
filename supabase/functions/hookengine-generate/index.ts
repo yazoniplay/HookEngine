@@ -720,7 +720,7 @@ async function generateYouTube(
 ): Promise<TextGenerationResult & { analysis: string; provider: string; fallbackUsed: boolean }> {
   // YouTube analysis uses Gemini only. The OpenRouter, Groq and Ollama video paths are not reliable enough to fall back to.
   // Gemini returns 503 or 429 during demand spikes. Those are temporary, so retry a couple of times before giving up.
-  const maxAttempts = 3;
+  const maxAttempts = 4;
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
       return await generateYouTubeGemini(url, title, platforms, preferences, variationCount, transcript);
@@ -733,7 +733,7 @@ async function generateYouTube(
       if (!retryable || attempt === maxAttempts) {
         throw new Error("AI providers are temporarily unavailable. Please try again shortly.");
       }
-      await new Promise((resolve) => setTimeout(resolve, 2000 * attempt));
+      await new Promise((resolve) => setTimeout(resolve, 6000 * attempt));
     }
   }
   throw new Error("AI providers are temporarily unavailable. Please try again shortly.");
