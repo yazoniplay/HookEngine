@@ -750,7 +750,12 @@ async function generateYouTubeGemini(
       }
       const repaired = parseOutputs(platformRaw, [platform], variationCount);
       if (!repaired) throw new Error("The " + platform + " drafts returned an invalid format. Please try again.");
-      parsed.outputs[platform] = repaired[platform];
+      const score = (drafts: string[]) =>
+        videoDraftQualityIssues({ [platform]: drafts }, [platform], variationCount).length +
+        draftPolicyIssues({ [platform]: drafts }, [platform], transcript).length;
+      if (score(repaired[platform] || []) <= score(parsed.outputs[platform] || [])) {
+        parsed.outputs[platform] = repaired[platform];
+      }
     }
     qualityIssues = [...videoDraftQualityIssues(parsed.outputs, platforms, variationCount), ...draftPolicyIssues(parsed.outputs, platforms, transcript)];
     // Only length failures block the result. Policy issues are repaired once above but never fail the request.
@@ -850,7 +855,12 @@ async function runFallbackVideoGeneration(
       const repairedRaw = await fallbackVideoRaw(provider, url, repairPrompt, storyboard);
       const repaired = parseOutputs(repairedRaw.raw, [platform], variationCount);
       if (!repaired) throw new Error(provider + " returned an invalid repaired " + platform + " draft.");
-      parsed.outputs[platform] = repaired[platform];
+      const score = (drafts: string[]) =>
+        videoDraftQualityIssues({ [platform]: drafts }, [platform], variationCount).length +
+        draftPolicyIssues({ [platform]: drafts }, [platform], transcript).length;
+      if (score(repaired[platform] || []) <= score(parsed.outputs[platform] || [])) {
+        parsed.outputs[platform] = repaired[platform];
+      }
     }
     qualityIssues = [...videoDraftQualityIssues(parsed.outputs, platforms, variationCount), ...draftPolicyIssues(parsed.outputs, platforms, transcript)];
     if (qualityIssues.length) {

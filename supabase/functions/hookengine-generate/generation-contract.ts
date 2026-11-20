@@ -256,6 +256,15 @@ function parseJsonObject(raw: string): Record<string, unknown> | null {
   return null;
 }
 
+
+// The model sometimes puts all numbered hooks on one line. Put each hook on its own line,
+// and end the last hook where the script starts.
+export function formatTikTokDraft(draft: string): string {
+  let text = draft.replace(/\s+(?=[2-9]\.\s)/g, "\n");
+  text = text.replace(/^(5\.\s.*?[.?!])\s+/m, "$1\n\n");
+  return text;
+}
+
 export function parseOutputs(
   raw: string,
   platforms: string[],
@@ -276,7 +285,10 @@ export function parseOutputs(
         versions.some((version) => typeof version !== "string" || !version.trim() || version.length > 20000)) {
       return null;
     }
-    output[platform] = versions.map((version) => (version as string).trim());
+    output[platform] = versions.map((version) => {
+      const text = (version as string).trim();
+      return platform === "tiktok_hooks" ? formatTikTokDraft(text) : text;
+    });
   }
   return output;
 }
