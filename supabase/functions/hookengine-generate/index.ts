@@ -544,7 +544,51 @@ async function compatibleText(
   };
 }
 
+// Gemini with Google Search: find background facts for an article or text. Returns null if it fails, so drafts still work.
+async function researchSource(sourceText: string): Promise<{ notes: string; sources: string[] } | null> {
+  if (!GEMINI_API_KEY) return null;
+  try {
+    const response = await fetch(
+      "https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(GEMINI_MODEL) + ":generateContent",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-goog-api-key": GEMINI_API_KEY },
+        signal: AbortSignal.timeout(20000),
+        body: JSON.stringify({
+          contents: [{
+            role: "user",
+            parts: [{
+              text: "Read this text, then search the web for 3 to 5 reliable facts that add context to it, such as background, dates, definitions or related developments. Do not repeat the text. Give each fact as one short sentence and name the source. Text:\n" + sourceText.slice(0, 6000),
+            }],
+          }],
+          tools: [{ google_search: {} }],
+        }),
+      },
+    );
+    if (!response.ok) return null;
+    const data = await response.json().catch(() => ({}));
+    const candidate = data?.candidates?.[0];
+    const notes = (candidate?.content?.parts || []).map((part: { text?: string }) => part.text || "").join("").trim();
+    const sources = (candidate?.groundingMetadata?.groundingChunks || [])
+      .map((chunk: { web?: { uri?: string } }) => chunk?.web?.uri)
+      .filter((uri: unknown): uri is string => typeof uri === "string")
+      .slice(0, 8);
+    if (!notes) return null;
+    return { notes, sources };
+  } catch (error) {
+    console.warn("Research step skipped.", safeErrorStatus(error));
+    return null;
+  }
+}
+
 async function generateText(prompt: string, platforms: string[], variationCount: number, sourceText = "") {
+  // Articles and text: add web research. The research notes count as source material for the accuracy checks.
+  const research = sourceText.trim() ? await researchSource(sourceText) : null;
+  if (research) {
+    prompt += "\n\nRESEARCH (outside facts from web search; use only the ones that fit, attribute each to its source by name, and never invent details):\n" +
+      research.notes + "\nSources: " + research.sources.join(", ");
+  }
+  const grounding = research ? sourceText + "\n" + research.notes : sourceText;
   const result = await runWithProviderFallback(
     () => geminiText(prompt, platforms, variationCount),
     [
@@ -555,8 +599,8 @@ async function generateText(prompt: string, platforms: string[], variationCount:
     (provider, error) => console.error(provider + " fallback failed", safeErrorStatus(error)),
   );
   const value = { ...result.value, provider: result.provider, fallbackUsed: result.fallbackUsed };
-  if (!sourceText.trim()) return value;
-  const issues = draftPolicyIssues(value.outputs, platforms, sourceText);
+  if (!grounding.trim()) return value;
+  const issues = draftPolicyIssues(value.outputs, platforms, grounding);
   if (!issues.length) return value;
   console.warn("Text drafts failed policy checks; repairing once.", issues);
   try {
@@ -566,7 +610,7 @@ async function generateText(prompt: string, platforms: string[], variationCount:
       platforms,
       variationCount,
     );
-    const remaining = draftPolicyIssues(repaired.outputs, platforms, sourceText);
+    const remaining = draftPolicyIssues(repaired.outputs, platforms, grounding);
     return remaining.length < issues.length ? repaired : value;
   } catch (error) {
     console.warn("Text repair failed; keeping first drafts.", safeErrorStatus(error));
