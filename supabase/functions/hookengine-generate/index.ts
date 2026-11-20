@@ -719,13 +719,24 @@ async function generateYouTube(
   transcript: string,
 ): Promise<TextGenerationResult & { analysis: string; provider: string; fallbackUsed: boolean }> {
   // YouTube analysis uses Gemini only. The OpenRouter, Groq and Ollama video paths are not reliable enough to fall back to.
-  try {
-    return await generateYouTubeGemini(url, title, platforms, preferences, variationCount, transcript);
-  } catch (error) {
-    const detail = error instanceof Error ? error.message.slice(0, 500) : "Unknown provider error.";
-    console.error("YouTube Gemini analysis failed.", safeErrorStatus(error), detail);
-    throw new Error("AI providers are temporarily unavailable. Please try again shortly.");
+  // Gemini returns 503 or 429 during demand spikes. Those are temporary, so retry a couple of times before giving up.
+  const maxAttempts = 3;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return await generateYouTubeGemini(url, title, platforms, preferences, variationCount, transcript);
+    } catch (error) {
+      const status = safeErrorStatus(error);
+      const detail = error instanceof Error ? error.message.slice(0, 500) : "Unknown provider error.";
+      console.error("YouTube Gemini analysis failed.", "attempt " + attempt, status, detail);
+      const explicitStatus = (error as { status?: unknown } | null)?.status;
+      const retryable = explicitStatus === 503 || explicitStatus === 429;
+      if (!retryable || attempt === maxAttempts) {
+        throw new Error("AI providers are temporarily unavailable. Please try again shortly.");
+      }
+      await new Promise((resolve) => setTimeout(resolve, 2000 * attempt));
+    }
   }
+  throw new Error("AI providers are temporarily unavailable. Please try again shortly.");
 }
 
 async function runFallbackVideoGeneration(
