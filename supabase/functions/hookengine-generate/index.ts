@@ -19,6 +19,7 @@ import { reservationHttpStatus, reservationLimitReached } from "./reservation-st
 import { buildCorsHeaders, corsPreflight, jsonReply, parseAllowedOrigins } from "./http-response.ts";
 
 const GEMINI_MODEL = Deno.env.get("GEMINI_MODEL") || "gemini-3.5-flash-lite";
+const GEMINI_FALLBACK_MODEL = Deno.env.get("GEMINI_FALLBACK_MODEL") || "gemini-3.1-flash-lite";
 const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY") || "";
 const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY") || "";
 const GROQ_MODEL = Deno.env.get("GROQ_MODEL") || "llama-3.3-70b-versatile";
@@ -523,6 +524,7 @@ async function generateYouTubeGemini(
   preferences: GenerationPreferences,
   variationCount: number,
   transcript: string,
+  model: string = GEMINI_MODEL,
 ): Promise<TextGenerationResult & { analysis: string; provider: string; fallbackUsed: boolean }> {
   if (!GEMINI_API_KEY) {
     const error = new Error("Gemini video analysis is not configured.");
@@ -561,7 +563,7 @@ async function generateYouTubeGemini(
     headers: { "Content-Type": "application/json", "x-goog-api-key": GEMINI_API_KEY },
     signal: AbortSignal.timeout(90000),
     body: JSON.stringify({
-      model: GEMINI_MODEL,
+      model,
       system_instruction: GENERATION_SYSTEM_INSTRUCTION,
       input: [
         { type: "video", uri: url, processing: "static" },
@@ -650,7 +652,7 @@ async function generateYouTubeGemini(
         headers: { "Content-Type": "application/json", "x-goog-api-key": GEMINI_API_KEY },
         signal: AbortSignal.timeout(90000),
         body: JSON.stringify({
-          model: GEMINI_MODEL,
+          model,
           system_instruction: GENERATION_SYSTEM_INSTRUCTION,
           input: [
             { type: "video", uri: url, processing: "static" },
@@ -702,7 +704,7 @@ async function generateYouTubeGemini(
   return {
     outputs: parsed.outputs,
     analysis: parsed.analysis,
-    model: typeof data.model === "string" ? data.model : GEMINI_MODEL,
+    model: typeof data.model === "string" ? data.model : model,
     inputTokens: Number.isInteger(usage.total_input_tokens) ? usage.total_input_tokens : null,
     outputTokens: Number.isInteger(usage.total_output_tokens) ? usage.total_output_tokens : null,
     provider: "Gemini",
@@ -719,21 +721,24 @@ async function generateYouTube(
   transcript: string,
 ): Promise<TextGenerationResult & { analysis: string; provider: string; fallbackUsed: boolean }> {
   // YouTube analysis uses Gemini only. The OpenRouter, Groq and Ollama video paths are not reliable enough to fall back to.
-  // Gemini returns 503 or 429 during demand spikes. Those are temporary, so retry a couple of times before giving up.
-  const maxAttempts = 4;
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    try {
-      return await generateYouTubeGemini(url, title, platforms, preferences, variationCount, transcript);
-    } catch (error) {
-      const status = safeErrorStatus(error);
-      const detail = error instanceof Error ? error.message.slice(0, 500) : "Unknown provider error.";
-      console.error("YouTube Gemini analysis failed.", "attempt " + attempt, status, detail);
-      const explicitStatus = (error as { status?: unknown } | null)?.status;
-      const retryable = explicitStatus === 503 || explicitStatus === 429;
-      if (!retryable || attempt === maxAttempts) {
-        throw new Error("AI providers are temporarily unavailable. Please try again shortly.");
+  // Gemini returns 503 or 429 during demand spikes. Retry the primary model, then try the fallback Gemini model.
+  // Every attempt stays on Gemini.
+  const models = GEMINI_FALLBACK_MODEL && GEMINI_FALLBACK_MODEL !== GEMINI_MODEL
+    ? [GEMINI_MODEL, GEMINI_FALLBACK_MODEL]
+    : [GEMINI_MODEL];
+  for (const model of models) {
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        return await generateYouTubeGemini(url, title, platforms, preferences, variationCount, transcript, model);
+      } catch (error) {
+        const status = safeErrorStatus(error);
+        const detail = error instanceof Error ? error.message.slice(0, 500) : "Unknown provider error.";
+        console.error("YouTube Gemini analysis failed.", model, "attempt " + attempt, status, detail);
+        const explicitStatus = (error as { status?: unknown } | null)?.status;
+        const retryable = explicitStatus === 503 || explicitStatus === 429;
+        if (!retryable) break;
+        if (attempt < 2) await new Promise((resolve) => setTimeout(resolve, 6000));
       }
-      await new Promise((resolve) => setTimeout(resolve, 6000 * attempt));
     }
   }
   throw new Error("AI providers are temporarily unavailable. Please try again shortly.");
