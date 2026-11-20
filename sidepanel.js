@@ -330,9 +330,8 @@ async function requestGeneration(payload) {
   showUsage(data.usage);
   const notes = [];
   if (result.transcriptUsed) notes.push("Transcript-first");
-  else if (payload.sourceMode === "youtube_video") notes.push("Gemini video analysis");
-  if (data.provider) notes.push("Generated with " + data.provider);
-  if (data.fallbackUsed) notes.push("primary provider unavailable");
+  else if (payload.sourceMode === "youtube_video") notes.push("Video analysis");
+  notes.push("Generated with AI");
   $("providerNote").textContent = notes.join(" · ");
   $("providerNote").hidden = notes.length === 0;
   return data;
@@ -347,9 +346,8 @@ async function restoreLastGeneration() {
 
     const notes = [];
     if (last.transcriptUsed) notes.push("Transcript-first");
-    else if (last.sourceMode === "youtube_video") notes.push("Gemini video analysis");
-    if (last.provider) notes.push("Generated with " + last.provider);
-    if (last.fallbackUsed) notes.push("primary provider unavailable");
+    else if (last.sourceMode === "youtube_video") notes.push("Video analysis");
+    notes.push("Generated with AI");
     $("providerNote").textContent = notes.join(" · ");
     $("providerNote").hidden = notes.length === 0;
   } catch (error) {
