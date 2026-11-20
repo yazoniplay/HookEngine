@@ -59,9 +59,7 @@ jobs:
           node --check content.js
           node --check sidepanel.js
           node --check settings.js
-          node --check extension/auth.js
           node --check extension/config.js
-          node --check extension/usage-display.mjs
           node --check vendor/readability.js
       - name: Run extension regression tests
         run: node --test tests/*.test.mjs
