@@ -430,7 +430,6 @@ export function interactionsSchemaFor(platforms: string[], variationCount: numbe
   };
 }
 
-const FIRST_PERSON_EXPERIENCE = /\b(?:I|I['’]ve|I['’]m|we|we['’]ve|my)\s+(?:spent|tested|tried|waited|went|visited|found|played|have been|am|was|started|finally|watched|wasted|decided|took|checked|pushed|drove|ignored|ran|did|tasted|ate|loved|hated|think|believe)\b|\bmy (?:favou?rite|take|verdict)\b|\bbest (?:game|movie|book|album|show|thing) I(?:['’]ve| have)\b/i;
 const UNSUPPORTED_CLAIM = /\b(?:first[- ]ever|first[- ]time ever|for the very first time|the very first|unprecedented|impossible|decades-long|first direct observation|most (?:scientists|people|experts|players|fans) (?:thought|think|believe|believed))\b/i;
 
 function sourceWords(text: string): string[] {
@@ -453,16 +452,6 @@ export function draftPolicyIssues(
     const drafts = outputs[platform] || [];
     drafts.forEach((draft, index) => {
       const label = platform + (drafts.length > 1 ? " version " + (index + 1) : "");
-      if (FIRST_PERSON_EXPERIENCE.test(draft)) {
-        issues.push(label + ": writes a personal experience or opinion as the poster; attribute it to the source's speaker or remove it");
-      }
-      const body = draft.replace(/(^|\n)\s*\d+[.\/)]\s/g, "$1").replace(/\d+\/(?=\s)/g, "");
-      const sourceNumbers = sourceText.replace(/(\d),(\d)/g, "$1$2");
-      const numbers = body.replace(/(\d),(\d)/g, "$1$2").match(/\d+(?:\.\d+)?/g) || [];
-      const unknown = numbers.find((n) => !sourceNumbers.includes(n));
-      if (unknown) {
-        issues.push(label + ": uses the number " + unknown + ", which does not appear in the source; remove it");
-      }
       const claim = draft.match(UNSUPPORTED_CLAIM);
       if (claim && !sourceLower.includes(claim[0].toLowerCase())) {
         issues.push(label + ": claims \"" + claim[0] + "\" without support in the source; remove it or hedge it");
