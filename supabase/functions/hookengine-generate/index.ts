@@ -753,10 +753,13 @@ async function generateYouTubeGemini(
       }
       const repaired = parseOutputs(platformRaw, [platform], variationCount);
       if (!repaired) throw new Error("The " + platform + " drafts returned an invalid format. Please try again.");
-      const score = (drafts: string[]) =>
-        videoDraftQualityIssues({ [platform]: drafts }, [platform], variationCount).length +
-        draftPolicyIssues({ [platform]: drafts }, [platform], transcript + "\n" + parsed.analysis, transcript).length;
-      if (score(repaired[platform] || []) <= score(parsed.outputs[platform] || [])) {
+      const lengthCount = (drafts: string[]) => videoDraftQualityIssues({ [platform]: drafts }, [platform], variationCount).length;
+      const policyCount = (drafts: string[]) => draftPolicyIssues({ [platform]: drafts }, [platform], transcript + "\n" + parsed.analysis, transcript).length;
+      // A repair is used only if it has no more length problems and no more policy problems than the draft it replaces.
+      if (
+        lengthCount(repaired[platform] || []) <= lengthCount(parsed.outputs[platform] || []) &&
+        policyCount(repaired[platform] || []) <= policyCount(parsed.outputs[platform] || [])
+      ) {
         parsed.outputs[platform] = repaired[platform];
       }
     }
@@ -858,10 +861,13 @@ async function runFallbackVideoGeneration(
       const repairedRaw = await fallbackVideoRaw(provider, url, repairPrompt, storyboard);
       const repaired = parseOutputs(repairedRaw.raw, [platform], variationCount);
       if (!repaired) throw new Error(provider + " returned an invalid repaired " + platform + " draft.");
-      const score = (drafts: string[]) =>
-        videoDraftQualityIssues({ [platform]: drafts }, [platform], variationCount).length +
-        draftPolicyIssues({ [platform]: drafts }, [platform], transcript + "\n" + parsed.analysis, transcript).length;
-      if (score(repaired[platform] || []) <= score(parsed.outputs[platform] || [])) {
+      const lengthCount = (drafts: string[]) => videoDraftQualityIssues({ [platform]: drafts }, [platform], variationCount).length;
+      const policyCount = (drafts: string[]) => draftPolicyIssues({ [platform]: drafts }, [platform], transcript + "\n" + parsed.analysis, transcript).length;
+      // A repair is used only if it has no more length problems and no more policy problems than the draft it replaces.
+      if (
+        lengthCount(repaired[platform] || []) <= lengthCount(parsed.outputs[platform] || []) &&
+        policyCount(repaired[platform] || []) <= policyCount(parsed.outputs[platform] || [])
+      ) {
         parsed.outputs[platform] = repaired[platform];
       }
     }
